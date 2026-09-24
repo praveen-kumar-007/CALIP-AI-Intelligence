@@ -1,0 +1,59 @@
+{
+  "document_id": "doc_aabe13f6b77cf178",
+  "title": "High Court Revision Order 147/2002",
+  "case_id": null,
+  "court": "Bombay High Court",
+  "file_hash": "aabe13f6b77cf178900a633e8507aafda7817374af674c6b5fcd2c611464e693",
+  "original_url": null,
+  "extracted_at": "2026-09-24T14:37:03.794814+00:00",
+  "page_count": 1,
+  "total_words": 30,
+  "total_characters": 189,
+  "ocr_required": false,
+  "ocr_pages_count": 0,
+  "average_confidence": 1.0,
+  "pages": [
+    {
+      "page_number": 1,
+      "text": "IN THE HIGH COURT OF JUDICATURE AT BOMBAY\nCRIMINAL REVISION APPLICATION NO. 147 OF 2002\nBefore Hon'ble Single Judge.\nOrder: Section 406 IPC charge framed. Matter posted for regular hearing.",
+      "confidence": 1.0,
+      "method": "pymupdf_text",
+      "ocr_applied": false,
+      "word_count": 30,
+      "char_count": 189,
+      "layout_blocks": [
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "IN THE HIGH COURT OF JUDICATURE AT BOMBAY",
+          "char_count": 41
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "CRIMINAL REVISION APPLICATION NO. 147 OF 2002",
+          "char_count": 45
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "Before Hon'ble Single Judge.",
+          "char_count": 28
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "Order: Section 406 IPC charge framed. Matter posted for regular hearing.",
+          "char_count": 72
+        }
+      ]
+    }
+  ],
+  "rag_chunks_count": 1,
+  "storage_paths": {
+    "plain_text": "data\\ocr_extracted\\doc_aabe13f6b77cf178.txt",
+    "structured_json": "data\\ocr_extracted\\doc_aabe13f6b77cf178.json",
+    "rag_chunks_json": "data\\ocr_extracted\\doc_aabe13f6b77cf178_rag_chunks.json",
+    "llm_context_md": "data\\ocr_extracted\\doc_aabe13f6b77cf178_llm_context.md"
+  }
+}

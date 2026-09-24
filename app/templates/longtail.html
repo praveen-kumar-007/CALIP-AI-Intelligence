@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+      <a href="/" style="color: var(--text-dim); font-size: 0.85rem;">Home</a>
+      <span style="color: var(--text-dim);">&bull;</span>
+      <span style="color: var(--accent-cyan); font-size: 0.85rem;">Longtail Hierarchy</span>
+    </div>
+    <h1 style="font-size: 2rem; font-weight: 800; color: var(--text-main);">Longtail Cases Hierarchical Catalog</h1>
+    <p style="color: var(--text-muted); font-size: 0.95rem;">
+      Direct hierarchical structure from longtailcases.com: Category &rarr; Case &rarr; Folder &rarr; Subfolder &rarr; Document PDF.
+    </p>
+  </div>
+
+  <div style="display: flex; gap: 0.75rem;">
+    <form action="/api/longtail/harvest" method="post" onsubmit="alert('Full catalog harvest started in background!');">
+      <button type="submit" class="btn btn-secondary btn-sm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"/>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+        </svg>
+        Re-sync Upstream
+      </button>
+    </form>
+    <a href="/api/longtail/catalog" target="_blank" class="btn btn-primary btn-sm">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+      </svg>
+      Export Tree JSON
+    </a>
+  </div>
+</div>
+
+<div class="tree-container">
+  {% for cat_name, cases in catalog.categories.items() %}
+  <div class="category-block" id="{{ cat_name|replace(' ', '_') }}">
+    <div class="category-header">
+      <div class="category-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-cyan);">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+        </svg>
+        <span>{{ cat_name }}</span>
+      </div>
+      <span class="badge badge-indigo">{{ cases|length }} Case Records</span>
+    </div>
+
+    <div class="case-folder-list">
+      {% for case in cases %}
+      <div class="case-tree-node">
+        <div class="case-tree-header">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <a href="/cases/{{ case.case_id }}" style="font-weight: 700; color: var(--text-main); font-size: 1.05rem;">
+              {{ case.title }}
+            </a>
+            {% if case.case_number and case.case_number != 'MIS/SUMMARY' %}
+            <code style="font-family: var(--font-mono); font-size: 0.8rem; color: #38bdf8; background: rgba(56, 189, 248, 0.1); padding: 0.15rem 0.4rem; border-radius: 4px;">
+              {{ case.case_number }}
+            </code>
+            {% endif %}
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <a href="{{ case.url }}" target="_blank" style="font-size: 0.8rem; color: var(--text-dim);" title="Open source longtailcases URL">
+              Source &nearr;
+            </a>
+            <a href="/cases/{{ case.case_id }}" class="btn btn-secondary btn-sm" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">
+              View Case
+            </a>
+          </div>
+        </div>
+
+        <!-- Direct Documents on Case Level -->
+        {% if case.documents %}
+        <div style="margin-left: 0.5rem; margin-bottom: 0.75rem;">
+          <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-bottom: 0.4rem;">
+            Direct Documents ({{ case.documents|length }})
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+            {% for doc in case.documents %}
+            <div class="doc-link-item">
+              <span style="display: flex; align-items: center; gap: 0.5rem;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-rose);">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                <span style="color: var(--text-main); font-weight: 500;">{{ doc.title }}</span>
+              </span>
+              <div style="display: flex; gap: 0.5rem;">
+                <a href="{{ doc.url }}" target="_blank" class="btn btn-outline-cyan btn-sm" style="padding: 0.15rem 0.45rem; font-size: 0.75rem;">
+                  PDF &nearr;
+                </a>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Nested Folders -->
+        {% if case.folders %}
+        <div class="folder-tree">
+          {% for folder in case.folders %}
+          <div class="folder-item">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+              <span style="font-weight: 600; color: #a5b4fc; display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+                {{ folder.title }}
+              </span>
+              <span style="font-size: 0.75rem; color: var(--text-dim);">
+                {{ folder.documents|length }} files {% if folder.subfolders %}&bull; {{ folder.subfolders|length }} subfolders{% endif %}
+              </span>
+            </div>
+
+            <!-- Documents in this folder -->
+            {% if folder.documents %}
+            <div style="display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.65rem;">
+              {% for fdoc in folder.documents %}
+              <div class="doc-link-item" style="padding: 0.4rem 0.65rem; background: rgba(255, 255, 255, 0.7); border-radius: var(--radius-xs); border: 1px solid rgba(0,0,0,0.03); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.4rem;">
+                <span style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem;">
+                  <span style="color: var(--text-dim);">&bull;</span>
+                  <a href="/documents/{{ fdoc.doc_id or fdoc.id }}" style="color: var(--text-pure); font-weight: 500;">{{ fdoc.title }}</a>
+                </span>
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                  {% if fdoc.has_txt %}
+                  <span class="action-status-badge">&#10003; TXT Ready</span>
+                  {% endif %}
+                  <div class="doc-actions-group">
+                    <a href="{{ fdoc.url }}" target="_blank" class="action-pill action-pill-pdf" title="View Source PDF">PDF &nearr;</a>
+                    <a href="/documents/{{ fdoc.doc_id or fdoc.id }}#tab-extracted-text" class="action-pill action-pill-ocr" title="Inspect OCR Text">OCR</a>
+                    <a href="/documents/{{ fdoc.doc_id or fdoc.id }}/download/txt" class="action-pill action-pill-txt" title="Download Extracted Plain Text">TXT &darr;</a>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Nested Subfolders (Level 2+) -->
+            {% if folder.subfolders %}
+            <div style="margin-left: 1.25rem; border-left: 1px dotted rgba(0, 0, 0, 0.15); padding-left: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem;">
+              {% for sub in folder.subfolders %}
+              <div style="background: rgba(248, 250, 252, 0.9); padding: 0.65rem 0.85rem; border-radius: var(--radius-xs); border: 1px solid rgba(0, 0, 0, 0.05);">
+                <div style="font-size: 0.825rem; font-weight: 700; color: var(--accent-cyan); margin-bottom: 0.4rem;">
+                  &rang; {{ sub.title }} ({{ sub.documents|length }} files)
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+                  {% for sdoc in sub.documents %}
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; padding: 0.3rem 0.5rem; background: rgba(255, 255, 255, 0.7); border-radius: 4px; flex-wrap: wrap; gap: 0.4rem;">
+                    <span style="display: flex; align-items: center; gap: 0.35rem;">
+                      <span style="color: var(--text-dim);">&bull;</span>
+                      <a href="/documents/{{ sdoc.doc_id or sdoc.id }}" style="color: var(--text-pure); font-weight: 500;">{{ sdoc.title }}</a>
+                    </span>
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                      {% if sdoc.has_txt %}
+                      <span class="action-status-badge">&#10003; TXT Ready</span>
+                      {% endif %}
+                      <div class="doc-actions-group">
+                        <a href="{{ sdoc.url }}" target="_blank" class="action-pill action-pill-pdf" title="View Source PDF">PDF &nearr;</a>
+                        <a href="/documents/{{ sdoc.doc_id or sdoc.id }}#tab-extracted-text" class="action-pill action-pill-ocr" title="Inspect OCR Text">OCR</a>
+                        <a href="/documents/{{ sdoc.doc_id or sdoc.id }}/download/txt" class="action-pill action-pill-txt" title="Download Extracted Plain Text">TXT &darr;</a>
+                      </div>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

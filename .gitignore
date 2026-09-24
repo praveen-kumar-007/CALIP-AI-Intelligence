@@ -1,0 +1,53 @@
+# ==============================================================================
+# CALIP - Git Ignore Configuration
+# ==============================================================================
+
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Environment Variables & Secrets (CRITICAL)
+.env
+.env.*
+!.env.example
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+coverage/
+htmlcov/
+
+# Editor & OS Artifacts
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Temporary & Ephemeral Data
+*.log
+*.tmp
+*.sqlite3
+
+# SQLite WAL and Shared Memory files
+*.db-wal
+*.db-shm
+
+# Large PDF Files in Downloads & Incoming Dropzone (keeps git repo lightweight)
+data/downloads/*.pdf
+data/incoming/*
+!data/incoming/.gitkeep
+!data/downloads/.gitkeep
+
+# Exclude root 0-byte database if created
+/calip.db

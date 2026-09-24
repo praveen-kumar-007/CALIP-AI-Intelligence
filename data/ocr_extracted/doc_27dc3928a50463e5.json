@@ -1,0 +1,53 @@
+{
+  "document_id": "doc_27dc3928a50463e5",
+  "title": "Nagpur FIR Record",
+  "case_id": null,
+  "court": "Nagpur Police Station",
+  "file_hash": "27dc3928a50463e5ce489793a8b798ee6f240053ce9f40063289f1115ba09eb2",
+  "original_url": null,
+  "extracted_at": "2026-09-24T14:47:03.071356+00:00",
+  "page_count": 1,
+  "total_words": 11,
+  "total_characters": 79,
+  "ocr_required": false,
+  "ocr_pages_count": 0,
+  "average_confidence": 1.0,
+  "pages": [
+    {
+      "page_number": 1,
+      "text": "FIRST INFORMATION REPORT\nUnder Section 154 Cr.P.C.\nPolice Station: Nagpur City.",
+      "confidence": 1.0,
+      "method": "pymupdf_text",
+      "ocr_applied": false,
+      "word_count": 11,
+      "char_count": 79,
+      "layout_blocks": [
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "FIRST INFORMATION REPORT",
+          "char_count": 24
+        },
+        {
+          "type": "citation",
+          "page_number": 1,
+          "content": "Under Section 154 Cr.P.C.",
+          "char_count": 25
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "Police Station: Nagpur City.",
+          "char_count": 28
+        }
+      ]
+    }
+  ],
+  "rag_chunks_count": 1,
+  "storage_paths": {
+    "plain_text": "data\\ocr_extracted\\doc_27dc3928a50463e5.txt",
+    "structured_json": "data\\ocr_extracted\\doc_27dc3928a50463e5.json",
+    "rag_chunks_json": "data\\ocr_extracted\\doc_27dc3928a50463e5_rag_chunks.json",
+    "llm_context_md": "data\\ocr_extracted\\doc_27dc3928a50463e5_llm_context.md"
+  }
+}

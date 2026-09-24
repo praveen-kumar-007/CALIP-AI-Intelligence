@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto;">
+  <div style="text-align: center; margin-bottom: 2.5rem;">
+    <div class="hero-pill">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      Source-Grounded Legal Research
+    </div>
+    <h1 style="font-size: 2.5rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.75rem;">
+      AI Case Intelligence & Citation Assistant
+    </h1>
+    <p style="color: var(--text-muted); font-size: 1.05rem;">
+      Ask precise questions about proceedings, orders, sections, and evidence. Answers are strictly attributed to verified PDF pages.
+    </p>
+  </div>
+
+  <!-- Query Box -->
+  <div class="ai-box" style="margin-bottom: 2.5rem;">
+    <form action="/ai-research" method="get">
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        <textarea 
+          name="query" 
+          rows="3" 
+          class="search-input" 
+          style="width: 100%; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1rem; font-size: 1.05rem; line-height: 1.5;"
+          placeholder="Ask a question (e.g. 'What cases and FIR numbers are listed in the MIS report?', 'What was decided regarding Section 406 IPC?')..."
+          required
+        >{{ query or "" }}</textarea>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div style="display: flex; gap: 0.75rem; font-size: 0.85rem; color: var(--text-dim);">
+            <span>Engine: <strong>Local Ollama (Qwen 8B) / Extractive Rule</strong></span>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            Generate Grounded Answer
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Quick Prompts -->
+  <div style="margin-bottom: 2.5rem;">
+    <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-bottom: 0.6rem;">
+      Example Inquiries:
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+      <a href="/ai-research?query=What+cases+and+FIR+numbers+are+listed+in+the+MIS+report%3F" class="btn btn-secondary btn-sm" style="font-size: 0.8rem;">
+        &bull; MIS Report Cases & FIR Numbers
+      </a>
+      <a href="/ai-research?query=What+did+the+court+decide+regarding+Section+207+CrPC+documents%3F" class="btn btn-secondary btn-sm" style="font-size: 0.8rem;">
+        &bull; Section 207 CrPC Documents
+      </a>
+      <a href="/ai-research?query=What+are+the+charges+and+acts+in+the+Nagpur+case%3F" class="btn btn-secondary btn-sm" style="font-size: 0.8rem;">
+        &bull; Nagpur Case Charges & Acts
+      </a>
+      <a href="/ai-research?query=What+are+the+conditions+for+granting+mandatory+injunction+under+Specific+Relief+Act%3F" class="btn btn-secondary btn-sm" style="font-size: 0.8rem;">
+        &bull; Specific Relief Act Injunction
+      </a>
+    </div>
+  </div>
+
+  <!-- Answer Display -->
+  {% if result %}
+  <div class="category-block" style="padding: 2rem; margin-bottom: 3rem; border: 1px solid var(--border-focus);">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem; margin-bottom: 1.25rem;">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span class="badge badge-emerald">Verified Answer</span>
+        <span style="font-size: 0.85rem; color: var(--text-dim);">Attributed to {{ result.sources|length }} document evidence sources</span>
+      </div>
+      <span style="font-size: 0.8rem; color: var(--text-dim);">Model: {{ result.model }}</span>
+    </div>
+
+    <div style="font-size: 1.05rem; line-height: 1.7; color: var(--text-main); white-space: pre-wrap; margin-bottom: 2rem;">
+      {{ result.answer }}
+    </div>
+
+    <!-- Citations & Evidence Sources -->
+    {% if result.sources %}
+    <div style="border-top: 1px solid var(--border-subtle); padding-top: 1.25rem;">
+      <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 1rem;">
+        Verified Citations & Page References
+      </h3>
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        {% for src in result.sources %}
+        <div class="citation-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+            <strong style="color: var(--text-main); font-size: 0.95rem;">
+              {{ src.document_title or "Document" }}
+            </strong>
+            <span class="badge badge-indigo">Page {{ src.page_number or 1 }}</span>
+          </div>
+          <div style="font-size: 0.825rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+            {% if src.court %}Court: {{ src.court }} &bull;{% endif %}
+            {% if src.case_title %}Case: {{ src.case_title }} &bull;{% endif %}
+            Relevance Score: {{ (src.similarity_score * 100)|round|int if src.similarity_score else 85 }}%
+          </div>
+          <div style="font-family: var(--font-mono); font-size: 0.825rem; color: var(--text-pure); background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(0, 0, 0, 0.06); padding: 0.75rem 1rem; border-radius: var(--radius-sm); white-space: pre-wrap; line-height: 1.6;">
+            {{ src.chunk_text[:300] }}...
+          </div>
+          <div style="margin-top: 0.75rem; display: flex; justify-content: flex-end; align-items: center; gap: 0.5rem;">
+            <div class="doc-actions-group">
+              {% if src.pdf_url %}
+              <a href="{{ src.pdf_url }}" target="_blank" class="action-pill action-pill-pdf" title="View Source PDF">
+                PDF &nearr;
+              </a>
+              {% endif %}
+              <a href="/documents/{{ src.document_id }}#tab-extracted-text" class="action-pill action-pill-ocr" title="Inspect OCR &amp; Extracted Text">
+                OCR
+              </a>
+              <a href="/documents/{{ src.document_id }}/download/txt" class="action-pill action-pill-txt" title="Download Extracted Plain Text">
+                TXT &darr;
+              </a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

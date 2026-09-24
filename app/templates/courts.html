@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h1 style="font-size: 2.25rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.5rem;">Courts & Jurisdictions</h1>
+    <p style="color: var(--text-muted); font-size: 1rem;">
+      Hierarchical judicial registry covering Apex, High Courts, Sessions, Magistrate, and Special Courts.
+    </p>
+  </div>
+  <div style="font-size: 0.9rem; color: var(--text-dim);">
+    Showing <strong style="color: var(--text-main);">{{ courts|length }}</strong> courts
+  </div>
+</div>
+
+<div class="card-grid">
+  {% for court in courts %}
+  <div class="legal-card">
+    <div class="card-header">
+      <div>
+        <span class="badge badge-indigo" style="margin-bottom: 0.35rem;">{{ court.court_type }}</span>
+        <h2 class="card-title">{{ court.name }}</h2>
+      </div>
+      <span class="badge badge-cyan">{{ court.state or "National" }}</span>
+    </div>
+
+    <div class="meta-row">
+      <div class="meta-item">
+        <span>Jurisdiction: <strong>{{ court.jurisdiction or court.name }}</strong></span>
+      </div>
+    </div>
+
+    <p class="card-summary">
+      Authoritative court forum handling trial proceedings, appeals, and revision applications cataloged in the system.
+    </p>
+
+    <div class="card-footer">
+      <span style="font-size: 0.8rem; color: var(--text-dim);">{{ court.case_count }} case records</span>
+      <a href="/cases?q={{ court.name }}" class="btn btn-secondary btn-sm">Filter Cases &rarr;</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

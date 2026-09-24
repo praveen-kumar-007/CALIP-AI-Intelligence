@@ -1,0 +1,41 @@
+{
+  "document_id": "doc_63e3f5d2e06c353d",
+  "title": "Incoming: Auto Incoming Test",
+  "case_id": null,
+  "court": null,
+  "file_hash": "63e3f5d2e06c353dacef02027ae41a16dd606340197746958f7cfe2d7a7f0fb2",
+  "original_url": null,
+  "extracted_at": "2026-09-24T12:36:55.708228+00:00",
+  "page_count": 1,
+  "total_words": 7,
+  "total_characters": 47,
+  "ocr_required": true,
+  "ocr_pages_count": 1,
+  "average_confidence": 0.94,
+  "pages": [
+    {
+      "page_number": 1,
+      "text": "Auto Ingested Document From Hot Folder Watcher.",
+      "confidence": 0.94,
+      "method": "windows_native_ocr",
+      "ocr_applied": true,
+      "word_count": 7,
+      "char_count": 47,
+      "layout_blocks": [
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "Auto Ingested Document From Hot Folder Watcher.",
+          "char_count": 47
+        }
+      ]
+    }
+  ],
+  "rag_chunks_count": 1,
+  "storage_paths": {
+    "plain_text": "data\\ocr_extracted\\doc_63e3f5d2e06c353d.txt",
+    "structured_json": "data\\ocr_extracted\\doc_63e3f5d2e06c353d.json",
+    "rag_chunks_json": "data\\ocr_extracted\\doc_63e3f5d2e06c353d_rag_chunks.json",
+    "llm_context_md": "data\\ocr_extracted\\doc_63e3f5d2e06c353d_llm_context.md"
+  }
+}

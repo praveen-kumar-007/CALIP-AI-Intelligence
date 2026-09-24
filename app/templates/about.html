@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+  <div style="text-align: center; margin-bottom: 2.5rem; padding: 2rem 1rem; background: var(--bg-card); border-radius: var(--radius-lg); border: 1px solid var(--border-subtle);">
+    <img src="/static/logo.png" alt="CALIP Logo" style="max-width: 320px; width: 100%; height: auto; object-fit: contain; margin-bottom: 1.25rem; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.15));">
+    <h1 style="font-size: 2.25rem; font-weight: 800; color: var(--text-pure); margin-bottom: 0.5rem;">
+      About CALIP
+    </h1>
+    <p style="color: var(--accent-cyan); font-weight: 600; font-size: 1.05rem; margin-bottom: 0.5rem;">
+      Cognitive Atomic Legal Intelligence Platform
+    </p>
+    <p style="color: var(--text-muted); font-size: 0.95rem; max-width: 600px; margin: 0 auto;">
+      Architectural specification, provenance principles, and safety guardrails.
+    </p>
+  </div>
+
+  <div class="category-block" style="padding: 2rem; margin-bottom: 2rem;">
+    <h3 style="font-size: 1.2rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.75rem;">
+      Core Provenance Principles
+    </h3>
+    <ul style="margin-left: 1.5rem; color: var(--text-muted); line-height: 1.8; font-size: 0.95rem;">
+      <li><strong>Source Grounding:</strong> Answers are produced exclusively from verified document evidence. If documents do not establish an answer, the system states so explicitly.</li>
+      <li><strong>Exact Citations:</strong> Answers link to Case, Document Title, Court, and raw PDF Page Numbers.</li>
+      <li><strong>Cryptographic Integrity:</strong> Ingested PDFs preserve original SHA-256 hashes to prevent duplicate ingestion and verify authenticity.</li>
+      <li><strong>Pluggable OCR Architecture:</strong> Supports digital text extraction, external user OCR scripts via <code>MY_OCR_COMMAND</code>, and OpenCV/Tesseract image pre-processing.</li>
+      <li><strong>No Outcome Fabrication:</strong> The platform is an information and document research intelligence system, not an automatic court-outcome prediction engine.</li>
+    </ul>
+  </div>
+
+  <div class="category-block" style="padding: 2rem; margin-bottom: 2rem;">
+    <h3 style="font-size: 1.2rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.75rem;">
+      Search Engine & AI Discovery
+    </h3>
+    <p style="color: var(--text-muted); line-height: 1.6; font-size: 0.95rem; margin-bottom: 1rem;">
+      Every public case, document, judgment, and order is rendered as server-side HTML with JSON-LD Schema.org structured data. Search engines and AI crawlers can discover and index all legal text without requiring client-side JavaScript execution.
+    </p>
+    <div style="display: flex; gap: 0.75rem;">
+      <a href="/robots.txt" class="btn btn-secondary btn-sm">View robots.txt</a>
+      <a href="/sitemap.xml" class="btn btn-secondary btn-sm">View sitemap.xml</a>
+      <a href="/api" class="btn btn-outline-cyan btn-sm">API Documentation</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+  <h1 style="font-size: 2.25rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.5rem;">Statutory Acts & Legal Provisions</h1>
+  <p style="color: var(--text-muted); font-size: 1rem;">
+    Repository of statutory codes, criminal and civil enactments, and provisions cited across legal dockets.
+  </p>
+</div>
+
+<div class="card-grid" style="margin-bottom: 3.5rem;">
+  <div class="legal-card">
+    <div class="card-header">
+      <h2 class="card-title">Indian Penal Code, 1860</h2>
+      <span class="badge badge-indigo">IPC</span>
+    </div>
+    <p class="card-summary">
+      Substantive criminal law defining offenses against property, breach of trust, cheating, forgery, and conspiracy.
+    </p>
+    <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
+      <strong>Common Sections Cited:</strong><br>
+      &bull; <code>Section 406</code> : Criminal breach of trust<br>
+      &bull; <code>Section 409</code> : Criminal breach of trust by public servant, banker, merchant or agent<br>
+      &bull; <code>Section 420</code> : Cheating and dishonestly inducing delivery of property<br>
+      &bull; <code>Section 468 / 471</code> : Forgery for purpose of cheating & using forged document as genuine<br>
+      &bull; <code>Section 120-B</code> : Criminal conspiracy
+    </div>
+    <div class="card-footer">
+      <a href="/search?q=IPC" class="btn btn-secondary btn-sm">Search IPC Cases &rarr;</a>
+    </div>
+  </div>
+
+  <div class="legal-card">
+    <div class="card-header">
+      <h2 class="card-title">Code of Criminal Procedure, 1973</h2>
+      <span class="badge badge-cyan">CrPC</span>
+    </div>
+    <p class="card-summary">
+      Procedural law governing police investigation, supply of prosecution copies, bail, trial procedure, and quashing.
+    </p>
+    <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
+      <strong>Common Sections Cited:</strong><br>
+      &bull; <code>Section 207</code> : Supply to the accused of copy of police report and other documents<br>
+      &bull; <code>Section 439</code> : Special powers of High Court or Court of Session regarding bail<br>
+      &bull; <code>Section 482</code> : Inherent powers of High Court to prevent abuse of process
+    </div>
+    <div class="card-footer">
+      <a href="/search?q=CrPC" class="btn btn-secondary btn-sm">Search CrPC Cases &rarr;</a>
+    </div>
+  </div>
+
+  <div class="legal-card">
+    <div class="card-header">
+      <h2 class="card-title">Negotiable Instruments Act, 1881</h2>
+      <span class="badge badge-emerald">NI Act</span>
+    </div>
+    <p class="card-summary">
+      Statutory code governing negotiable commercial instruments and penal liability for dishonour of cheques.
+    </p>
+    <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
+      <strong>Common Sections Cited:</strong><br>
+      &bull; <code>Section 138</code> : Dishonour of cheque for insufficiency, etc., of funds in the account<br>
+      &bull; <code>Section 141</code> : Offences by companies & vicarious liability
+    </div>
+    <div class="card-footer">
+      <a href="/search?q=138" class="btn btn-secondary btn-sm">Search NI Act Cases &rarr;</a>
+    </div>
+  </div>
+
+  <div class="legal-card">
+    <div class="card-header">
+      <h2 class="card-title">Specific Relief Act, 1963</h2>
+      <span class="badge badge-amber">Specific Relief</span>
+    </div>
+    <p class="card-summary">
+      Civil remedies and conditions for granting temporary, perpetual, and mandatory injunctions.
+    </p>
+    <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
+      <strong>Common Sections Cited:</strong><br>
+      &bull; <code>Section 38</code> : Perpetual injunction when granted<br>
+      &bull; <code>Section 39</code> : Mandatory injunctions
+    </div>
+    <div class="card-footer">
+      <a href="/search?q=Specific+Relief" class="btn btn-secondary btn-sm">Search Cases &rarr;</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

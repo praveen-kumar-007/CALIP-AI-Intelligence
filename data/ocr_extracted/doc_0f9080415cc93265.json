@@ -1,0 +1,41 @@
+{
+  "document_id": "doc_0f9080415cc93265",
+  "title": "Incoming: Auto Incoming Test",
+  "case_id": null,
+  "court": null,
+  "file_hash": "0f9080415cc93265e60f6b1f49f9a00f4a13f7f6b0028cba34e0d4f98456a011",
+  "original_url": null,
+  "extracted_at": "2026-09-24T11:59:26.113988+00:00",
+  "page_count": 1,
+  "total_words": 14,
+  "total_characters": 97,
+  "ocr_required": true,
+  "ocr_pages_count": 1,
+  "average_confidence": 0.5,
+  "pages": [
+    {
+      "page_number": 1,
+      "text": "[Scanned page 1: Document image preprocessed and deskewed. Text extraction pending user OCR run.]",
+      "confidence": 0.5,
+      "method": "image_preprocessed_fallback",
+      "ocr_applied": true,
+      "word_count": 14,
+      "char_count": 97,
+      "layout_blocks": [
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "[Scanned page 1: Document image preprocessed and deskewed. Text extraction pending user OCR run.]",
+          "char_count": 97
+        }
+      ]
+    }
+  ],
+  "rag_chunks_count": 1,
+  "storage_paths": {
+    "plain_text": "data\\ocr_extracted\\doc_0f9080415cc93265.txt",
+    "structured_json": "data\\ocr_extracted\\doc_0f9080415cc93265.json",
+    "rag_chunks_json": "data\\ocr_extracted\\doc_0f9080415cc93265_rag_chunks.json",
+    "llm_context_md": "data\\ocr_extracted\\doc_0f9080415cc93265_llm_context.md"
+  }
+}

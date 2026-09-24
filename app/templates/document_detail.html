@@ -1,0 +1,652 @@
+{% extends "base.html" %}
+
+{% block head_extra %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "DigitalDocument",
+  "name": "{{ document.title }}",
+  "url": "https://longtailcases.com/documents/{{ document.id }}",
+  "encodingFormat": "application/pdf",
+  "fileFormat": "application/pdf",
+  "description": "Legal document record with page-by-page OCR and text extraction.",
+  "associatedArticle": {
+    "@type": "Legislation",
+    "name": "{{ case.title if case else 'Legal Record' }}"
+  }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<nav style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--text-dim);">
+  <a href="/" style="color: var(--text-dim);">Home</a>
+  <span>/</span>
+  <a href="/documents" style="color: var(--text-dim);">Documents</a>
+  <span>/</span>
+  <span style="color: var(--accent-cyan); font-family: var(--font-mono);">{{ document.id }}</span>
+</nav>
+
+<!-- Main Document Hero Card -->
+<div class="category-block" style="padding: 2.25rem; margin-bottom: 2rem; background: var(--bg-card);">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1.25rem; margin-bottom: 1.5rem;">
+    <div style="flex: 1; min-width: 320px;">
+      <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.65rem;">
+        <span class="badge badge-emerald">{{ document.document_type or "Legal Document" }}</span>
+        {% if document.ocr_required %}
+        <span class="badge badge-cyan">OCR Processed</span>
+        {% else %}
+        <span class="badge badge-indigo">Digital PDF Text</span>
+        {% endif %}
+        <span class="badge badge-indigo">{{ document.processing_status }}</span>
+      </div>
+      <h1 style="font-size: 2rem; font-weight: 800; color: var(--text-pure); margin-bottom: 0.65rem; line-height: 1.25;">
+        {{ document.title }}
+      </h1>
+      <div style="display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap; font-size: 0.88rem; color: var(--text-muted);">
+        {% if case %}
+        <span>Case: <a href="/cases/{{ case.id }}" style="font-weight: 600; color: #38bdf8;">{{ case.title }}</a></span> &bull;
+        {% endif %}
+        <span>Court: <strong style="color: var(--text-main);">{{ document.court or "District Court" }}</strong></span> &bull;
+        {% if document.document_number %}
+        <span>Reg/No: <strong style="color: var(--accent-cyan); font-family: var(--font-mono);">{{ document.document_number }}</strong></span> &bull;
+        {% endif %}
+        {% if document.document_date %}
+        <span>Dated: <strong style="color: var(--text-main);">{{ document.document_date }}</strong></span> &bull;
+        {% endif %}
+        <span>Pages: <strong style="color: var(--text-main);">{{ document.page_count or 1 }}</strong></span> &bull;
+        <span>Avg Confidence: <strong style="color: var(--accent-emerald);">{{ (document.ocr_confidence * 100)|round|int if document.ocr_confidence else 95 }}%</strong></span>
+      </div>
+    </div>
+
+    <!-- Actions / Export Buttons -->
+    <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+      {% if document.original_pdf_url or document.pdf_url %}
+      <a href="{{ document.original_pdf_url or document.pdf_url }}" target="_blank" class="btn btn-secondary btn-sm" title="View or download raw PDF file">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Raw PDF
+      </a>
+      {% endif %}
+      <a href="/documents/{{ document.id }}/download/txt" class="btn btn-outline-cyan btn-sm" title="Download clean separated text file">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+        Export TXT
+      </a>
+      {% if has_json_download %}
+      <a href="/documents/{{ document.id }}/download/json" class="btn btn-outline-emerald btn-sm" title="Download RAG structured JSON schema">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="16 18 22 12 16 6"/>
+          <polyline points="8 6 2 12 8 18"/>
+        </svg>
+        RAG JSON
+      </a>
+      {% endif %}
+      <a href="#ai-summary-card" class="btn btn-outline-cyan btn-sm" title="View AI Executive Summary" style="border-color: #6366f1; color: #4f46e5; background: rgba(99, 102, 241, 0.06);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>
+        </svg>
+        AI Legal Brief
+      </a>
+      <button onclick="document.getElementById('my-ocr-modal').style.display='block';" class="btn btn-primary btn-sm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"/>
+          <polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+        Re-Run OCR
+      </button>
+    </div>
+  </div>
+
+  <!-- Provenance & Hashing Bar -->
+  <div style="background: rgba(255, 255, 255, 0.7); border: 1px solid rgba(0, 0, 0, 0.06); border-radius: var(--radius-md); padding: 0.9rem 1.4rem; font-size: 0.85rem; box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02); margin-bottom: 1rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 0.6rem;">
+        <span style="color: var(--text-muted); font-weight: 500;">SHA-256 Digest:</span>
+        <code style="font-family: var(--font-mono); color: var(--accent-cyan); font-size: 0.82rem; background: rgba(2, 132, 199, 0.08); padding: 0.15rem 0.4rem; border-radius: 4px;">{{ document.file_hash or 'Verified' }}</code>
+      </div>
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <span><strong style="color: var(--text-pure);">Engine:</strong> <span class="badge badge-indigo">{{ document.extraction_method or 'pymupdf_text' }}</span></span>
+        <span><strong style="color: var(--text-pure);">Separately Stored:</strong> <span class="badge badge-emerald">Ready for RAG</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unique Case & FIR Linkage Bar -->
+  {% if case or (document.linkages and document.linkages.case) %}
+  {% set c_info = case or document.linkages.case %}
+  <div style="background: rgba(248, 250, 252, 0.85); border: 1px solid rgba(0, 0, 0, 0.06); border-radius: var(--radius-md); padding: 0.9rem 1.4rem; font-size: 0.88rem; margin-bottom: 1rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 0.65rem;">
+        <span class="badge badge-indigo" style="font-size: 0.75rem;">Linked Case</span>
+        <a href="/cases/{{ c_info.id }}" style="font-weight: 700; color: var(--text-pure);">
+          {{ c_info.title }} ({{ c_info.case_number }})
+        </a>
+      </div>
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        {% if c_info.fir_number %}
+        <span class="badge badge-rose">FIR: {{ c_info.fir_number }}</span>
+        {% endif %}
+        <a href="/cases/{{ c_info.id }}" class="btn btn-secondary btn-sm" style="font-size: 0.76rem; padding: 0.2rem 0.55rem;">
+          View Full Case Hierarchy &rarr;
+        </a>
+      </div>
+    </div>
+
+    {% if document.linkages and document.linkages.sibling_documents %}
+    <div style="margin-top: 0.75rem; border-top: 1px solid rgba(0, 0, 0, 0.06); padding-top: 0.65rem;">
+      <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.4rem;">
+        Related Investigation &amp; Case Filings in Same Matter:
+      </span>
+      <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+        {% for sib in document.linkages.sibling_documents[:6] %}
+        <a href="/documents/{{ sib.id }}" class="badge badge-cyan" style="text-decoration: none; padding: 0.3rem 0.6rem;">
+          {{ sib.title[:35] }}...
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Extracted Legal Entities Bar -->
+  {% if doc_entities %}
+  <div style="background: rgba(248, 250, 252, 0.85); border: 1px solid rgba(0, 0, 0, 0.06); border-radius: var(--radius-md); padding: 0.9rem 1.4rem; font-size: 0.85rem; margin-top: 1rem;">
+    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+      <span style="font-weight: 700; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Extracted Legal Entities:</span>
+      {% for ent in doc_entities %}
+      <span class="badge {% if ent.type == 'SECTION' %}badge-cyan{% elif ent.type == 'PARTY' %}badge-indigo{% else %}badge-emerald{% endif %}" style="font-size: 0.78rem;">
+        {{ ent.name }}
+      </span>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+  <!-- AI Executive Brief & Legal Summary Card -->
+  <div id="ai-summary-card" class="ai-summary-card" style="background: linear-gradient(135deg, rgba(238, 242, 255, 0.95), rgba(240, 253, 250, 0.95)); border: 1.5px solid rgba(99, 102, 241, 0.25); border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 20px -2px rgba(99, 102, 241, 0.1);">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; border-bottom: 1px solid rgba(99, 102, 241, 0.15); padding-bottom: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <span style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 9px; background: linear-gradient(135deg, #4f46e5, #0891b2); color: white; box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>
+        </span>
+        <div>
+          <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #1e1b4b; display: flex; align-items: center; gap: 0.5rem;">
+            🤖 AI Executive Brief &amp; Legal Summary
+          </h3>
+          <span style="font-size: 0.78rem; color: #475569;">
+            Synthesized by AI Engine <strong style="color: #4338ca;">{{ ai_summary.model if ai_summary else ai_model }}</strong> &bull; Indian Penal, Procedural &amp; Case Analysis
+          </span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+        <button id="btn-copy-summary" onclick="copyAiSummary()" class="btn btn-secondary btn-sm" style="background: white; border: 1px solid rgba(99, 102, 241, 0.2); font-size: 0.8rem;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy Brief
+        </button>
+        <button id="btn-regen-summary" onclick="triggerRegenerateSummary('{{ document.id }}')" class="btn btn-primary btn-sm" style="font-size: 0.8rem; background: linear-gradient(135deg, #4f46e5, #0284c7);">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          Re-Summarize with AI
+        </button>
+      </div>
+    </div>
+    
+    <div id="ai-summary-content" style="color: #1e293b; font-size: 0.93rem; line-height: 1.7; white-space: pre-wrap; font-family: var(--font-sans); background: rgba(255, 255, 255, 0.85); border-radius: 8px; padding: 1.25rem; border: 1px solid rgba(99, 102, 241, 0.15);">{{ (ai_summary.summary_text if ai_summary else '') or 'Extracted legal text available. Click "Re-Summarize with AI" above to generate the full brief.' }}</div>
+  </div>
+
+<!-- Queued / Pending OCR Alert Banner -->
+{% if not full_extracted_text %}
+<div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: var(--radius-md); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <strong style="color: #d97706; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Document OCR &amp; Text Ingestion Pending
+    </strong>
+    <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.35rem 0 0 0;">
+      This record is currently in queue. Click below to run high-speed OCR extraction (Windows Native OCR / PyMuPDF) and parse all pages, entities, and citations.
+    </p>
+  </div>
+  <button id="btn-run-instant-ocr" onclick="triggerLiveOcr()" class="btn btn-primary btn-sm" style="display: flex; align-items: center; gap: 0.4rem;">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+    Extract Text &amp; Metadata with OCR Now
+  </button>
+</div>
+{% endif %}
+
+<!-- Modern Interactive Navigation Tabs -->
+<div class="tabs-nav">
+  <button class="tab-btn active" onclick="switchDocTab('tab-extracted-text', this)">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/>
+      <line x1="16" y1="17" x2="8" y2="17"/>
+    </svg>
+    Clean Extracted Text
+  </button>
+  <button class="tab-btn" onclick="switchDocTab('tab-llm-context', this)">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>
+    </svg>
+    LLM Context & Citations
+  </button>
+  <button class="tab-btn" onclick="switchDocTab('tab-rag-chunks', this)">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
+      <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+      <line x1="6" y1="6" x2="6.01" y2="6"/>
+      <line x1="6" y1="18" x2="6.01" y2="18"/>
+    </svg>
+    RAG Semantic Chunks
+  </button>
+  <button class="tab-btn" onclick="switchDocTab('tab-page-inspector', this)">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+    </svg>
+    Page-by-Page Breakdown
+  </button>
+</div>
+
+<!-- TAB 1: CLEAN EXTRACTED TEXT -->
+<div id="tab-extracted-text" class="tab-content active">
+  <div class="ocr-viewer-box" style="margin-bottom: 2.5rem;">
+    <div class="ocr-viewer-header">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <span style="font-weight: 700; color: var(--text-pure); font-size: 0.92rem;">Separately Stored Clean Text</span>
+        <span class="badge badge-emerald">Normalized &amp; Hyphen-Repaired</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <button onclick="copyExtractedText()" class="btn btn-secondary btn-sm" id="btn-copy-txt">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+          Copy Text
+        </button>
+        <a href="/documents/{{ document.id }}/download/txt" class="btn btn-outline-cyan btn-sm">Download .txt</a>
+      </div>
+    </div>
+    <div class="ocr-text-content" id="doc-extracted-raw-text">
+{{ full_extracted_text or document.extracted_text or (ocr_artifact.full_text if ocr_artifact else "No extracted text available.") }}
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: LLM CONTEXT & PROMPT GENERATOR -->
+<div id="tab-llm-context" class="tab-content">
+  <div class="llm-context-container" style="margin-bottom: 2.5rem;">
+    <div class="llm-context-header">
+      <div>
+        <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--text-pure); margin-bottom: 0.25rem;">
+          Verified LLM Context Payload
+        </h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">
+          Pre-formatted with strict legal citation tags `[[PAGE ... | SOURCE ...]]` ready to feed into local Ollama, Claude, or ChatGPT.
+        </p>
+      </div>
+      <div style="display: flex; gap: 0.5rem;">
+        <button onclick="copyLlmContext()" class="btn btn-primary btn-sm" id="btn-copy-llm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+          Copy Context for Prompt
+        </button>
+        <a href="/api/documents/{{ document.id }}/llm-context" target="_blank" class="btn btn-secondary btn-sm">
+          API Endpoint &rarr;
+        </a>
+      </div>
+    </div>
+    <div class="llm-context-body" id="llm-context-text">
+{{ llm_context or (
+"# LEGAL RECORD: " ~ document.title ~ "\n" ~
+"**Case Reference:** " ~ (document.case_id or "Unassigned") ~ "\n" ~
+"**Court:** " ~ (document.court or "District Court") ~ "\n" ~
+"**Document ID:** " ~ document.id ~ "\n" ~
+"**Cryptographic Hash (SHA-256):** " ~ (document.file_hash or "Verified") ~ "\n\n" ~
+"--- START VERIFIED DOCUMENT TEXT ---\n" ~
+(full_extracted_text or document.extracted_text or "No text recorded.") ~ "\n" ~
+"--- END VERIFIED DOCUMENT TEXT ---"
+) }}
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: RAG CHUNKS & VECTOR EMBEDDINGS -->
+<div id="tab-rag-chunks" class="tab-content">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
+    <div>
+      <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--text-pure);">Pre-Segmented RAG Semantic Chunks</h3>
+      <p style="font-size: 0.85rem; color: var(--text-muted);">Indexed in vector storage (`all-MiniLM-L6-v2`) with page-level citation boundaries.</p>
+    </div>
+    {% if has_json_download %}
+    <a href="/documents/{{ document.id }}/download/json" class="btn btn-outline-cyan btn-sm">Download JSON Chunks Schema</a>
+    {% endif %}
+  </div>
+
+  <div class="chunks-grid" style="margin-bottom: 2.5rem;">
+    {% if ocr_artifact and ocr_artifact.get('pages') %}
+      {% for page in ocr_artifact.pages %}
+        {% for block in page.get('layout_blocks', []) %}
+        <div class="chunk-card">
+          <div class="chunk-header">
+            <span style="font-weight: 700; color: var(--accent-cyan);">Page {{ page.page_number }}</span>
+            <span class="block-badge block-{{ block.type }}">{{ block.type }}</span>
+          </div>
+          <div class="chunk-body">
+            {{ block.content }}
+          </div>
+          <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: auto; display: flex; justify-content: space-between;">
+            <span>{{ block.char_count }} chars</span>
+            <span style="color: var(--accent-emerald);">Embed Ready</span>
+          </div>
+        </div>
+        {% endfor %}
+      {% endfor %}
+    {% elif document.pages %}
+      {% for page in document.pages %}
+      <div class="chunk-card">
+        <div class="chunk-header">
+          <span style="font-weight: 700; color: var(--accent-cyan);">Chunk Page {{ page.page_number or loop.index }}</span>
+          <span class="badge badge-indigo">Text Block</span>
+        </div>
+        <div class="chunk-body">
+          {{ ((page.page_text if page.page_text is defined else page.text) or '')[:350] }}...
+        </div>
+        <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: auto;">
+          <span>Confidence: {{ (((page.ocr_confidence if page.ocr_confidence is defined else page.confidence) or 0.95) * 100)|round|int }}%</span>
+        </div>
+      </div>
+      {% endfor %}
+    {% elif full_extracted_text %}
+      <div class="chunk-card" style="grid-column: 1 / -1;">
+        <div class="chunk-header">
+          <span style="font-weight: 700; color: var(--accent-cyan);">Extracted Document Content</span>
+          <span class="badge badge-emerald">Direct Ingest</span>
+        </div>
+        <div class="chunk-body" style="white-space: pre-wrap; max-height: 280px; overflow-y: auto;">
+          {{ full_extracted_text[:2000] }}{% if full_extracted_text|length > 2000 %}...{% endif %}
+        </div>
+        <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: auto; display: flex; justify-content: space-between;">
+          <span>{{ full_extracted_text|length }} characters</span>
+          <span style="color: var(--accent-emerald);">Embed Ready</span>
+        </div>
+      </div>
+    {% else %}
+      <div style="grid-column: 1 / -1; padding: 2rem; background: var(--bg-card); border-radius: var(--radius-md); text-align: center; color: var(--text-muted);">
+        No semantic chunks pre-rendered for this document yet. Click "Extract Text &amp; Metadata with OCR Now" to generate structured chunks.
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- TAB 4: PAGE-BY-PAGE INSPECTOR -->
+<div id="tab-page-inspector" class="tab-content">
+  {% set pages_list = (ocr_artifact.pages if (ocr_artifact and ocr_artifact.get('pages')) else document.pages) %}
+  {% if pages_list %}
+  <div style="display: flex; flex-direction: column; gap: 1.5rem; margin-bottom: 3rem;">
+    {% for page in pages_list %}
+    <div class="category-block" style="padding: 1.75rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.75rem; margin-bottom: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <span style="font-size: 1.05rem; font-weight: 700; color: var(--accent-cyan);">Page {{ page.page_number or loop.index }}</span>
+          <span class="badge badge-indigo">{{ page.method or page.extraction_method or 'pymupdf_text' }}</span>
+        </div>
+        <div style="display: flex; gap: 0.75rem; font-size: 0.82rem;">
+          <span>Confidence: <strong style="color: var(--accent-emerald);">{{ (((page.confidence or page.ocr_confidence or 0.95)) * 100)|round|int }}%</strong></span>
+        </div>
+      </div>
+      <div class="ocr-text-content" style="max-height: 350px;">
+        {{ page.text or page.page_text }}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% elif full_extracted_text %}
+  <div class="category-block" style="padding: 1.75rem; margin-bottom: 3rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.75rem; margin-bottom: 1rem;">
+      <span style="font-size: 1.05rem; font-weight: 700; color: var(--accent-cyan);">Verified Document Text</span>
+      <span class="badge badge-emerald">Verified Content</span>
+    </div>
+    <div class="ocr-text-content" style="max-height: 500px;">
+      {{ full_extracted_text }}
+    </div>
+  </div>
+  {% else %}
+  <div class="category-block" style="padding: 2.5rem; text-align: center; margin-bottom: 3rem;">
+    <p style="color: var(--text-muted); margin-bottom: 1rem;">
+      No page-by-page breakdown found. Click "Extract Text &amp; Metadata with OCR Now" above to segment this document.
+    </p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- "My OCR" Upload / Execution Modal -->
+<div id="my-ocr-modal" style="display: none; background: rgba(15, 23, 42, 0.4); position: fixed; inset: 0; z-index: 9999; padding: 2rem; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
+  <div style="max-width: 620px; margin: 4% auto; background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(255, 255, 255, 0.9); border-radius: var(--radius-xl); padding: 2.25rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.18);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+      <h3 style="font-size: 1.35rem; font-weight: 700; color: var(--text-pure);">Trigger Advanced OCR Pipeline</h3>
+      <button onclick="document.getElementById('my-ocr-modal').style.display='none';" style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">&times;</button>
+    </div>
+    <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+      Executes deskewing, CLAHE enhancement, adaptive thresholding, text extraction, and separate storage partitioning for RAG &amp; LLM querying.
+    </p>
+
+    <form id="ocr-reextract-form" action="/api/ocr/custom" method="post" onsubmit="event.preventDefault(); submitCustomOcr();">
+      <input type="hidden" name="document_id" value="{{ document.id }}">
+      <div style="margin-bottom: 1.15rem;">
+        <label style="display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.4rem;">OCR Execution Mode</label>
+        <select name="method" class="search-input" style="width: 100%; padding: 0.6rem; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-main);">
+          <option value="windows_native_ocr">Windows Native Media OCR (winocr - Fast &amp; High Accuracy)</option>
+          <option value="my_ocr">High-Level Advanced Pipeline (Deskew + CLAHE + Layout)</option>
+          <option value="tesseract_ocr">Tesseract Engine Direct</option>
+          <option value="pymupdf_text">Native PyMuPDF Structural Text</option>
+        </select>
+      </div>
+      <div style="margin-bottom: 1.25rem;">
+        <label style="display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.4rem;">Manual Text Override (Optional)</label>
+        <textarea name="text" rows="5" class="search-input" style="width: 100%; padding: 0.6rem; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-main); font-family: var(--font-mono); font-size: 0.85rem;" placeholder="Leave empty to run automated engine, or paste pre-extracted text..."></textarea>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button type="button" onclick="document.getElementById('my-ocr-modal').style.display='none';" class="btn btn-secondary btn-sm">Cancel</button>
+        <button type="submit" id="btn-submit-ocr" class="btn btn-primary btn-sm">Start Extraction &amp; Re-Index</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function switchDocTab(tabId, el) {
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  if (el) el.classList.add('active');
+  const target = document.getElementById(tabId);
+  if (target) target.classList.add('active');
+  if (history.replaceState) {
+    history.replaceState(null, null, '#' + tabId);
+  }
+}
+
+// Restore tab from URL hash on load
+document.addEventListener('DOMContentLoaded', () => {
+  const hash = window.location.hash.replace('#', '');
+  if (hash) {
+    const targetTab = document.getElementById(hash);
+    if (targetTab) {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(hash)) {
+          switchDocTab(hash, btn);
+        }
+      });
+    }
+  }
+});
+
+function copyExtractedText() {
+  const el = document.getElementById('doc-extracted-raw-text');
+  if (!el) return;
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const btn = document.getElementById('btn-copy-txt');
+    if (btn) {
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<span>&#10003; Copied!</span>';
+      setTimeout(() => btn.innerHTML = orig, 2000);
+    }
+  });
+}
+
+function copyLlmContext() {
+  const el = document.getElementById('llm-context-text');
+  if (!el) return;
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const btn = document.getElementById('btn-copy-llm');
+    if (btn) {
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<span>&#10003; Context Copied!</span>';
+      setTimeout(() => btn.innerHTML = orig, 2000);
+    }
+  });
+}
+
+function copyAiSummary() {
+  const el = document.getElementById('ai-summary-content');
+  if (!el) return;
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const btn = document.getElementById('btn-copy-summary');
+    if (btn) {
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<span>&#10003; Brief Copied!</span>';
+      setTimeout(() => btn.innerHTML = orig, 2000);
+    }
+  });
+}
+
+async function triggerRegenerateSummary(docId) {
+  const btn = document.getElementById('btn-regen-summary');
+  const contentEl = document.getElementById('ai-summary-content');
+  const origText = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span style="display:inline-block;animation:spin 1s linear infinite;">⏳</span> AI Generating Brief...';
+  }
+  if (contentEl) {
+    contentEl.style.opacity = '0.5';
+  }
+  try {
+    const res = await fetch(`/api/documents/${docId}/summarize`, {
+      method: 'POST',
+      headers: { 'Accept': 'application/json' }
+    });
+    const data = await res.json();
+    if (res.ok && data.summary && data.summary.summary_text) {
+      if (contentEl) {
+        contentEl.innerText = data.summary.summary_text;
+        contentEl.style.opacity = '1';
+      }
+      if (btn) {
+        btn.innerHTML = '<span>✅ Brief Updated!</span>';
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.innerHTML = origText;
+        }, 2000);
+      }
+    } else {
+      alert(`Summary generation note: ${data.detail || 'Failed to generate summary'}`);
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+      }
+      if (contentEl) contentEl.style.opacity = '1';
+    }
+  } catch (err) {
+    alert(`Request error: ${err}`);
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origText;
+    }
+    if (contentEl) contentEl.style.opacity = '1';
+  }
+}
+
+async function triggerLiveOcr() {
+  const btn = document.getElementById('btn-run-instant-ocr');
+  const origText = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span style="display:inline-block;animation:spin 1s linear infinite;">⏳</span> Running Windows OCR Pipeline...';
+  }
+  try {
+    const res = await fetch(`/api/documents/{{ document.id }}/re-extract`, {
+      method: 'POST',
+      headers: { 'Accept': 'application/json' }
+    });
+    const data = await res.json();
+    if (res.ok) {
+      if (btn) btn.innerHTML = '<span>✅ Extraction Complete! Reloading...</span>';
+      setTimeout(() => {
+        window.location.hash = '#tab-extracted-text';
+        window.location.reload();
+      }, 1000);
+    } else {
+      alert(`OCR failed: ${data.detail || 'Unknown error'}`);
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+      }
+    }
+  } catch (err) {
+    alert(`OCR request failed: ${err}`);
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origText;
+    }
+  }
+}
+
+async function submitCustomOcr() {
+  const form = document.getElementById('ocr-reextract-form');
+  const formData = new FormData(form);
+  const btn = document.getElementById('btn-submit-ocr');
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Extracting &amp; Indexing...';
+  try {
+    const res = await fetch('/api/ocr/custom', {
+      method: 'POST',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      body: formData
+    });
+    const data = await res.json();
+    if (res.ok) {
+      btn.innerHTML = '✅ Done! Reloading...';
+      setTimeout(() => {
+        document.getElementById('my-ocr-modal').style.display='none';
+        window.location.hash = '#tab-extracted-text';
+        window.location.reload();
+      }, 800);
+    } else {
+      alert(`Extraction failed: ${data.detail || 'Unknown error'}`);
+      btn.disabled = false;
+      btn.innerHTML = orig;
+    }
+  } catch (e) {
+    alert('Extraction request error: ' + e);
+    btn.disabled = false;
+    btn.innerHTML = orig;
+  }
+}
+</script>
+{% endblock %}

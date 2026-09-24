@@ -1,0 +1,398 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; flex-wrap: wrap; gap: 1.25rem;">
+  <div>
+    <div class="hero-pill" style="margin-bottom: 0.6rem;">Real-Time Pipeline &amp; OCR Control Center</div>
+    <h1 style="font-size: 2.25rem; font-weight: 800; color: var(--text-pure); letter-spacing: -0.02em;">
+      Ingestion, Advanced OCR &amp; RAG Architecture
+    </h1>
+    <p style="color: var(--text-muted); font-size: 1rem; max-width: 750px;">
+      Automatic upstream sync, hot-folder dropzone, multi-stage OCR (deskewing, CLAHE, adaptive thresholding), separate text partitioning, and vector embedding for LLM intelligence.
+    </p>
+  </div>
+
+  <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+    <button onclick="triggerAutoSync()" class="btn btn-outline-cyan" id="btn-sync-trigger">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+        <path d="M3 3v5h5"/>
+        <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+        <path d="M16 16h5v5"/>
+      </svg>
+      Run Auto-Sync Now
+    </button>
+    <form action="/api/longtail/harvest" method="post" onsubmit="alert('Full harvest initiated! Running in background...');">
+      <button type="submit" class="btn btn-primary">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+        </svg>
+        Full Upstream Harvest
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Auto-Sync & Real-Time Hot-Folder Status Banner -->
+<div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.28); border-radius: var(--radius-lg); padding: 1.25rem 1.75rem; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; backdrop-filter: blur(12px);">
+  <div style="display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap;">
+    <div class="pulse-indicator">
+      <span class="pulse-dot"></span>
+      <span id="sync-worker-label">Auto-Adjust &amp; Hot-Folder Watcher Active</span>
+    </div>
+    <span style="font-size: 0.88rem; color: var(--text-main);">
+      System auto-monitors <code style="font-family: var(--font-mono); color: #38bdf8;">data/incoming/</code> and <code style="font-family: var(--font-mono); color: #a5b4fc;">longtailcases.com</code>. Drop any PDF in incoming or upload below to automatically OCR and update the system.
+    </span>
+  </div>
+  <div style="font-size: 0.82rem; color: var(--text-dim);">
+    Last Activity: <strong style="color: var(--text-pure);" id="last-sync-label">{{ sync_status.last_sync or 'Active' }}</strong>
+  </div>
+</div>
+
+<!-- Dynamic Metrics Grid -->
+<div class="stats-grid" style="margin-bottom: 2.5rem;">
+  <div class="stat-card">
+    <span class="stat-label">Cataloged Cases</span>
+    <span class="stat-number" id="metric-cases">{{ stats.cases_count }}</span>
+    <span style="font-size: 0.8rem; color: var(--accent-cyan);">Across all legal categories</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">PDF Documents Ingested</span>
+    <span class="stat-number" id="metric-docs">{{ stats.documents_count }}</span>
+    <span style="font-size: 0.8rem; color: var(--accent-emerald);">SHA-256 verified archives</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">Separately Stored RAG Files</span>
+    <span class="stat-number" id="metric-ocr" style="color: #a5b4fc;">{{ stats.documents_count }}</span>
+    <span style="font-size: 0.8rem; color: #818cf8;">Clean .txt, .json &amp; LLM contexts</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">GPU Acceleration &amp; Inference</span>
+    <span class="stat-number" style="font-size: 1.55rem; color: #6ee7b7; padding: 0.35rem 0;">RTX 3050 CUDA</span>
+    <span style="font-size: 0.8rem; color: var(--accent-cyan);">all-MiniLM-L6-v2 + Ollama ready</span>
+  </div>
+</div>
+
+<!-- DRAG-AND-DROP FILE UPLOAD & AUTO-INGEST SECTION -->
+<div class="category-block" style="padding: 2rem; margin-bottom: 2.5rem; background: var(--bg-card);">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem;">
+    <div>
+      <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--text-pure); margin-bottom: 0.3rem;">
+        Direct PDF Upload &amp; Automatic OCR Pipeline
+      </h2>
+      <p style="font-size: 0.88rem; color: var(--text-muted);">
+        Drag and drop any PDF to trigger high-level multi-stage OCR (deskewing, CLAHE, adaptive thresholding), separate text partitioning, and vector embedding.
+      </p>
+    </div>
+    <span class="badge badge-emerald">Instant Auto-Update</span>
+  </div>
+
+  <div class="upload-dropzone" id="upload-zone">
+    <input type="file" id="pdf-file-input" accept=".pdf" onchange="handleFileSelect(this.files)">
+    <div class="upload-icon-circle">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+    </div>
+    <h4 style="font-size: 1.1rem; font-weight: 700; color: var(--text-pure); margin-bottom: 0.4rem;">
+      Drop your PDF here or click to browse
+    </h4>
+    <p style="font-size: 0.85rem; color: var(--text-muted); max-width: 500px; margin: 0 auto;">
+      Automatically computes SHA-256 hash, runs OCR with OpenCV enhancement, writes separate text files to <code style="color: #38bdf8;">data/ocr_extracted/</code>, and indexes chunks for RAG.
+    </p>
+  </div>
+
+  <!-- Upload Progress / Feedback Container -->
+  <div id="upload-feedback" style="display: none; margin-top: 1.5rem; padding: 1.25rem; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: var(--radius-md);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+      <span id="upload-status-text" style="font-weight: 600; color: var(--text-pure); font-size: 0.9rem;">Processing file...</span>
+      <span id="upload-percent" style="font-size: 0.85rem; color: var(--accent-cyan); font-weight: 700;">0%</span>
+    </div>
+    <div style="width: 100%; height: 6px; background: rgba(0, 0, 0, 0.08); border-radius: var(--radius-full); overflow: hidden;">
+      <div id="upload-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #007aff, #34c759); transition: width 0.3s ease;"></div>
+    </div>
+    <div id="upload-result-details" style="margin-top: 0.75rem; font-size: 0.85rem; display: none;"></div>
+  </div>
+</div>
+
+<!-- Two-Column Operations Layout -->
+<div class="card-grid" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); margin-bottom: 3rem;">
+  
+  <!-- Ingest URL Form -->
+  <div class="category-block" style="padding: 1.75rem;">
+    <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--text-pure); margin-bottom: 0.4rem;">
+      Ingest from Remote PDF URL
+    </h3>
+    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+      Downloads, hashes (SHA-256), extracts text with OCR fallback, stores text separately, and generates vector chunks.
+    </p>
+
+    <form action="/api/pdf/ingest-url" method="post">
+      <div style="margin-bottom: 1rem;">
+        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.3rem;">PDF Source URL</label>
+        <input 
+          type="url" 
+          name="pdf_url" 
+          class="search-input" 
+          style="width: 100%; padding: 0.6rem 0.85rem; background: var(--bg-surface); border: 1px solid var(--border-card); border-radius: var(--radius-sm); color: var(--text-pure);" 
+          placeholder="https://longtailcases.com/uploads/.../document.pdf"
+          required
+        >
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem;">
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.3rem;">Document Title</label>
+          <input 
+            type="text" 
+            name="title" 
+            class="search-input" 
+            style="width: 100%; padding: 0.6rem 0.85rem; background: var(--bg-surface); border: 1px solid var(--border-card); border-radius: var(--radius-sm); color: var(--text-pure);" 
+            placeholder="e.g. Charge Sheet"
+          >
+        </div>
+        <div>
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.3rem;">Document Type</label>
+          <select name="document_type" style="width: 100%; padding: 0.65rem; background: var(--bg-surface); border: 1px solid var(--border-card); border-radius: var(--radius-sm); color: var(--text-pure);">
+            <option value="Document">General Document</option>
+            <option value="Judgment">Judgment</option>
+            <option value="Order">Court Order</option>
+            <option value="Application">Application / Petition</option>
+            <option value="FIR">FIR Copy</option>
+            <option value="Charge Sheet">Charge Sheet</option>
+            <option value="Roznama">Roznama Proceedings</option>
+          </select>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-sm" style="width: 100%;">
+        Run Ingestion Pipeline &rarr;
+      </button>
+    </form>
+  </div>
+
+  <!-- "My OCR" Engine Configuration & Test Runner -->
+  <div class="category-block" style="padding: 1.75rem;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.4rem;">
+      <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--text-pure);">
+        Pluggable "My OCR" Engine
+      </h3>
+      <span class="badge badge-cyan">Active Engine</span>
+    </div>
+    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+      Connect external OCR script or executable. CALIP processes scanned pages, outputs clean text, and stores RAG artifacts.
+    </p>
+
+    <div style="background: rgba(255, 255, 255, 0.7); border: 1px solid rgba(0, 0, 0, 0.06); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.25rem; font-size: 0.85rem; box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);">
+      <div style="margin-bottom: 0.5rem;">
+        <span style="color: var(--text-muted);">Environment Variable:</span>
+        <code style="font-family: var(--font-mono); color: var(--accent-cyan); background: rgba(2, 132, 199, 0.08); padding: 0.15rem 0.4rem; border-radius: 4px;">MY_OCR_COMMAND</code>
+      </div>
+      <div style="margin-bottom: 0.5rem;">
+        <span style="color: var(--text-muted);">Command Format:</span>
+        <code style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent-indigo); background: rgba(88, 86, 214, 0.08); padding: 0.15rem 0.4rem; border-radius: 4px;">python my_ocr.py {input_image} {page_number}</code>
+      </div>
+      <div>
+        <span style="color: var(--text-muted);">Storage Output:</span>
+        <code style="font-family: var(--font-mono); color: #047857; background: rgba(16, 185, 129, 0.1); padding: 0.15rem 0.4rem; border-radius: 4px;">data/ocr_extracted/{doc_id}.json</code>
+      </div>
+    </div>
+
+    <form action="/api/ocr/custom" method="post">
+      <input type="hidden" name="document_id" value="doc_edc5599f4ddad443">
+      <input type="hidden" name="method" value="my_ocr">
+      <div style="margin-bottom: 1rem;">
+        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.3rem;">Test Custom OCR Payload</label>
+        <textarea 
+          name="text" 
+          rows="3" 
+          class="search-input" 
+          style="width: 100%; padding: 0.65rem; background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(0, 0, 0, 0.08); border-radius: var(--radius-sm); color: var(--text-pure); font-family: var(--font-mono); font-size: 0.82rem;"
+          placeholder="Paste extracted OCR text to test immediate re-indexing & separate storage..."
+        ></textarea>
+      </div>
+      <button type="submit" class="btn btn-outline-cyan btn-sm" style="width: 100%;">
+        Submit &amp; Separate Store OCR Text &rarr;
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Architecture Pipeline Map -->
+<div class="category-block" style="padding: 1.75rem; margin-bottom: 3rem;">
+  <h3 style="font-size: 1.2rem; font-weight: 700; color: var(--text-pure); margin-bottom: 0.75rem;">
+    High-Level Advanced OCR &amp; RAG Architecture Map
+  </h3>
+  <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; text-align: center; margin-top: 1rem;">
+    <div style="flex: 1; min-width: 120px; background: rgba(255, 255, 255, 0.78); padding: 0.85rem; border-radius: var(--radius-md); border: 1px solid rgba(0, 0, 0, 0.06); box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+      <div style="font-size: 0.75rem; color: var(--text-muted);">1. Ingestion</div>
+      <div style="font-weight: 700; color: var(--text-pure); margin-top: 0.2rem;">Dropzone / Poller</div>
+    </div>
+    <div style="flex: 1; min-width: 120px; background: rgba(255, 255, 255, 0.78); padding: 0.85rem; border-radius: var(--radius-md); border: 1px solid rgba(0, 0, 0, 0.06); box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+      <div style="font-size: 0.75rem; color: var(--text-muted);">2. Validation</div>
+      <div style="font-weight: 700; color: var(--text-pure); margin-top: 0.2rem;">SHA-256 Hashing</div>
+    </div>
+    <div style="flex: 1; min-width: 120px; background: rgba(255, 255, 255, 0.78); padding: 0.85rem; border-radius: var(--radius-md); border: 1px solid rgba(0, 0, 0, 0.06); box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+      <div style="font-size: 0.75rem; color: var(--text-muted);">3. Preprocessing</div>
+      <div style="font-weight: 700; color: var(--accent-cyan); margin-top: 0.2rem;">Deskew &amp; CLAHE</div>
+    </div>
+    <div style="flex: 1; min-width: 120px; background: rgba(255, 255, 255, 0.78); padding: 0.85rem; border-radius: var(--radius-md); border: 1px solid rgba(0, 0, 0, 0.06); box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+      <div style="font-size: 0.75rem; color: var(--text-muted);">4. Extraction</div>
+      <div style="font-weight: 700; color: var(--accent-indigo); margin-top: 0.2rem;">Layout &amp; Blocks</div>
+    </div>
+    <div style="flex: 1; min-width: 120px; background: rgba(255, 255, 255, 0.78); padding: 0.85rem; border-radius: var(--radius-md); border: 1px solid rgba(0, 0, 0, 0.06); box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+      <div style="font-size: 0.75rem; color: var(--text-muted);">5. Separate Storage</div>
+      <div style="font-weight: 700; color: #047857; margin-top: 0.2rem;">TXT + JSON + LLM</div>
+    </div>
+    <div style="flex: 1; min-width: 120px; background: rgba(255, 255, 255, 0.78); padding: 0.85rem; border-radius: var(--radius-md); border: 1px solid rgba(0, 0, 0, 0.06); box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+      <div style="font-size: 0.75rem; color: var(--text-muted);">6. Embeddings</div>
+      <div style="font-weight: 700; color: #b45309; margin-top: 0.2rem;">Vector Similarity</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Handle Drag-and-Drop
+const dropzone = document.getElementById('upload-zone');
+['dragenter', 'dragover'].forEach(eventName => {
+  dropzone.addEventListener(eventName, (e) => {
+    e.preventDefault();
+    dropzone.classList.add('dragover');
+  }, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+  dropzone.addEventListener(eventName, (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+  }, false);
+});
+
+dropzone.addEventListener('drop', (e) => {
+  const dt = e.dataTransfer;
+  const files = dt.files;
+  if (files.length > 0) {
+    handleFileSelect(files);
+  }
+});
+
+function handleFileSelect(files) {
+  if (!files || files.length === 0) return;
+  const file = files[0];
+  if (!file.name.toLowerCase().endsWith('.pdf')) {
+    alert('Please upload a valid PDF document.');
+    return;
+  }
+
+  const feedback = document.getElementById('upload-feedback');
+  const bar = document.getElementById('upload-progress-bar');
+  const percentText = document.getElementById('upload-percent');
+  const statusText = document.getElementById('upload-status-text');
+  const details = document.getElementById('upload-result-details');
+
+  feedback.style.display = 'block';
+  details.style.display = 'none';
+  bar.style.width = '25%';
+  percentText.innerText = '25%';
+  statusText.innerText = `Uploading and running OCR on "${file.name}"...`;
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', '/api/documents/upload', true);
+
+  xhr.upload.onprogress = (e) => {
+    if (e.lengthComputable) {
+      const p = Math.round((e.loaded / e.total) * 60);
+      bar.style.width = p + '%';
+      percentText.innerText = p + '%';
+    }
+  };
+
+  xhr.onload = () => {
+    if (xhr.status === 200) {
+      bar.style.width = '100%';
+      percentText.innerText = '100%';
+      statusText.innerHTML = '<span style="color: #10b981;">&#10003; Processing Complete! Document Published.</span>';
+      
+      try {
+        const resp = JSON.parse(xhr.responseText);
+        details.style.display = 'block';
+        details.innerHTML = `
+          <div style="background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(0, 0, 0, 0.08); padding: 1rem; border-radius: var(--radius-md); margin-top: 0.75rem; box-shadow: 0 4px 14px rgba(0,0,0,0.03);">
+            <strong style="color: var(--text-pure);">Title:</strong> <span style="color: var(--text-main);">${resp.title || file.name}</span><br>
+            <strong style="color: var(--text-pure);">Document ID:</strong> <code style="color: var(--accent-cyan); font-weight: 600; font-family: var(--font-mono);">${resp.document_id}</code><br>
+            <strong style="color: var(--text-pure);">Pages:</strong> ${resp.page_count} &bull; 
+            <strong style="color: var(--text-pure);">RAG Chunks:</strong> ${resp.chunks_created} &bull;
+            <strong style="color: var(--text-pure);">Confidence:</strong> ${(resp.average_confidence * 100).toFixed(0)}%<br>
+            <div style="margin-top: 0.85rem;">
+              <a href="/documents/${resp.document_id}" class="btn btn-primary btn-sm">View Document &amp; Extracted Text &rarr;</a>
+            </div>
+          </div>
+        `;
+        // Refresh metrics
+        fetchPipelineStats();
+      } catch (err) {
+        console.error(err);
+      }
+    } else {
+      bar.style.width = '100%';
+      bar.style.background = '#f43f5e';
+      statusText.innerHTML = `<span style="color: #f43f5e;">Upload Failed: ${xhr.statusText}</span>`;
+    }
+  };
+
+  xhr.onerror = () => {
+    statusText.innerHTML = '<span style="color: #f43f5e;">Network error during upload.</span>';
+  };
+
+  xhr.send(formData);
+}
+
+function triggerAutoSync() {
+  const btn = document.getElementById('btn-sync-trigger');
+  btn.disabled = true;
+  btn.innerHTML = '<span>Running Auto-Sync...</span>';
+
+  fetch('/api/sync/trigger', { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      alert(`Auto-Sync finished! Incoming processed: ${data.incoming_files_processed || 0}, Synced: ${data.new_documents_found || 0}`);
+      btn.disabled = false;
+      btn.innerHTML = 'Run Auto-Sync Now';
+      fetchPipelineStats();
+    })
+    .catch(err => {
+      alert('Sync error: ' + err);
+      btn.disabled = false;
+      btn.innerHTML = 'Run Auto-Sync Now';
+    });
+}
+
+function fetchPipelineStats() {
+  fetch('/api/pipeline/stats')
+    .then(r => r.json())
+    .then(data => {
+      if (data.platform_stats) {
+        document.getElementById('metric-cases').innerText = data.platform_stats.cases_count;
+        document.getElementById('metric-docs').innerText = data.platform_stats.documents_count;
+      }
+      if (data.ocr_extracted_documents_count !== undefined) {
+        document.getElementById('metric-ocr').innerText = data.ocr_extracted_documents_count;
+      }
+      if (data.sync_status && data.sync_status.last_sync) {
+        document.getElementById('last-sync-label').innerText = new Date(data.sync_status.last_sync).toLocaleTimeString();
+      }
+    })
+    .catch(() => {});
+}
+
+// Periodically auto-refresh pipeline statistics every 8 seconds
+setInterval(fetchPipelineStats, 8000);
+</script>
+{% endblock %}

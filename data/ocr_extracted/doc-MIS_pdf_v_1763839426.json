@@ -1,0 +1,1323 @@
+{
+  "document_id": "doc-MIS_pdf_v_1763839426",
+  "title": "Summary All Cases",
+  "case_id": "mis-MIS.pdf?v=1763839426",
+  "court": "Registry / MIS",
+  "file_hash": "90befbf22f351bfc5cc604f8d13953dd85fb834a33c4ce09c08df206becf0af0",
+  "original_url": "https://longtailcases.com/uploads/new_mis/MIS.pdf?v=1763839426",
+  "extracted_at": "2026-09-24T14:00:01.087222+00:00",
+  "page_count": 3,
+  "total_words": 428,
+  "total_characters": 3033,
+  "ocr_required": false,
+  "ocr_pages_count": 0,
+  "average_confidence": 1.0,
+  "pages": [
+    {
+      "page_number": 1,
+      "text": "SR. \nNO.\nCITY\nCASE NO / FIR NO.\nCRIMINAL \nCases/Sections\nCNR NO.\nCurrent \nStatus.\n1\nNAGPUR\nRCC/3030147/2002\n101/2002\nU/S: 406, \n409,468, \n471,34,120-B\nMHNG030023772\n002\nNot Framed\n2\nWARDHA\nRCC/0300573/2002 \n110/2002\nU/S: 406, 409, \n420, 34\nMHWR030003432\n002\nCharge \nFramed\n3\nMUMBAI (EOW)\nPW/1900412/2007. \n83/2005\nSection: 409, \n420, 34\nMHMM110023802\n007\nCharge \nFramed\n4\nMUMBAI (EOW)\nPW/1900200/2005. \n298/2004\nSection: 409, \n465, 468, 471, 120B\nMHMM110049802\n005\nCharge \nFramed\n5\nEOW-2002\nPW/1900\n324/2002\nU/S: 409, 420, \n465, 467, 468, \n471,120-BR/W,\nMHMM110043362\n002\nNot Framed\n6\nCBI - MUMBAI\nSPL.CASE/\n0100083/2003\nU/S: 120-B, \n409,420,467, 468, \n131-CD, 132\nMHCC020000892\n003\nNot Framed\n7\nOSMANABAD\nRCC/0300398/2002 \n03/2002\nU/S: 218, 406, \n409, 420, 468, \n471, 120-B, 34\nMHOS030003962\n002\nCharge \nFramed\n8\nAMRAVATI\nRCC/0300847/2002\n64/2002\nU/S: 406, 409, \n420, 468, 120, 34\nMHAM030006142\n002\nCharge \nFramed\n9\nPUNE - \nVISHRAMBAG\nPW/4700255/2023. \n65/2002\nSction:-\n406,409,420,465,4\n67,468,471,109,34\nMHMM110023242\n023\nNot Framed\n10\nPUNE - PIMPRI\nPW/4700256/2023. \n 102/2002\nSection:-406, \n409,420,465,467,4\n68,471,109,34\nMHMM110023252\n023\nCharge \nFramed\nALL CASE CHARGES (MIS)\nMAHARASHTRA",
+      "confidence": 1.0,
+      "method": "pymupdf_text",
+      "ocr_applied": false,
+      "word_count": 161,
+      "char_count": 1195,
+      "layout_blocks": [
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "SR.",
+          "char_count": 3
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "NO.",
+          "char_count": 3
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "CITY",
+          "char_count": 4
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "CASE NO / FIR NO.",
+          "char_count": 17
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "CRIMINAL",
+          "char_count": 8
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "Cases/Sections",
+          "char_count": 14
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "CNR NO.",
+          "char_count": 7
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "Current Status. 1",
+          "char_count": 15
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "NAGPUR",
+          "char_count": 6
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "RCC/3030147/2002",
+          "char_count": 16
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "101/2002",
+          "char_count": 8
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "U/S: 406,",
+          "char_count": 9
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "409,468,",
+          "char_count": 8
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "471,34,120-B",
+          "char_count": 12
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "MHNG030023772",
+          "char_count": 13
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "002 Not Framed 2",
+          "char_count": 14
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "WARDHA",
+          "char_count": 6
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "RCC/0300573/2002",
+          "char_count": 16
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "110/2002",
+          "char_count": 8
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "U/S: 406, 409,",
+          "char_count": 14
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "420, 34",
+          "char_count": 7
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "MHWR030003432",
+          "char_count": 13
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "002 Charge Framed 3",
+          "char_count": 16
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "MUMBAI (EOW)",
+          "char_count": 12
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "PW/1900412/2007.",
+          "char_count": 16
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "83/2005",
+          "char_count": 7
+        },
+        {
+          "type": "citation",
+          "page_number": 1,
+          "content": "Section: 409,",
+          "char_count": 13
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "420, 34",
+          "char_count": 7
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "MHMM110023802",
+          "char_count": 13
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "007 Charge Framed 4",
+          "char_count": 16
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "MUMBAI (EOW)",
+          "char_count": 12
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "PW/1900200/2005.",
+          "char_count": 16
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "298/2004",
+          "char_count": 8
+        },
+        {
+          "type": "citation",
+          "page_number": 1,
+          "content": "Section: 409,",
+          "char_count": 13
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "465, 468, 471, 120B",
+          "char_count": 19
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "MHMM110049802",
+          "char_count": 13
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "005 Charge Framed 5",
+          "char_count": 16
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "EOW-2002",
+          "char_count": 8
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "PW/1900",
+          "char_count": 7
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "324/2002",
+          "char_count": 8
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "U/S: 409, 420,",
+          "char_count": 14
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "465, 467, 468,",
+          "char_count": 14
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "471,120-BR/W,",
+          "char_count": 13
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "MHMM110043362",
+          "char_count": 13
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "002 Not Framed 6",
+          "char_count": 14
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "CBI - MUMBAI",
+          "char_count": 12
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "SPL.CASE/",
+          "char_count": 9
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "0100083/2003",
+          "char_count": 12
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "U/S: 120-B,",
+          "char_count": 11
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "409,420,467, 468,",
+          "char_count": 17
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "131-CD, 132",
+          "char_count": 11
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "MHCC020000892",
+          "char_count": 13
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "003 Not Framed 7",
+          "char_count": 14
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "OSMANABAD",
+          "char_count": 9
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "RCC/0300398/2002",
+          "char_count": 16
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "03/2002",
+          "char_count": 7
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "U/S: 218, 406,",
+          "char_count": 14
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "409, 420, 468,",
+          "char_count": 14
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "471, 120-B, 34",
+          "char_count": 14
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "MHOS030003962",
+          "char_count": 13
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "002 Charge Framed 8",
+          "char_count": 16
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "AMRAVATI",
+          "char_count": 8
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "RCC/0300847/2002",
+          "char_count": 16
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "64/2002",
+          "char_count": 7
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "U/S: 406, 409,",
+          "char_count": 14
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "420, 468, 120, 34",
+          "char_count": 17
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "MHAM030006142",
+          "char_count": 13
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "002 Charge Framed 9",
+          "char_count": 16
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "PUNE -",
+          "char_count": 6
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "VISHRAMBAG",
+          "char_count": 10
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "PW/4700255/2023.",
+          "char_count": 16
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "65/2002 Sction:- 406,409,420,465,4 67,468,471,109,34",
+          "char_count": 49
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "MHMM110023242",
+          "char_count": 13
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "023 Not Framed 10",
+          "char_count": 15
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "PUNE - PIMPRI",
+          "char_count": 13
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "PW/4700256/2023.",
+          "char_count": 16
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "102/2002",
+          "char_count": 8
+        },
+        {
+          "type": "citation",
+          "page_number": 1,
+          "content": "Section:-406,",
+          "char_count": 13
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "409,420,465,467,4 68,471,109,34",
+          "char_count": 30
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "MHMM110023252",
+          "char_count": 13
+        },
+        {
+          "type": "paragraph",
+          "page_number": 1,
+          "content": "023 Charge Framed",
+          "char_count": 15
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "ALL CASE CHARGES (MIS)",
+          "char_count": 22
+        },
+        {
+          "type": "header",
+          "page_number": 1,
+          "content": "MAHARASHTRA",
+          "char_count": 11
+        }
+      ]
+    },
+    {
+      "page_number": 2,
+      "text": "SR. \nNO.\nCITY\nCASE NO / FIR NO.\nCRIMINAL \nCases/Sections\nCNR NO.\nCurrent Status.\n11\nANAND\nPW/4700361/2023. \n29/2002\nU/S: 420, 406, \n465, 467, 468, \n471, r/w 120-B, \n114 of IPC\nMHMM110048862\n023\nCharge \nFramed\n12\nUDHNA\nPW/4700387/2023. \n64/2002\nU/S: 406, 409, \n420, 114 of \nIPC,468,\n471,465,\nMHMM110044242\n023\nCharge \nFramed\n13\nADAJAN\nPW/4700388/2023. \n226/2002\nU/S: 406, 409, \n420, 421, 422, \n423,465,467,468,4\n71, 34 and 114 of \nIPC,120-B\nMHMM110044252\n023\nCharge \nFramed\n14\nUMRA\nPW/4700389/2023. \n274/2002\nSection 465, 467, \n468, 471, 420 r/w \n120-B and 114 of \nIPC\nMHMM110048842\n023\nCharge \nFramed\n15\nVARACHA\nPW/4700390/2023. \n274/2002\nSection: \n406,409,420,465,\n467,468,471,114\nMHMM110048812\n023\nCharge \nFramed\n16\nVALSAD\nPW/4700395/2023. I119/2002\nSection: 406, \n409, 420, 421, \n422, 423, 467, r/w \n120-B,34\nMHMM110044232\n023\nCharge \nFramed\n17\nGANDEVI\nPW/4700396/2023. \n3/2002\nSection: 406, \n409, 420, 467, \n468, 120-B\nMHMM110044182\n023\nCharge \nFramed\n18\nNAVSARI\nPW/4700399/2023. I93/2002\nSection: 406, \n409, 420, 421, \n465, 468, 034,120\nMHMM110044202\n023\nCharge \nFramed\n19\nMORBI\nCC/0001545/2003. \n22/2002\nU/S: 405, 406, \n409, 420, 467, \n468, 471,120, 34, \n114,\nGJMR0200062020\n03\nNot Framed\nALL CASE CHARGES (MIS)\nGUJRAT",
+      "confidence": 1.0,
+      "method": "pymupdf_text",
+      "ocr_applied": false,
+      "word_count": 174,
+      "char_count": 1224,
+      "layout_blocks": [
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "SR.",
+          "char_count": 3
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "NO.",
+          "char_count": 3
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "CITY",
+          "char_count": 4
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "CASE NO / FIR NO.",
+          "char_count": 17
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "CRIMINAL",
+          "char_count": 8
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "Cases/Sections",
+          "char_count": 14
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "CNR NO.",
+          "char_count": 7
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "Current Status. 11",
+          "char_count": 17
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "ANAND",
+          "char_count": 5
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "PW/4700361/2023.",
+          "char_count": 16
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "29/2002",
+          "char_count": 7
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "U/S: 420, 406,",
+          "char_count": 14
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "465, 467, 468, 471, r/w 120-B,",
+          "char_count": 29
+        },
+        {
+          "type": "citation",
+          "page_number": 2,
+          "content": "114 of IPC",
+          "char_count": 10
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "MHMM110048862",
+          "char_count": 13
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "023 Charge Framed 12",
+          "char_count": 17
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "UDHNA",
+          "char_count": 5
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "PW/4700387/2023.",
+          "char_count": 16
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "64/2002",
+          "char_count": 7
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "U/S: 406, 409,",
+          "char_count": 14
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "420, 114 of",
+          "char_count": 11
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "IPC,468,",
+          "char_count": 8
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "471,465,",
+          "char_count": 8
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "MHMM110044242",
+          "char_count": 13
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "023 Charge Framed 13",
+          "char_count": 17
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "ADAJAN",
+          "char_count": 6
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "PW/4700388/2023.",
+          "char_count": 16
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "226/2002",
+          "char_count": 8
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "U/S: 406, 409,",
+          "char_count": 14
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "420, 421, 422, 423,465,467,468,4 71, 34 and 114 of",
+          "char_count": 48
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "IPC,120-B",
+          "char_count": 9
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "MHMM110044252",
+          "char_count": 13
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "023 Charge Framed 14",
+          "char_count": 17
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "UMRA",
+          "char_count": 4
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "PW/4700389/2023.",
+          "char_count": 16
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "274/2002",
+          "char_count": 8
+        },
+        {
+          "type": "citation",
+          "page_number": 2,
+          "content": "Section 465, 467,",
+          "char_count": 17
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "468, 471, 420 r/w 120-B and 114 of",
+          "char_count": 33
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "IPC",
+          "char_count": 3
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "MHMM110048842",
+          "char_count": 13
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "023 Charge Framed 15",
+          "char_count": 17
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "VARACHA",
+          "char_count": 7
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "PW/4700390/2023.",
+          "char_count": 16
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "274/2002",
+          "char_count": 8
+        },
+        {
+          "type": "citation",
+          "page_number": 2,
+          "content": "Section:",
+          "char_count": 8
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "406,409,420,465, 467,468,471,114",
+          "char_count": 31
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "MHMM110048812",
+          "char_count": 13
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "023 Charge Framed 16",
+          "char_count": 17
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "VALSAD",
+          "char_count": 6
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "PW/4700395/2023. I119/2002",
+          "char_count": 26
+        },
+        {
+          "type": "citation",
+          "page_number": 2,
+          "content": "Section: 406,",
+          "char_count": 13
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "409, 420, 421, 422, 423, 467, r/w",
+          "char_count": 32
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "120-B,34",
+          "char_count": 8
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "MHMM110044232",
+          "char_count": 13
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "023 Charge Framed 17",
+          "char_count": 17
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "GANDEVI",
+          "char_count": 7
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "PW/4700396/2023.",
+          "char_count": 16
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "3/2002",
+          "char_count": 6
+        },
+        {
+          "type": "citation",
+          "page_number": 2,
+          "content": "Section: 406,",
+          "char_count": 13
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "409, 420, 467,",
+          "char_count": 14
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "468, 120-B",
+          "char_count": 10
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "MHMM110044182",
+          "char_count": 13
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "023 Charge Framed 18",
+          "char_count": 17
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "NAVSARI",
+          "char_count": 7
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "PW/4700399/2023. I93/2002",
+          "char_count": 25
+        },
+        {
+          "type": "citation",
+          "page_number": 2,
+          "content": "Section: 406,",
+          "char_count": 13
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "409, 420, 421, 465, 468, 034,120",
+          "char_count": 31
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "MHMM110044202",
+          "char_count": 13
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "023 Charge Framed 19",
+          "char_count": 17
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "MORBI",
+          "char_count": 5
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "CC/0001545/2003.",
+          "char_count": 16
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "22/2002",
+          "char_count": 7
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "U/S: 405, 406,",
+          "char_count": 14
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "409, 420, 467, 468, 471,120, 34, 114,",
+          "char_count": 35
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "GJMR0200062020",
+          "char_count": 14
+        },
+        {
+          "type": "paragraph",
+          "page_number": 2,
+          "content": "03 Not Framed",
+          "char_count": 12
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "ALL CASE CHARGES (MIS)",
+          "char_count": 22
+        },
+        {
+          "type": "header",
+          "page_number": 2,
+          "content": "GUJRAT",
+          "char_count": 6
+        }
+      ]
+    },
+    {
+      "page_number": 3,
+      "text": "SR. \nNO.\nCITY\nCASE NO / FIR NO.\nCRIMINAL \nCases/Sections\nCNR NO.\nCurrent Status.\n20\nPATIALA \nHOUSE\nPW/4700480/2023. \n280/2002\nSec 409,IPC rw \n120 B,420,\nMHMM11004913\n2023\nCharge \nFramed\n21\nSAROJINI \nNAGAR\nPW/4700266/2023. \n242/2002\nSection: 409 ,420B\nMHMM11002451\n2023\nCharge \nFramed\nSR. \nNO.\nCITY\nCASE NO / FIR NO.\nCRIMINAL \nCases/Sections\nCNR NO.\nCurrent Status.\n22\nBHAT PARA\nPW/4700318/2023. \n298/2002\nSection: 120-B, \n420, 406,\nMHMM11003177\n2023\nNot Framed\n23\nSONAR PUR\n177/2002\nU/S:\nNot Framed\n24\nALIPORE\n33/2002\nU/S: 420, 471, \n467, 120-B, \n13(1)r/w, 13(2)\nNot Framed\nWEST BENGAL\nALL CASE CHARGES (MIS)\nDELHI",
+      "confidence": 1.0,
+      "method": "pymupdf_text",
+      "ocr_applied": false,
+      "word_count": 93,
+      "char_count": 614,
+      "layout_blocks": [
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "SR.",
+          "char_count": 3
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "NO.",
+          "char_count": 3
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "CITY",
+          "char_count": 4
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "CASE NO / FIR NO.",
+          "char_count": 17
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "CRIMINAL",
+          "char_count": 8
+        },
+        {
+          "type": "paragraph",
+          "page_number": 3,
+          "content": "Cases/Sections",
+          "char_count": 14
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "CNR NO.",
+          "char_count": 7
+        },
+        {
+          "type": "paragraph",
+          "page_number": 3,
+          "content": "Current Status. 20",
+          "char_count": 17
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "PATIALA",
+          "char_count": 7
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "HOUSE",
+          "char_count": 5
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "PW/4700480/2023.",
+          "char_count": 16
+        },
+        {
+          "type": "paragraph",
+          "page_number": 3,
+          "content": "280/2002",
+          "char_count": 8
+        },
+        {
+          "type": "citation",
+          "page_number": 3,
+          "content": "Sec 409,IPC rw",
+          "char_count": 14
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "120 B,420,",
+          "char_count": 10
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "MHMM11004913",
+          "char_count": 12
+        },
+        {
+          "type": "paragraph",
+          "page_number": 3,
+          "content": "2023 Charge Framed 21",
+          "char_count": 18
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "SAROJINI",
+          "char_count": 8
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "NAGAR",
+          "char_count": 5
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "PW/4700266/2023.",
+          "char_count": 16
+        },
+        {
+          "type": "paragraph",
+          "page_number": 3,
+          "content": "242/2002",
+          "char_count": 8
+        },
+        {
+          "type": "citation",
+          "page_number": 3,
+          "content": "Section: 409 ,420B",
+          "char_count": 18
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "MHMM11002451",
+          "char_count": 12
+        },
+        {
+          "type": "paragraph",
+          "page_number": 3,
+          "content": "2023 Charge Framed",
+          "char_count": 16
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "SR.",
+          "char_count": 3
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "NO.",
+          "char_count": 3
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "CITY",
+          "char_count": 4
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "CASE NO / FIR NO.",
+          "char_count": 17
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "CRIMINAL",
+          "char_count": 8
+        },
+        {
+          "type": "paragraph",
+          "page_number": 3,
+          "content": "Cases/Sections",
+          "char_count": 14
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "CNR NO.",
+          "char_count": 7
+        },
+        {
+          "type": "paragraph",
+          "page_number": 3,
+          "content": "Current Status. 22",
+          "char_count": 17
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "BHAT PARA",
+          "char_count": 9
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "PW/4700318/2023.",
+          "char_count": 16
+        },
+        {
+          "type": "paragraph",
+          "page_number": 3,
+          "content": "298/2002",
+          "char_count": 8
+        },
+        {
+          "type": "citation",
+          "page_number": 3,
+          "content": "Section: 120-B,",
+          "char_count": 15
+        },
+        {
+          "type": "paragraph",
+          "page_number": 3,
+          "content": "420, 406,",
+          "char_count": 9
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "MHMM11003177",
+          "char_count": 12
+        },
+        {
+          "type": "paragraph",
+          "page_number": 3,
+          "content": "2023 Not Framed 23",
+          "char_count": 16
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "SONAR PUR",
+          "char_count": 9
+        },
+        {
+          "type": "paragraph",
+          "page_number": 3,
+          "content": "177/2002",
+          "char_count": 8
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "U/S:",
+          "char_count": 4
+        },
+        {
+          "type": "paragraph",
+          "page_number": 3,
+          "content": "Not Framed 24",
+          "char_count": 12
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "ALIPORE",
+          "char_count": 7
+        },
+        {
+          "type": "paragraph",
+          "page_number": 3,
+          "content": "33/2002",
+          "char_count": 7
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "U/S: 420, 471,",
+          "char_count": 14
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "467, 120-B,",
+          "char_count": 11
+        },
+        {
+          "type": "paragraph",
+          "page_number": 3,
+          "content": "13(1)r/w, 13(2) Not Framed",
+          "char_count": 25
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "WEST BENGAL",
+          "char_count": 11
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "ALL CASE CHARGES (MIS)",
+          "char_count": 22
+        },
+        {
+          "type": "header",
+          "page_number": 3,
+          "content": "DELHI",
+          "char_count": 5
+        }
+      ]
+    }
+  ],
+  "rag_chunks_count": 8,
+  "storage_paths": {
+    "plain_text": "data\\ocr_extracted\\doc-MIS_pdf_v_1763839426.txt",
+    "structured_json": "data\\ocr_extracted\\doc-MIS_pdf_v_1763839426.json",
+    "rag_chunks_json": "data\\ocr_extracted\\doc-MIS_pdf_v_1763839426_rag_chunks.json",
+    "llm_context_md": "data\\ocr_extracted\\doc-MIS_pdf_v_1763839426_llm_context.md"
+  }
+}

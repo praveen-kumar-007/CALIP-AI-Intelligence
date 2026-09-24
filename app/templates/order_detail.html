@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<nav style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--text-dim);">
+  <a href="/" style="color: var(--text-dim);">Home</a>
+  <span>/</span>
+  <a href="/orders" style="color: var(--text-dim);">Orders</a>
+  <span>/</span>
+  <span style="color: var(--accent-cyan);">{{ order.id }}</span>
+</nav>
+
+<div class="category-block" style="padding: 2rem; margin-bottom: 2rem; background: var(--bg-card);">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+    <div>
+      <span class="badge badge-cyan" style="margin-bottom: 0.5rem;">{{ order.order_type or "Court Order" }}</span>
+      <h1 style="font-size: 2rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.5rem;">
+        Court Order {{ order.id }}
+      </h1>
+      <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; font-size: 0.9rem; color: var(--text-muted);">
+        <span>Court: <strong style="color: var(--text-main);">{{ order.court }}</strong></span> &bull;
+        <span>Date: <strong style="color: var(--text-main);">{{ order.order_date }}</strong></span> &bull;
+        {% if order.bench %}<span>Bench: <strong style="color: var(--text-main);">{{ order.bench }}</strong></span> &bull;{% endif %}
+        <span>Case: <a href="/cases/{{ order.case_id }}" style="color: var(--accent-cyan);">{{ order.case_id }}</a></span>
+      </div>
+    </div>
+
+    <div>
+      <a href="/ai-research?query=What+did+the+court+order+in+{{ order.id }}?" class="btn btn-primary btn-sm">
+        Ask AI About Order
+      </a>
+    </div>
+  </div>
+
+  <div style="margin-top: 1.5rem; border-top: 1px solid var(--border-subtle); padding-top: 1.25rem;">
+    <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem;">Order Summary</h3>
+    <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">{{ order.summary }}</p>
+  </div>
+</div>
+
+{% if order.directions %}
+<div class="legal-card" style="border-left: 3px solid var(--accent-cyan); margin-bottom: 3rem;">
+  <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--accent-cyan); margin-bottom: 0.5rem;">Mandatory Directions</h3>
+  <p style="color: var(--text-main); line-height: 1.6;">{{ order.directions }}</p>
+</div>
+{% endif %}
+{% endblock %}
