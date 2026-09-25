@@ -5,14 +5,14 @@
 {
   "@context": "https://schema.org",
   "@type": "DigitalDocument",
-  "name": {{ document.title | tojson }},
+  "name": "{{ document.title | e }}",
   "url": "https://longtailcases.com/documents/{{ document.id }}",
   "encodingFormat": "application/pdf",
   "fileFormat": "application/pdf",
   "description": "Legal document record with page-by-page OCR and text extraction.",
   "associatedArticle": {
     "@type": "Legislation",
-    "name": {{ (case.title if case else 'Legal Record') | tojson }}
+    "name": "{{ (case.title if case else 'Legal Record') | e }}"
   }
 }
 </script>
@@ -195,7 +195,7 @@
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           Copy Brief
         </button>
-        <button id="btn-regen-summary" onclick="triggerRegenerateSummary('{{ document.id }}')" class="btn btn-primary btn-sm" style="font-size: 0.8rem;">
+        <button id="btn-regen-summary" onclick="triggerRegenerateSummary()" class="btn btn-primary btn-sm" style="font-size: 0.8rem;">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
           Re-Summarize with AI
         </button>
@@ -297,6 +297,12 @@
     </div>
     <div class="ocr-text-content" id="doc-extracted-raw-text">{{ (full_extracted_text or document.extracted_text or (ocr_artifact.full_text if ocr_artifact else "No extracted text available.")) | e }}</div>
   </div>
+</div>
+
+<!-- Hidden Document Bilingual and Meta Storage for pure JavaScript access -->
+<div id="doc-meta-store" style="display: none;" data-doc-id="{{ document.id }}">
+  <textarea id="doc-en-storage" readonly style="display: none;">{{ (document.english_translated_text or document.extracted_text or full_extracted_text or '') | e }}</textarea>
+  <textarea id="doc-local-storage" readonly style="display: none;">{{ (document.original_language_text or '') | e }}</textarea>
 </div>
 
 <!-- TAB 2: LLM CONTEXT & PROMPT GENERATOR -->
@@ -564,6 +570,8 @@ function renderAiSummaryMarkdown() {
 document.addEventListener('DOMContentLoaded', renderAiSummaryMarkdown);
 
 async function triggerRegenerateSummary(docId) {
+  const store = document.getElementById('doc-meta-store');
+  const targetId = docId || (store ? store.getAttribute('data-doc-id') : '') || '';
   const btn = document.getElementById('btn-regen-summary');
   const contentEl = document.getElementById('ai-summary-content');
   const origText = btn ? btn.innerHTML : '';
@@ -575,7 +583,7 @@ async function triggerRegenerateSummary(docId) {
     contentEl.style.opacity = '0.5';
   }
   try {
-    const res = await fetch(`/api/documents/${docId}/summarize`, {
+    const res = await fetch('/api/documents/' + encodeURIComponent(targetId) + '/summarize', {
       method: 'POST',
       headers: { 'Accept': 'application/json' }
     });
@@ -616,6 +624,8 @@ async function triggerRegenerateSummary(docId) {
 }
 
 async function triggerLiveOcr() {
+  const store = document.getElementById('doc-meta-store');
+  const docId = store ? store.getAttribute('data-doc-id') : '';
   const btn = document.getElementById('btn-run-instant-ocr');
   const origText = btn ? btn.innerHTML : '';
   if (btn) {
@@ -623,7 +633,7 @@ async function triggerLiveOcr() {
     btn.innerHTML = '<span style="display:inline-block;animation:spin 1s linear infinite;">⏳</span> Running Windows OCR Pipeline...';
   }
   try {
-    const res = await fetch(`/api/documents/{{ document.id }}/re-extract`, {
+    const res = await fetch('/api/documents/' + encodeURIComponent(docId) + '/re-extract', {
       method: 'POST',
       headers: { 'Accept': 'application/json' }
     });
@@ -683,15 +693,25 @@ async function submitCustomOcr() {
   }
 }
 
-// Bilingual Language Switcher Logic
-const docEnText = {{ (document.english_translated_text or document.extracted_text or full_extracted_text or "")|tojson }};
-const docLocalText = {{ (document.original_language_text or "")|tojson }};
+// Bilingual Language Switcher Logic (DOM-based storage, zero script syntax issues)
+function getDocEnText() {
+  const el = document.getElementById('doc-en-storage');
+  return el ? el.value : '';
+}
+
+function getDocLocalText() {
+  const el = document.getElementById('doc-local-storage');
+  return el ? el.value : '';
+}
 
 function setDocLanguage(lang) {
   const textEl = document.getElementById('doc-extracted-raw-text');
   const btnEn = document.getElementById('btn-lang-en');
   const btnLocal = document.getElementById('btn-lang-local');
   if (!textEl) return;
+
+  const docLocalText = getDocLocalText();
+  const docEnText = getDocEnText();
 
   if (lang === 'local' && docLocalText) {
     textEl.textContent = docLocalText;
