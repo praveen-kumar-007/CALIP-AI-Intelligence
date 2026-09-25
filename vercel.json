@@ -20,6 +20,7 @@
     "SERVERLESS": "true",
     "AUTO_SYNC_ENABLED": "false",
     "LLM_PROVIDER": "groq",
+    "GROQ_MODEL": "openai/gpt-oss-120b",
     "DATABASE_URL": "postgresql+psycopg2://postgres.qmnzsgnompkfdqtdadhy:CalipDB2026@aws-0-ap-south-1.pooler.supabase.com:5432/postgres?sslmode=require"
   }
 }
