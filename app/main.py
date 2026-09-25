@@ -80,6 +80,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    tb = traceback.format_exc()
+    print(f"[Global Exception] {request.method} {request.url}: {tb}")
+    return PlainTextResponse(f"Internal Exception on {request.url}:\n\n{tb}", status_code=500)
+
+
 # Start background auto-sync worker on application import (disabled in serverless)
 try:
     if settings.AUTO_SYNC_ENABLED and not settings.IS_SERVERLESS:
