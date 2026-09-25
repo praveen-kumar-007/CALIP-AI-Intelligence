@@ -1588,3 +1588,126 @@ a:hover {
   gap: 0.5rem;
 }
 
+/* ========================================================
+   LEGAL BRIEFING & AI SUMMARY FORMATTING (TABLES, LISTS, HEADINGS)
+   ======================================================== */
+.legal-briefing-body {
+  font-size: 0.96rem;
+  line-height: 1.8;
+  color: var(--text-main);
+}
+
+.legal-briefing-body p {
+  margin-bottom: 1.15rem;
+  line-height: 1.8;
+  color: var(--text-main);
+}
+
+.legal-briefing-body strong {
+  font-weight: 700;
+  color: var(--text-pure);
+}
+
+.legal-briefing-body em {
+  font-style: italic;
+  color: var(--accent-cyan);
+}
+
+.legal-briefing-body h1,
+.legal-briefing-body h2,
+.legal-briefing-body h3,
+.legal-briefing-body h4 {
+  color: var(--text-pure);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.legal-briefing-body h1 {
+  font-size: 1.45rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0.85rem;
+  border-bottom: 2px solid var(--border-subtle);
+  padding-bottom: 0.4rem;
+}
+
+.legal-briefing-body h2 {
+  font-size: 1.25rem;
+  margin-top: 1.4rem;
+  margin-bottom: 0.75rem;
+  padding-left: 0.75rem;
+  border-left: 4px solid var(--accent-primary);
+}
+
+.legal-briefing-body h3 {
+  font-size: 1.05rem;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: var(--accent-cyan);
+}
+
+.legal-briefing-body ul,
+.legal-briefing-body ol {
+  margin-bottom: 1.25rem;
+  padding-left: 1.5rem;
+}
+
+.legal-briefing-body li {
+  margin-bottom: 0.4rem;
+  line-height: 1.7;
+  color: var(--text-main);
+}
+
+.legal-briefing-body blockquote {
+  margin: 1.25rem 0;
+  padding: 0.85rem 1.15rem;
+  background: rgba(0, 122, 255, 0.05);
+  border-left: 4px solid var(--accent-primary);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--text-pure);
+  font-style: italic;
+}
+
+.legal-briefing-body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  margin: 1.25rem 0;
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+}
+
+.legal-briefing-body table th {
+  background: rgba(0, 122, 255, 0.08);
+  color: var(--text-pure);
+  padding: 0.75rem 1rem;
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 2px solid var(--border-subtle);
+  text-align: left;
+}
+
+.legal-briefing-body table td {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  vertical-align: top;
+  line-height: 1.55;
+}
+
+.legal-briefing-body table tr:last-child td {
+  border-bottom: none;
+}
+
+.legal-briefing-body table tr:nth-child(even) {
+  background: rgba(0, 0, 0, 0.015);
+}
+
+.legal-briefing-body table tr:hover {
+  background: rgba(0, 122, 255, 0.04);
+}
+
+
