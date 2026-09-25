@@ -81,10 +81,10 @@ class Settings:
     STATIC_DIR: Path = Path(os.getenv("STATIC_DIR", str(BASE_DIR / "app" / "static")))
     TEMPLATES_DIR: Path = Path(os.getenv("TEMPLATES_DIR", str(BASE_DIR / "app" / "templates")))
 
-    # Database: Supabase Cloud PostgreSQL (IPv4 & IPv6 Dual-Stack Pooler)
+    # Database: Supabase Cloud PostgreSQL (IPv4 & IPv6 Dual-Stack Pooler via psycopg2)
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL",
-        "postgresql://postgres.qmnzsgnompkfdqtdadhy:CalipDB2026@aws-0-ap-south-1.pooler.supabase.com:5432/postgres?sslmode=require",
+        "postgresql+psycopg2://postgres.qmnzsgnompkfdqtdadhy:CalipDB2026@aws-0-ap-south-1.pooler.supabase.com:5432/postgres?sslmode=require",
     )
 
     # Auto-Sync & Real-Time Ingest

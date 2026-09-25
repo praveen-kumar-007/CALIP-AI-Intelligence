@@ -9,6 +9,11 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 from app.core.config import settings
 
 DATABASE_URL = settings.DATABASE_URL
+if DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
+elif DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
+
 IS_SERVERLESS = getattr(settings, "IS_SERVERLESS", False) or bool(
     os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME")
 )
