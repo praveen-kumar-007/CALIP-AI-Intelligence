@@ -82,16 +82,29 @@ app.add_middleware(
 
 # Start background auto-sync worker on application import (disabled in serverless)
 try:
-    if settings.AUTO_SYNC_ENABLED and not getattr(settings, "IS_SERVERLESS", False):
+    if settings.AUTO_SYNC_ENABLED and not settings.IS_SERVERLESS:
         start_auto_sync_worker(interval_seconds=settings.AUTO_SYNC_INTERVAL_SECONDS)
 except Exception as e:
     print(f"[Main] Auto-sync worker initialization warning: {e}")
 
 STATIC_DIR = settings.STATIC_DIR
-STATIC_DIR.mkdir(parents=True, exist_ok=True)
-app.mount("/static", StaticFiles(directory=str(settings.STATIC_DIR)), name="static")
+try:
+    STATIC_DIR.mkdir(parents=True, exist_ok=True)
+except Exception:
+    pass
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(settings.STATIC_DIR)), name="static")
 
 templates = Jinja2Templates(directory=str(settings.TEMPLATES_DIR))
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    fav_path = settings.STATIC_DIR / "favicon.ico"
+    if fav_path.exists():
+        return FileResponse(str(fav_path), media_type="image/x-icon")
+    return Response(status_code=204)
+
 
 
 # ==========================================

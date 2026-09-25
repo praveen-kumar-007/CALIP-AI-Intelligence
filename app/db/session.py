@@ -15,11 +15,20 @@ IS_SERVERLESS = getattr(settings, "IS_SERVERLESS", False) or bool(
 
 connect_args = {"check_same_thread": False, "timeout": 30} if DATABASE_URL.startswith("sqlite") else {}
 
-engine = create_engine(
-    DATABASE_URL,
-    connect_args=connect_args,
-    echo=False,
-)
+if IS_SERVERLESS:
+    from sqlalchemy.pool import NullPool
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args=connect_args,
+        poolclass=NullPool,
+        echo=False,
+    )
+else:
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args=connect_args,
+        echo=False,
+    )
 
 if DATABASE_URL.startswith("sqlite"):
     @event.listens_for(engine, "connect")

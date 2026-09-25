@@ -57,6 +57,9 @@ class Settings:
     APP_NAME: str = os.getenv("APP_NAME", "CALIP Legal Case & Document Intelligence Platform")
     APP_ENV: str = os.getenv("APP_ENV", "production")
     DEBUG: bool = _get_bool("DEBUG", False)
+    IS_SERVERLESS: bool = _get_bool("SERVERLESS", False) or bool(
+        os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME")
+    )
     HOST: str = os.getenv("HOST", "127.0.0.1")
     PORT: int = _get_int("PORT", 8000)
     CORS_ORIGINS: list[str] = _get_list("CORS_ORIGINS", ["*"])

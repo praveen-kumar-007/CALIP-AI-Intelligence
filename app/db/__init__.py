@@ -1,3 +1,4 @@
+import os
 from app.db.session import Base, SessionLocal, engine, get_db
 from app.db.models import (
     Case,
@@ -14,6 +15,14 @@ from app.db.models import (
     RelationshipEdge,
     LongtailFolder,
     ProcessingJob,
+    Atom,
+    AtomProceeding,
+    AtomAccused,
+    AtomReviewQueue,
 )
 
-Base.metadata.create_all(bind=engine)
+
+def init_db():
+    """Initializes tables on demand (for local development or setup scripts only)."""
+    Base.metadata.create_all(bind=engine)
+
