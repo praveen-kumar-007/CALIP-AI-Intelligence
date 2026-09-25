@@ -1,6 +1,7 @@
-from __future__ import annotations
-
+import hashlib
+import json
 import re
+import time
 from typing import Any
 
 import numpy as np
@@ -94,7 +95,6 @@ def chunk_document_pages(
 
 def _zero_dep_embedding(text: str, dim: int = 384) -> list[float]:
     """Lightweight deterministic normalized vector representation for serverless runtime."""
-    import hashlib
     vec = [0.0] * dim
     words = re.findall(r"\w+", (text or "").lower())
     for w in words:
@@ -181,7 +181,6 @@ def vector_search(
     Utilizes high-speed in-memory embedding matrix caching for sub-10ms responses.
     """
     global _VECTOR_CACHE_DATA, _VECTOR_CACHE_MATRIX, _VECTOR_CACHE_TIME
-    import time
 
     query_emb = np.array(generate_embedding(query), dtype=np.float32)
 
@@ -200,7 +199,7 @@ def vector_search(
                 DocumentChunk.page_number,
                 DocumentChunk.chunk_text,
                 DocumentChunk.embedding,
-            ).filter(DocumentChunk.embedding != None)
+            ).filter(DocumentChunk.embedding.isnot(None))
 
             if case_id:
                 query_set = query_set.filter(DocumentChunk.case_id == case_id)
