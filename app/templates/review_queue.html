@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--text-dim);">
+  <a href="/" style="color: var(--text-dim);">Home</a>
+  <span>/</span>
+  <a href="/atoms" style="color: var(--text-dim);">Atoms</a>
+  <span>/</span>
+  <span style="color: var(--accent-cyan); font-weight: 600;">Verification Queue</span>
+</nav>
+
+<div class="category-block" style="padding: 2rem; margin-bottom: 2rem; background: var(--bg-card); border-left: 4px solid var(--accent-amber);">
+  <h1 style="font-size: 1.75rem; font-weight: 800; color: #fff; margin-bottom: 0.5rem;">
+    Atom Verification &amp; Review Queue
+  </h1>
+  <p style="color: #94a3b8; font-size: 0.95rem; line-height: 1.6;">
+    In accordance with Part 16 &amp; Part 26 of the CALIP specification:
+    <strong>Never silently create an atom when identity confidence is low.</strong>
+    Documents with missing police stations, low confidence FIR extraction, or conflicting CNRs are held here for human review.
+  </p>
+</div>
+
+<div class="legal-card" style="padding: 0; overflow: hidden; margin-bottom: 3rem;">
+  <div style="overflow-x: auto;">
+    <table class="data-table" style="width: 100%;">
+      <thead>
+        <tr style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-dim);">
+          <th>Queue ID</th>
+          <th>Document Title</th>
+          <th>Review Reason</th>
+          <th>Detected Data</th>
+          <th>Status</th>
+          <th style="text-align: right;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if queue_items %}
+          {% for item in queue_items %}
+          <tr>
+            <td><code style="color: #94a3b8;">{{ (item.id|string)[:8] }}...</code></td>
+            <td>
+              <a href="/documents/{{ item.document_id }}" style="color: #38bdf8; font-weight: 600;">
+                {{ item.document_id }}
+              </a>
+            </td>
+            <td><span class="badge badge-amber">{{ item.review_reason }}</span></td>
+            <td><pre style="font-size: 0.75rem; color: #cbd5e1; margin: 0;">{{ item.detected_data }}</pre></td>
+            <td><span class="badge badge-rose">{{ item.status }}</span></td>
+            <td style="text-align: right;">
+              <button class="btn btn-primary btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">Verify &amp; Approve</button>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="6" style="text-align: center; padding: 3rem; color: #94a3b8;">
+              <div style="font-size: 1.1rem; font-weight: 600; color: #10b981; margin-bottom: 0.25rem;">Verification Queue Clear</div>
+              All 24 active Canonical Legal Cognitive Atoms are verified. No conflicting FIRs pending.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -261,11 +261,28 @@
 <!-- TAB 1: CLEAN EXTRACTED TEXT -->
 <div id="tab-extracted-text" class="tab-content active">
   <div class="ocr-viewer-box" style="margin-bottom: 2.5rem;">
-    <div class="ocr-viewer-header">
-      <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <div class="ocr-viewer-header" style="flex-wrap: wrap; gap: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
         <span style="font-weight: 700; color: var(--text-pure); font-size: 0.92rem;">Separately Stored Clean Text</span>
-        <span class="badge badge-emerald">Normalized &amp; Hyphen-Repaired</span>
+        {% if document.detected_language and document.detected_language != 'English' %}
+        <span class="badge badge-indigo" id="badge-doc-lang">🇮🇳 {{ document.detected_language }}</span>
+        {% endif %}
+        <span class="badge badge-emerald">Verified Legal Copy</span>
       </div>
+
+      <!-- Bilingual Language Mode Selector -->
+      {% if document.original_language_text and document.original_language_text != document.english_translated_text %}
+      <div style="display: flex; align-items: center; gap: 0.4rem; background: rgba(255,255,255,0.05); padding: 0.25rem 0.5rem; border-radius: 8px; border: 1px solid var(--border-subtle);">
+        <span style="font-size: 0.75rem; color: var(--text-dim); font-weight: 600;">Language View:</span>
+        <button id="btn-lang-en" onclick="setDocLanguage('en')" class="btn btn-sm btn-primary" style="padding: 0.2rem 0.6rem; font-size: 0.75rem; font-weight: 600;">
+          🇬🇧 English Translation
+        </button>
+        <button id="btn-lang-local" onclick="setDocLanguage('local')" class="btn btn-sm btn-secondary" style="padding: 0.2rem 0.6rem; font-size: 0.75rem; font-weight: 600;">
+          🇮🇳 Genuine Native ({{ document.detected_language or 'Local Language' }})
+        </button>
+      </div>
+      {% endif %}
+
       <div style="display: flex; align-items: center; gap: 0.75rem;">
         <button onclick="copyExtractedText()" class="btn btn-secondary btn-sm" id="btn-copy-txt">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -646,6 +663,27 @@ async function submitCustomOcr() {
     alert('Extraction request error: ' + e);
     btn.disabled = false;
     btn.innerHTML = orig;
+  }
+}
+
+// Bilingual Language Switcher Logic
+const docEnText = {{ (document.english_translated_text or document.extracted_text or full_extracted_text or "")|tojson }};
+const docLocalText = {{ (document.original_language_text or "")|tojson }};
+
+function setDocLanguage(lang) {
+  const textEl = document.getElementById('doc-extracted-raw-text');
+  const btnEn = document.getElementById('btn-lang-en');
+  const btnLocal = document.getElementById('btn-lang-local');
+  if (!textEl) return;
+
+  if (lang === 'local' && docLocalText) {
+    textEl.textContent = docLocalText;
+    if (btnEn) { btnEn.classList.remove('btn-primary'); btnEn.classList.add('btn-secondary'); }
+    if (btnLocal) { btnLocal.classList.remove('btn-secondary'); btnLocal.classList.add('btn-primary'); }
+  } else {
+    textEl.textContent = docEnText;
+    if (btnEn) { btnEn.classList.remove('btn-secondary'); btnEn.classList.add('btn-primary'); }
+    if (btnLocal) { btnLocal.classList.remove('btn-primary'); btnLocal.classList.add('btn-secondary'); }
   }
 }
 </script>

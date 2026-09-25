@@ -587,88 +587,107 @@ def store_extracted_ocr_separately(
         db = SessionLocal()
         try:
             doc = db.query(Document).filter_by(id=document_id).first()
-            if doc:
+            if not doc:
+                doc = Document(
+                    id=document_id,
+                    title=title,
+                    case_id=case_id,
+                    court=court,
+                    file_hash=file_hash,
+                    extracted_text=full_text,
+                    page_count=len(pages),
+                    ocr_confidence=extraction_res.get("average_confidence", 0.95),
+                )
+                db.add(doc)
+                db.commit()
+            else:
                 doc.extracted_text = full_text
                 doc.page_count = len(pages) or doc.page_count
                 doc.ocr_confidence = extraction_res.get("average_confidence", 0.95)
                 db.commit()
 
-                # Upsert DocumentPages in DB
-                db.query(DocumentPage).filter_by(document_id=document_id).delete()
-                for p in pages:
-                    p_num = p["page_number"]
-                    doc_page = DocumentPage(
-                        id=f"{document_id}_p{p_num}",
-                        document_id=document_id,
-                        page_number=p_num,
-                        page_text=p.get("text", ""),
-                        has_images=p.get("ocr_applied", False),
-                        ocr_confidence=p.get("confidence", 0.95),
-                        extraction_method=p.get("method", "pymupdf_text"),
-                    )
-                    db.add(doc_page)
-                db.commit()
+            # Upsert DocumentPages in DB
+            db.query(DocumentPage).filter_by(document_id=document_id).delete()
+            for p in pages:
+                p_num = p["page_number"]
+                doc_page = DocumentPage(
+                    id=f"{document_id}_p{p_num}",
+                    document_id=document_id,
+                    page_number=p_num,
+                    page_text=p.get("text", ""),
+                    original_page_text=p.get("original_text", p.get("original_page_text")),
+                    english_page_text=p.get("english_text", p.get("english_page_text", p.get("text", ""))),
+                    has_images=p.get("ocr_applied", False),
+                    ocr_confidence=p.get("confidence", 0.95),
+                    extraction_method=p.get("method", "pymupdf_text"),
+                )
+                db.add(doc_page)
+            db.commit()
         finally:
             db.close()
     except Exception as db_exc:
         print(f"[OCR Storage] DB persistence note: {db_exc}")
 
-    # Optional local file caching (only if explicitly enabled via environment)
-    if os.getenv("SAVE_LOCAL_OCR_FILES", "false").lower() == "true":
-        try:
-            OCR_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
-            txt_path.write_text(full_text, encoding="utf-8")
-            rag_chunks_path.write_text(json.dumps(rag_chunks, indent=2, ensure_ascii=False), encoding="utf-8")
-            llm_context_blocks = [
-                f"# LEGAL RECORD: {title}",
-                f"**Case Reference:** {case_id or 'Unassigned'}",
-                f"**Court:** {court or 'Judicial Forum'}",
-                f"**Document ID:** {document_id}",
-                f"**Cryptographic Hash (SHA-256):** {file_hash or 'Not specified'}",
-                f"**Extraction Method:** {extraction_res.get('pages', [{}])[0].get('method', 'PyMuPDF/OCR')}",
-                f"**Total Pages:** {extraction_res.get('page_count', 1)} | **Average Confidence:** {extraction_res.get('average_confidence', 1.0)*100:.1f}%\n",
-                "--- START VERIFIED DOCUMENT TEXT ---\n",
-            ]
-            for p in pages:
-                llm_context_blocks.append(
-                    f"[[PAGE {p['page_number']} | SOURCE: {title} | CONFIDENCE: {p.get('confidence', 1.0)*100:.0f}%]]\n"
-                    f"{p['text']}\n"
-                )
-            llm_context_blocks.append("--- END VERIFIED DOCUMENT TEXT ---")
-            llm_context_path.write_text("\n".join(llm_context_blocks), encoding="utf-8")
+    # Write local file artifacts and return paths
+    try:
+        OCR_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+        txt_path.write_text(full_text, encoding="utf-8")
+        rag_chunks_path.write_text(json.dumps(rag_chunks, indent=2, ensure_ascii=False), encoding="utf-8")
+        llm_context_blocks = [
+            f"# LEGAL RECORD: {title}",
+            f"**Case Reference:** {case_id or 'Unassigned'}",
+            f"**Court:** {court or 'Judicial Forum'}",
+            f"**Document ID:** {document_id}",
+            f"**Cryptographic Hash (SHA-256):** {file_hash or 'Not specified'}",
+            f"**Extraction Method:** {extraction_res.get('pages', [{}])[0].get('method', 'PyMuPDF/OCR')}",
+            f"**Total Pages:** {extraction_res.get('page_count', 1)} | **Average Confidence:** {extraction_res.get('average_confidence', 1.0)*100:.1f}%\n",
+            "--- START VERIFIED DOCUMENT TEXT ---\n",
+        ]
+        for p in pages:
+            llm_context_blocks.append(
+                f"[[PAGE {p['page_number']} | SOURCE: {title} | CONFIDENCE: {p.get('confidence', 1.0)*100:.0f}%]]\n"
+                f"{p['text']}\n"
+            )
+        llm_context_blocks.append("--- END VERIFIED DOCUMENT TEXT ---")
+        llm_context_path.write_text("\n".join(llm_context_blocks), encoding="utf-8")
 
-            structured_doc = {
-                "document_id": document_id,
-                "title": title,
-                "case_id": case_id,
-                "court": court,
-                "file_hash": file_hash,
-                "original_url": original_url,
-                "extracted_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                "page_count": extraction_res.get("page_count", 0),
-                "total_words": extraction_res.get("total_words", 0),
-                "total_characters": extraction_res.get("total_characters", 0),
-                "ocr_required": extraction_res.get("ocr_required", False),
-                "ocr_pages_count": extraction_res.get("ocr_pages_count", 0),
-                "average_confidence": extraction_res.get("average_confidence", 0.0),
-                "pages": pages,
-                "rag_chunks_count": len(rag_chunks),
-                "storage_paths": {
-                    "plain_text": str(txt_path),
-                    "structured_json": str(json_path),
-                    "rag_chunks_json": str(rag_chunks_path),
-                    "llm_context_md": str(llm_context_path),
-                },
-            }
-            json_path.write_text(json.dumps(structured_doc, indent=2, ensure_ascii=False), encoding="utf-8")
-        except Exception:
-            pass
+        structured_doc = {
+            "document_id": document_id,
+            "title": title,
+            "case_id": case_id,
+            "court": court,
+            "file_hash": file_hash,
+            "original_url": original_url,
+            "extracted_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "page_count": extraction_res.get("page_count", 0),
+            "total_words": extraction_res.get("total_words", 0),
+            "total_characters": extraction_res.get("total_characters", 0),
+            "ocr_required": extraction_res.get("ocr_required", False),
+            "ocr_pages_count": extraction_res.get("ocr_pages_count", 0),
+            "average_confidence": extraction_res.get("average_confidence", 0.0),
+            "full_text": full_text,
+            "pages": pages,
+            "rag_chunks_count": len(rag_chunks),
+            "storage_paths": {
+                "plain_text": str(txt_path),
+                "structured_json": str(json_path),
+                "rag_chunks_json": str(rag_chunks_path),
+                "llm_context_md": str(llm_context_path),
+            },
+        }
+        json_path.write_text(json.dumps(structured_doc, indent=2, ensure_ascii=False), encoding="utf-8")
+    except Exception as io_exc:
+        print(f"[OCR Storage] File caching notice: {io_exc}")
 
     return {
         "storage": "postgresql",
         "document_id": document_id,
         "page_count": len(pages),
         "total_characters": len(full_text),
+        "plain_text": str(txt_path),
+        "structured_json": str(json_path),
+        "rag_chunks_json": str(rag_chunks_path),
+        "llm_context_md": str(llm_context_path),
     }
 
 
@@ -684,6 +703,9 @@ def get_extracted_ocr_data(document_id: str) -> dict[str, Any] | None:
     try:
         doc = db.query(Document).filter_by(id=document_id).first()
         if not doc:
+            json_path = OCR_STORAGE_DIR / f"{document_id}.json"
+            if json_path.exists():
+                return json.loads(json_path.read_text(encoding="utf-8"))
             return None
 
         pages_recs = db.query(DocumentPage).filter_by(document_id=document_id).order_by(DocumentPage.page_number).all()
@@ -744,7 +766,13 @@ def get_extracted_ocr_data(document_id: str) -> dict[str, Any] | None:
 
 
 def get_llm_ready_context(document_id: str) -> str | None:
-    """Retrieves the prompt-ready LLM context string directly from database records."""
+    """Retrieves the prompt-ready LLM context string directly from database records or storage cache."""
+    md_path = OCR_STORAGE_DIR / f"{document_id}_llm_context.md"
+    if not md_path.exists():
+        md_path = OCR_STORAGE_DIR / f"{document_id}.md"
+    if md_path.exists():
+        return md_path.read_text(encoding="utf-8")
+
     ocr_data = get_extracted_ocr_data(document_id)
     if not ocr_data or not ocr_data.get("full_text"):
         return None
@@ -755,17 +783,17 @@ def get_llm_ready_context(document_id: str) -> str | None:
     pages = ocr_data.get("pages", [])
 
     lines = [
-        f"# RECORD ARTIFACT: {title}",
+        f"# LEGAL RECORD: {title}",
         f"**Case Reference:** {case_ref}",
         f"**Court / Jurisdiction:** {court}",
         f"**Page Count:** {len(pages)} pages | **Verified DB Storage**",
         "",
-        "--- START VERIFIED RECORD TRANSCRIPT ---",
+        "--- START VERIFIED DOCUMENT TEXT ---",
     ]
     for p in pages:
         lines.append(f"## PAGE {p['page_number']}")
         lines.append(p.get("text") or "")
         lines.append("")
-    lines.append("--- END VERIFIED RECORD TRANSCRIPT ---")
+    lines.append("--- END VERIFIED DOCUMENT TEXT ---")
     return "\n".join(lines)
 

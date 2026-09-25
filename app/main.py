@@ -17,7 +17,10 @@ from pydantic import BaseModel
 
 from app.core.config import settings
 from app.db.session import SessionLocal
-from app.db.models import Case, Document, DocumentPage, Court
+from app.db.models import Case, Document, DocumentPage, Court, Atom, AtomProceeding, AtomAccused, AtomReviewQueue
+from app.services.hydration_engine import get_all_atoms, get_canonical_atom_json
+from app.services.atom_resolver import get_atom_by_id_or_canonical
+from app.services.atomic_reasoner import query_atomic_reasoner
 from app.services.legal_data import (
     get_all_cases,
     get_case_by_id,
@@ -44,6 +47,7 @@ from app.services.ocr_service import (
     store_extracted_ocr_separately,
 )
 from app.services.rag_service import ask_legal_question
+from app.services.llm_provider import get_active_model_name, LLMProvider
 from app.services.vector_service import vector_search, index_document_chunks
 from app.services.graph_service import get_case_graph_relationships, extract_entities_from_text, save_extracted_entities_and_relationships
 from app.services.auto_sync import (
@@ -146,6 +150,58 @@ def case_detail_page(request: Request, case_id: str):
             "canonical_url": f"https://longtailcases.com/cases/{case['id']}",
         },
     )
+
+
+@app.get("/atoms", response_class=HTMLResponse)
+def atoms_dashboard_page(request: Request, state: str | None = Query(default=None)):
+    atoms = get_all_atoms(limit=100, state=state)
+    return templates.TemplateResponse(
+        request=request,
+        name="atoms.html",
+        context={
+            "title": "Legal Cognitive Atoms Directory | CALIP",
+            "atoms": atoms,
+            "current_state": state,
+            "canonical_url": "https://longtailcases.com/atoms",
+        },
+    )
+
+
+@app.get("/atoms/{atom_id}", response_class=HTMLResponse)
+def atom_detail_page(request: Request, atom_id: str):
+    db = SessionLocal()
+    try:
+        atom = get_atom_by_id_or_canonical(db, atom_id)
+        if not atom:
+            raise HTTPException(status_code=404, detail="Canonical Legal Cognitive Atom not found.")
+        return templates.TemplateResponse(
+            request=request,
+            name="atom_detail.html",
+            context={
+                "title": f"Atom {atom.canonical_fir_id} | CALIP",
+                "atom": atom,
+                "canonical_url": f"https://longtailcases.com/atoms/{atom.id}",
+            },
+        )
+    finally:
+        db.close()
+
+
+@app.get("/admin/review-queue", response_class=HTMLResponse)
+def admin_review_queue_page(request: Request):
+    db = SessionLocal()
+    try:
+        queue_items = db.query(AtomReviewQueue).order_by(AtomReviewQueue.created_at.desc()).limit(50).all()
+        return templates.TemplateResponse(
+            request=request,
+            name="review_queue.html",
+            context={
+                "title": "Atom Verification Queue | CALIP Admin",
+                "queue_items": queue_items,
+            },
+        )
+    finally:
+        db.close()
 
 
 @app.get("/longtail", response_class=HTMLResponse)
@@ -466,6 +522,8 @@ def ai_research_page(request: Request, query: str | None = Query(default=None)):
             "title": f"AI Legal Research: {query[:40]}... | CALIP" if query else "AI Case Intelligence & Citation Assistant | CALIP",
             "query": query or "",
             "result": result,
+            "ai_model": get_active_model_name(),
+            "ai_provider": LLMProvider.get_active_provider(),
             "canonical_url": "https://longtailcases.com/ai-research",
         },
     )
@@ -912,6 +970,122 @@ class QuestionRequest(BaseModel):
     query: str
     case_id: str | None = None
     court: str | None = None
+
+
+class AtomReasoningRequest(BaseModel):
+    question: str
+    atom_id: str | None = None
+    canonical_fir_id: str | None = None
+
+
+# ==============================================================================
+# CANONICAL ATOM REST API ENDPOINTS
+# ==============================================================================
+
+@app.get("/api/atoms")
+async def api_atoms_list(limit: int = 50, offset: int = 0, state: str | None = Query(default=None)):
+    """Returns list of Canonical Legal Cognitive Atoms."""
+    atoms = get_all_atoms(limit=limit, offset=offset, state=state)
+    return JSONResponse({
+        "status": "success",
+        "count": len(atoms),
+        "items": atoms,
+    })
+
+
+@app.get("/api/atoms/{atom_id}")
+async def api_atom_detail(atom_id: str):
+    """Returns canonical 25-layer JSON representation for a Legal Cognitive Atom."""
+    canon_json = get_canonical_atom_json(atom_id)
+    if not canon_json:
+        raise HTTPException(status_code=404, detail="Canonical Legal Cognitive Atom not found.")
+    return JSONResponse(canon_json)
+
+
+@app.get("/api/atoms/{atom_id}/documents")
+async def api_atom_documents(atom_id: str):
+    """Returns all attached legal PDFs and documents belonging to a canonical Atom."""
+    db = SessionLocal()
+    try:
+        atom = get_atom_by_id_or_canonical(db, atom_id)
+        if not atom:
+            raise HTTPException(status_code=404, detail="Atom not found.")
+        docs = [
+            {
+                "id": d.id,
+                "title": d.title,
+                "document_type": d.document_type,
+                "page_count": d.page_count,
+                "ocr_status": d.ocr_status,
+                "pdf_url": d.original_pdf_url or d.source_url,
+            }
+            for d in atom.documents
+        ]
+        return JSONResponse({"atom_id": str(atom.id), "canonical_fir_id": atom.canonical_fir_id, "count": len(docs), "documents": docs})
+    finally:
+        db.close()
+
+
+@app.get("/api/atoms/{atom_id}/hydration")
+async def api_atom_hydration(atom_id: str):
+    """Returns the hydration status and completeness metrics for an Atom."""
+    db = SessionLocal()
+    try:
+        atom = get_atom_by_id_or_canonical(db, atom_id)
+        if not atom:
+            raise HTTPException(status_code=404, detail="Atom not found.")
+        return JSONResponse({
+            "atom_id": str(atom.id),
+            "canonical_fir_id": atom.canonical_fir_id,
+            "hydration_status": atom.hydration_status,
+            "confidence_score": atom.confidence_score,
+            "is_verified": atom.is_verified,
+            "proceedings_count": len(atom.proceedings),
+            "accused_count": len(atom.accused),
+            "charges_count": len(atom.charges),
+            "evidence_count": len(atom.evidence),
+            "documents_count": len(atom.documents),
+        })
+    finally:
+        db.close()
+
+
+@app.post("/api/reason")
+async def api_reason_endpoint(payload: AtomReasoningRequest):
+    """
+    Executes Grounded Atomic Legal Reasoning with IRAC context assembly
+    bounded to the canonical FIR atom.
+    """
+    ans = query_atomic_reasoner(
+        question=payload.question,
+        atom_id=payload.atom_id,
+        canonical_fir_id=payload.canonical_fir_id,
+    )
+    return JSONResponse(ans)
+
+
+@app.get("/api/review-queue")
+async def api_review_queue():
+    """Returns pending low-confidence or conflicting records awaiting human verification."""
+    db = SessionLocal()
+    try:
+        items = db.query(AtomReviewQueue).filter_by(status="PENDING").all()
+        return JSONResponse({
+            "pending_count": len(items),
+            "items": [
+                {
+                    "id": str(it.id),
+                    "document_id": it.document_id,
+                    "review_reason": it.review_reason,
+                    "detected_data": it.detected_data,
+                    "status": it.status,
+                    "created_at": it.created_at.isoformat() if it.created_at else None,
+                }
+                for it in items
+            ]
+        })
+    finally:
+        db.close()
 
 
 @app.get("/api/rag/ask")

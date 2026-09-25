@@ -256,6 +256,17 @@ def ingest_local_pdf(
             all_entities.extend(ents)
         save_extracted_entities_and_relationships(case_id, document_id, all_entities)
 
+        # 5b. Automatic Forensic Legal AI Redrafting for Legacy Font or Garbled OCR
+        try:
+            from app.services.legal_drafter import is_legacy_font_or_garbled, redraft_and_update_document_in_db
+            if is_legacy_font_or_garbled(full_text):
+                print(f"[PDF Ingest] Detected legacy font / garbled OCR in {document_id}. Triggering AI Legal Redrafter...")
+                redraft_and_update_document_in_db(document_id)
+                db.refresh(doc)
+                full_text = doc.extracted_text or full_text
+        except Exception as redraft_err:
+            print(f"[PDF Ingest] AI Redraft note: {redraft_err}")
+
         # 6. Chunking and Vector Embeddings
         job.stage = "EMBEDDING"
         db.commit()
@@ -275,7 +286,32 @@ def ingest_local_pdf(
         except Exception as sum_err:
             print(f"[PDF Ingest] Summary generation note: {sum_err}")
 
-        # 8. Complete Job
+        # 8. Dynamic Atom Resolution & Automatic Hydration
+        try:
+            from app.services.atom_resolver import resolve_document_to_atom
+            from app.services.document_classifier import classify_legal_document
+            from app.services.hydration_engine import hydrate_atom_from_db
+
+            # Classify legal document type dynamically
+            cls_info = classify_legal_document(text=full_text, title=title)
+            doc.document_type = cls_info["document_type"]
+
+            # Resolve to Canonical Legal Cognitive Atom in Supabase PostgreSQL
+            res_atom = resolve_document_to_atom(
+                document_id=doc.id,
+                text=full_text,
+                title=title,
+                case_context_id=case_id,
+            )
+            if res_atom.get("atom_id"):
+                doc.atom_id = res_atom["atom_id"]
+                db.commit()
+                # Automatically hydrate the atom with this new OCR copy
+                hydrate_atom_from_db(res_atom["atom_id"])
+        except Exception as atom_err:
+            print(f"[PDF Ingest] Atom resolution warning: {atom_err}")
+
+        # 9. Complete Job
         doc.processing_status = "PUBLISHED"
         job.stage = "PUBLISHED"
         job.status = "SUCCESS"

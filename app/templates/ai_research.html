@@ -31,8 +31,8 @@
         >{{ query or "" }}</textarea>
 
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-          <div style="display: flex; gap: 0.75rem; font-size: 0.85rem; color: var(--text-dim);">
-            <span>Engine: <strong>Local Ollama (Qwen 8B) / Extractive Rule</strong></span>
+          <div style="display: flex; gap: 0.75rem; font-size: 0.85rem; color: var(--text-dim); align-items: center;">
+            <span>Engine: <strong style="color: var(--primary-accent); font-family: var(--font-mono);">{{ (ai_provider or 'Cloud AI')|upper }} ({{ ai_model or 'Production LLM' }})</strong></span>
           </div>
           <button type="submit" class="btn btn-primary">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -72,9 +72,13 @@
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem; margin-bottom: 1.25rem;">
       <div style="display: flex; align-items: center; gap: 0.5rem;">
         <span class="badge badge-emerald">Verified Answer</span>
+        {% if result.sources %}
         <span style="font-size: 0.85rem; color: var(--text-dim);">Attributed to {{ result.sources|length }} document evidence sources</span>
+        {% else %}
+        <span style="font-size: 0.85rem; color: var(--text-dim);">Direct Legal Intelligence Assistant</span>
+        {% endif %}
       </div>
-      <span style="font-size: 0.8rem; color: var(--text-dim);">Model: {{ result.model }}</span>
+      <span style="font-size: 0.8rem; color: var(--text-dim); font-family: var(--font-mono);">Model: {{ result.model }}</span>
     </div>
 
     <div style="font-size: 1.05rem; line-height: 1.7; color: var(--text-main); white-space: pre-wrap; margin-bottom: 2rem;">

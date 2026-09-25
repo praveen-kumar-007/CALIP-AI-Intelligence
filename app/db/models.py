@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import uuid
 from sqlalchemy import (
     Column,
     String,
@@ -105,11 +106,16 @@ class Document(Base):
     ocr_confidence = Column(Float, nullable=True)
     extraction_method = Column(String(64), default="pymupdf_text")  # pymupdf_text, my_ocr, tesseract, ollama_vision
     extracted_text = Column(Text, nullable=True)
+    original_language_text = Column(Text, nullable=True)  # Genuine local language text (Marathi / Hindi / Gujarati etc.)
+    english_translated_text = Column(Text, nullable=True)  # Authoritative English legal draft
+    detected_language = Column(String(32), default="English")  # e.g. "Marathi (मराठी)", "Hindi (हिन्दी)", "English"
+    atom_id = Column(String(64), ForeignKey("atoms.id"), nullable=True, index=True)
     processing_status = Column(String(32), default="QUEUED", index=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     case = relationship("Case", back_populates="documents")
+    atom = relationship("Atom", back_populates="documents")
     folder = relationship("LongtailFolder", back_populates="documents")
     pages = relationship("DocumentPage", back_populates="document", cascade="all, delete-orphan")
     chunks = relationship("DocumentChunk", back_populates="document", cascade="all, delete-orphan")
@@ -122,6 +128,8 @@ class DocumentPage(Base):
     document_id = Column(String(64), ForeignKey("documents.id"), nullable=False, index=True)
     page_number = Column(Integer, nullable=False)
     page_text = Column(Text, nullable=True)
+    original_page_text = Column(Text, nullable=True)  # Genuine native language page text
+    english_page_text = Column(Text, nullable=True)  # Verified English legal page text
     has_images = Column(Boolean, default=False)
     ocr_confidence = Column(Float, nullable=True)
     extraction_method = Column(String(64), default="pymupdf_text")
@@ -263,3 +271,229 @@ class ProcessingJob(Base):
     error_message = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
+
+
+# ==============================================================================
+# CALIP ATOMIC LEGAL INTELLIGENCE MODELS (ONE VERIFIED FIR = ONE COGNITIVE ATOM)
+# ==============================================================================
+
+class Atom(Base):
+    __tablename__ = "atoms"
+
+    id = Column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)
+    canonical_fir_id = Column(String(128), unique=True, nullable=False, index=True)
+    state = Column(String(64), nullable=False, index=True)
+    district = Column(String(64), nullable=False, index=True)
+    police_station = Column(String(128), nullable=False, index=True)
+    fir_number = Column(String(64), nullable=False, index=True)
+    fir_year = Column(Integer, nullable=False, index=True)
+    jurisdiction = Column(String(255), nullable=True)
+    registration_date = Column(String(32), nullable=True)
+    occurrence_date = Column(String(32), nullable=True)
+    occurrence_time = Column(String(32), nullable=True)
+    place_of_occurrence = Column(Text, nullable=True)
+    informant_name = Column(String(255), nullable=True)
+    complainant_name = Column(String(255), nullable=True)
+    sections_registered = Column(Text, nullable=True)
+    original_language = Column(String(32), default="English")
+    zero_fir = Column(Boolean, default=False)
+    cross_fir_id = Column(String(128), nullable=True)
+    counter_fir_id = Column(String(128), nullable=True)
+    summary = Column(Text, nullable=True)
+    hydration_status = Column(String(64), default="DISCOVERED", index=True)
+    confidence_score = Column(Float, default=1.0)
+    is_verified = Column(Boolean, default=False, index=True)
+    verified_by = Column(String(128), nullable=True)
+    verified_at = Column(DateTime, nullable=True)
+    legacy_case_id = Column(String(64), nullable=True, index=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    # Relationships
+    documents = relationship("Document", back_populates="atom")
+    proceedings = relationship("AtomProceeding", back_populates="atom", cascade="all, delete-orphan")
+    accused = relationship("AtomAccused", back_populates="atom", cascade="all, delete-orphan")
+    charges = relationship("AtomAccusedCharge", back_populates="atom", cascade="all, delete-orphan")
+    evidence = relationship("AtomEvidence", back_populates="atom", cascade="all, delete-orphan")
+    witnesses = relationship("AtomWitness", back_populates="atom", cascade="all, delete-orphan")
+    bail_records = relationship("AtomBailRecord", back_populates="atom", cascade="all, delete-orphan")
+    allegations = relationship("AtomAllegation", back_populates="atom", cascade="all, delete-orphan")
+    provenance = relationship("AtomProvenance", back_populates="atom", cascade="all, delete-orphan")
+
+
+class AtomProceeding(Base):
+    __tablename__ = "atom_proceedings"
+
+    id = Column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)
+    atom_id = Column(String(64), ForeignKey("atoms.id"), nullable=False, index=True)
+    court_tier = Column(String(64), nullable=False)  # MAGISTRATE, SESSIONS, SPECIAL_COURT, HIGH_COURT, SUPREME_COURT
+    court_name = Column(String(255), nullable=False)
+    case_number = Column(String(128), nullable=False, index=True)
+    case_year = Column(Integer, nullable=True)
+    cnr = Column(String(32), nullable=True, index=True)
+    presiding_judge = Column(String(255), nullable=True)
+    bench = Column(String(255), nullable=True)
+    status = Column(String(64), default="PENDING")
+    filing_date = Column(String(32), nullable=True)
+    disposal_date = Column(String(32), nullable=True)
+    parent_proceeding_id = Column(String(64), ForeignKey("atom_proceedings.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    atom = relationship("Atom", back_populates="proceedings")
+
+
+class AtomAccused(Base):
+    __tablename__ = "atom_accused"
+
+    id = Column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)
+    atom_id = Column(String(64), ForeignKey("atoms.id"), nullable=False, index=True)
+    accused_code = Column(String(16), nullable=False)  # A1, A2, A3
+    canonical_name = Column(String(255), nullable=False, index=True)
+    aliases = Column(JSON, default=list)
+    custody_status = Column(String(64), default="UNKNOWN")  # IN_CUSTODY, BAIL_GRANTED, ABSCONDING, DISCHARGED
+    custody_days = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    atom = relationship("Atom", back_populates="accused")
+    charges = relationship("AtomAccusedCharge", back_populates="accused", cascade="all, delete-orphan")
+    bail_records = relationship("AtomBailRecord", back_populates="accused", cascade="all, delete-orphan")
+
+
+class AtomAccusedCharge(Base):
+    __tablename__ = "atom_accused_charges"
+
+    id = Column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)
+    atom_id = Column(String(64), ForeignKey("atoms.id"), nullable=False, index=True)
+    accused_id = Column(String(64), ForeignKey("atom_accused.id"), nullable=False, index=True)
+    statute = Column(String(128), default="Indian Penal Code")
+    section = Column(String(64), nullable=False, index=True)  # 420, 409, 120B
+    overt_act_allegation = Column(Text, nullable=True)
+    charge_stage = Column(String(64), default="FIR_STAGE")  # FIR_STAGE, CHARGE_SHEET, CHARGES_FRAMED, CONVICTED, ACQUITTED
+    trial_outcome = Column(String(64), default="PENDING")
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    atom = relationship("Atom", back_populates="charges")
+    accused = relationship("AtomAccused", back_populates="charges")
+
+
+class AtomEvidence(Base):
+    __tablename__ = "atom_evidence"
+
+    id = Column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)
+    atom_id = Column(String(64), ForeignKey("atoms.id"), nullable=False, index=True)
+    evidence_code = Column(String(32), nullable=True)  # E1, E2, E3
+    category = Column(String(64), nullable=False)  # DOCUMENTARY, DIGITAL, FORENSIC, MATERIAL
+    title = Column(String(512), nullable=False)
+    description = Column(Text, nullable=True)
+    exhibit_number = Column(String(64), nullable=True)  # Ex.P-1, Ex.D-1
+    custodian = Column(String(255), nullable=True)
+    source_document_id = Column(String(64), ForeignKey("documents.id"), nullable=True)
+    page_number = Column(Integer, nullable=True)
+    file_hash = Column(String(64), nullable=True)
+    admissibility_status = Column(String(64), default="ADMISSIBLE")
+    proves_proposition = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    atom = relationship("Atom", back_populates="evidence")
+
+
+class AtomWitness(Base):
+    __tablename__ = "atom_witnesses"
+
+    id = Column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)
+    atom_id = Column(String(64), ForeignKey("atoms.id"), nullable=False, index=True)
+    witness_code = Column(String(32), nullable=False)  # PW-1, PW-2, DW-1
+    witness_name = Column(String(255), nullable=False)
+    witness_role = Column(String(128), default="EYEWITNESS")
+    statement_161_summary = Column(Text, nullable=True)
+    deposition_summary = Column(Text, nullable=True)
+    contradictions_recorded = Column(Text, nullable=True)
+    is_hostile = Column(Boolean, default=False)
+    source_document_id = Column(String(64), ForeignKey("documents.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    atom = relationship("Atom", back_populates="witnesses")
+
+
+class AtomBailRecord(Base):
+    __tablename__ = "atom_bail_records"
+
+    id = Column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)
+    atom_id = Column(String(64), ForeignKey("atoms.id"), nullable=False, index=True)
+    accused_id = Column(String(64), ForeignKey("atom_accused.id"), nullable=False, index=True)
+    proceeding_id = Column(String(64), ForeignKey("atom_proceedings.id"), nullable=True)
+    bail_type = Column(String(64), nullable=False)  # REGULAR, ANTICIPATORY, DEFAULT, INTERIM
+    application_date = Column(String(32), nullable=True)
+    decision_date = Column(String(32), nullable=True)
+    outcome = Column(String(64), nullable=False)  # GRANTED, REJECTED, WITHDRAWN, PENDING
+    grounds_urged = Column(Text, nullable=True)
+    prosecution_objections = Column(Text, nullable=True)
+    conditions_imposed = Column(Text, nullable=True)
+    source_document_id = Column(String(64), ForeignKey("documents.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    atom = relationship("Atom", back_populates="bail_records")
+    accused = relationship("AtomAccused", back_populates="bail_records")
+
+
+class AtomAllegation(Base):
+    __tablename__ = "atom_allegations"
+
+    id = Column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)
+    atom_id = Column(String(64), ForeignKey("atoms.id"), nullable=False, index=True)
+    allegation_text = Column(Text, nullable=False)
+    status = Column(String(64), default="ALLEGED")  # ALLEGED, TESTIFIED, SUBMITTED, ESTABLISHED, DISPUTED, REJECTED
+    source_speaker = Column(String(128), default="INFORMANT")
+    source_document_id = Column(String(64), ForeignKey("documents.id"), nullable=True)
+    page_number = Column(Integer, nullable=True)
+    paragraph_number = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    atom = relationship("Atom", back_populates="allegations")
+
+
+class AtomProvenance(Base):
+    __tablename__ = "atom_provenance"
+
+    id = Column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)
+    atom_id = Column(String(64), ForeignKey("atoms.id"), nullable=False, index=True)
+    target_table = Column(String(64), nullable=False)
+    target_id = Column(String(64), nullable=False)
+    target_field = Column(String(64), nullable=False)
+    source_document_id = Column(String(64), ForeignKey("documents.id"), nullable=False)
+    page_number = Column(Integer, nullable=True)
+    paragraph_number = Column(Integer, nullable=True)
+    verbatim_quote = Column(Text, nullable=True)
+    confidence_score = Column(Float, default=1.0)
+    extraction_method = Column(String(64), nullable=True)
+    is_human_verified = Column(Boolean, default=False)
+    verified_by = Column(String(128), nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    atom = relationship("Atom", back_populates="provenance")
+
+
+class AtomReviewQueue(Base):
+    __tablename__ = "atom_review_queue"
+
+    id = Column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)
+    document_id = Column(String(64), ForeignKey("documents.id"), nullable=False)
+    atom_id = Column(String(64), ForeignKey("atoms.id"), nullable=True)
+    review_reason = Column(String(128), nullable=False)
+    detected_data = Column(JSON, default=dict)
+    status = Column(String(32), default="PENDING", index=True)
+    assigned_to = Column(String(128), nullable=True)
+    resolution_notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    resolved_at = Column(DateTime, nullable=True)
+
+
+class AtomLink(Base):
+    __tablename__ = "atom_links"
+
+    id = Column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)
+    source_atom_id = Column(String(64), ForeignKey("atoms.id"), nullable=False, index=True)
+    relationship_type = Column(String(64), nullable=False)  # same_transaction, cross_fir, counter_fir, companion_case
+    target_atom_id = Column(String(64), ForeignKey("atoms.id"), nullable=False, index=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
