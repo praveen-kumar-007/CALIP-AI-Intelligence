@@ -400,10 +400,106 @@ def harvest_all_longtail_hierarchy(limit_cases: int | None = None) -> dict[str, 
     return result
 
 
+def get_catalog_from_db() -> dict[str, Any]:
+    """Fast database catalog reconstruction without external HTTP requests."""
+    from app.db.session import SessionLocal
+    from app.db.models import Case, LongtailFolder, Document
+    db = SessionLocal()
+    try:
+        cases = db.query(Case).all()
+        categories: dict[str, list[dict[str, Any]]] = {}
+        total_docs = 0
+        for c in cases:
+            cat = c.subject or "General"
+            if cat not in categories:
+                categories[cat] = []
+
+            direct_docs = db.query(Document).filter(Document.case_id == c.id, Document.folder_id.is_(None)).all()
+            folders = db.query(LongtailFolder).filter(LongtailFolder.case_id == c.id, LongtailFolder.parent_id.is_(None)).all()
+
+            folder_list = []
+            for f in folders:
+                subfolders = db.query(LongtailFolder).filter(LongtailFolder.parent_id == f.id).all()
+                f_docs = [
+                    {
+                        "doc_id": d.id,
+                        "title": d.title,
+                        "url": d.original_pdf_url or d.source_url,
+                        "has_txt": bool(d.extracted_text),
+                        "has_ocr": bool(d.extracted_text) or bool(d.pages),
+                    }
+                    for d in f.documents
+                ]
+                sub_list = []
+                for sf in subfolders:
+                    sf_docs = [
+                        {
+                            "doc_id": d.id,
+                            "title": d.title,
+                            "url": d.original_pdf_url or d.source_url,
+                            "has_txt": bool(d.extracted_text),
+                            "has_ocr": bool(d.extracted_text) or bool(d.pages),
+                        }
+                        for d in sf.documents
+                    ]
+                    sub_list.append({"name": sf.name, "documents": sf_docs})
+                    total_docs += len(sf_docs)
+
+                folder_list.append({
+                    "name": f.name,
+                    "documents": f_docs,
+                    "subfolders": sub_list,
+                })
+                total_docs += len(f_docs)
+
+            doc_list = [
+                {
+                    "doc_id": d.id,
+                    "title": d.title,
+                    "url": d.original_pdf_url or d.source_url,
+                    "has_txt": bool(d.extracted_text),
+                    "has_ocr": bool(d.extracted_text) or bool(d.pages),
+                }
+                for d in direct_docs
+            ]
+            total_docs += len(doc_list)
+
+            categories[cat].append({
+                "id": c.id,
+                "case_id": c.id,
+                "title": c.title,
+                "category": cat,
+                "url": c.source_url,
+                "case_number": c.case_number,
+                "court": c.court_name,
+                "documents": doc_list,
+                "folders": folder_list,
+            })
+
+        result = {
+            "source": "CALIP Database Archive",
+            "total_categories": len(categories),
+            "total_cases": len(cases),
+            "total_documents": total_docs,
+            "categories": categories,
+        }
+        _CATALOG_CACHE.clear()
+        _CATALOG_CACHE.update(result)
+        return result
+    finally:
+        db.close()
+
+
 def get_cached_or_live_catalog() -> dict[str, Any]:
     global _CATALOG_CACHE
     if _CATALOG_CACHE:
         return enrich_catalog_with_doc_details(_CATALOG_CACHE)
+    try:
+        db_cat = get_catalog_from_db()
+        if db_cat and db_cat.get("total_cases", 0) > 0:
+            return enrich_catalog_with_doc_details(db_cat)
+    except Exception:
+        pass
     cat = harvest_all_longtail_hierarchy(limit_cases=12)
     return enrich_catalog_with_doc_details(cat)
 

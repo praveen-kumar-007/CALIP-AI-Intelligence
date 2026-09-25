@@ -30,18 +30,52 @@ def ensure_seed_data():
         db.close()
 
 
-def get_all_cases(limit: int = 50, offset: int = 0, state: str | None = None, query: str | None = None) -> list[dict[str, Any]]:
+JURISDICTION_MAP: dict[str, list[str]] = {
+    "maharashtra": ["maharashtra", "nagpur", "wardha", "pune", "mumbai", "santacruz", "osmanabad", "amravati", "eow", "cbi", "vishrambag", "pimpri"],
+    "mh": ["maharashtra", "nagpur", "wardha", "pune", "mumbai", "santacruz", "osmanabad", "amravati", "eow", "cbi", "vishrambag", "pimpri"],
+    "gujarat": ["gujarat", "anand", "udna", "adajan", "umra", "varacha", "varachha", "valsad", "gandevi", "navsari", "morbi", "surat"],
+    "gj": ["gujarat", "anand", "udna", "adajan", "umra", "varacha", "varachha", "valsad", "gandevi", "navsari", "morbi", "surat"],
+    "delhi": ["delhi", "patiala", "sarojini"],
+    "dl": ["delhi", "patiala", "sarojini"],
+    "kolkata": ["kolkata", "calcutta", "bhat para", "sonar pur", "alipore", "west bengal"],
+    "wb": ["kolkata", "calcutta", "bhat para", "sonar pur", "alipore", "west bengal"],
+    "supreme court": ["supreme court", "transfer petition", "modification application", "writ petition", "misc applications"],
+    "high court": ["high court", "bombay high court", "group applications"],
+}
+
+
+def get_all_cases(limit: int = 100, offset: int = 0, state: str | None = None, query: str | None = None) -> list[dict[str, Any]]:
     ensure_seed_data()
     db = SessionLocal()
     try:
+        from sqlalchemy import or_
+
         q = db.query(Case)
         if state:
-            q = q.filter(Case.subject.ilike(f"%{state}%"))
+            clean_state = state.strip().lower()
+            if clean_state in JURISDICTION_MAP:
+                terms = JURISDICTION_MAP[clean_state]
+                conds = (
+                    [Case.court_name.ilike(f"%{t}%") for t in terms]
+                    + [Case.title.ilike(f"%{t}%") for t in terms]
+                    + [Case.subject.ilike(f"%{t}%") for t in terms]
+                )
+                q = q.filter(or_(*conds))
+            else:
+                q = q.filter(
+                    or_(
+                        Case.subject.ilike(f"%{state}%"),
+                        Case.court_name.ilike(f"%{state}%"),
+                        Case.title.ilike(f"%{state}%"),
+                    )
+                )
+
         if query:
             q = q.filter(
                 (Case.title.ilike(f"%{query}%"))
                 | (Case.case_number.ilike(f"%{query}%"))
                 | (Case.court_name.ilike(f"%{query}%"))
+                | (Case.subject.ilike(f"%{query}%"))
             )
         cases = q.offset(offset).limit(limit).all()
         return [
@@ -274,13 +308,15 @@ def get_all_judgments(limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
             }
             for j in judgments
         ]
-        # Also query documents categorized as judgments from the database
+        # Also query documents categorized as judgments or in lt-49 (Important Judgements)
         if len(results) < limit:
             docs = (
                 db.query(Document)
                 .filter(
-                    (Document.document_type.ilike("%judgment%"))
+                    (Document.case_id == "lt-49")
+                    | (Document.document_type.ilike("%judgment%"))
                     | (Document.title.ilike("%judgment%"))
+                    | (Document.title.ilike("%supreme court%"))
                 )
                 .offset(offset)
                 .limit(limit - len(results))
@@ -350,6 +386,7 @@ def get_all_orders(limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
             {
                 "id": o.id,
                 "case_id": o.case_id,
+                "title": o.summary[:80] if o.summary else f"Order in {o.case_id}",
                 "order_date": o.order_date,
                 "court": o.court,
                 "bench": o.bench,
@@ -375,6 +412,7 @@ def get_all_orders(limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
                 results.append({
                     "id": d.id,
                     "case_id": d.case_id,
+                    "title": d.title,
                     "order_date": d.document_date or (d.created_at.strftime("%Y-%m-%d") if d.created_at else None),
                     "court": d.court or "Court of Record",
                     "bench": None,

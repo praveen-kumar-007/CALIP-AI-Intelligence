@@ -20,7 +20,7 @@
       <div>
         <span class="badge badge-cyan" style="margin-bottom: 0.35rem;">{{ o.order_type or "Court Order" }}</span>
         <h2 class="card-title">
-          <a href="/orders/{{ o.id }}">Order in {{ o.case_id }}</a>
+          <a href="/orders/{{ o.id }}">{{ o.title or ('Order in ' ~ (o.case_id or 'Case')) }}</a>
         </h2>
       </div>
       <span class="badge badge-emerald">{{ o.order_date or "Recorded" }}</span>

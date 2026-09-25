@@ -504,13 +504,37 @@ def get_canonical_atom_json(atom_id_or_canonical_id: str) -> dict[str, Any] | No
         db.close()
 
 
+STATE_CODE_MAP = {
+    "maharashtra": "MH",
+    "mh": "MH",
+    "gujarat": "GJ",
+    "gj": "GJ",
+    "delhi": "DL",
+    "dl": "DL",
+    "kolkata": "WB",
+    "calcutta": "WB",
+    "west bengal": "WB",
+    "wb": "WB",
+}
+
+
 def get_all_atoms(limit: int = 50, offset: int = 0, state: str | None = None) -> list[dict[str, Any]]:
     """Lists all canonical Legal Cognitive Atoms directly from PostgreSQL."""
     db = SessionLocal()
     try:
+        from sqlalchemy import or_
+
         q = db.query(Atom)
         if state:
-            q = q.filter(Atom.state == state.upper())
+            clean_s = state.strip().lower()
+            code = STATE_CODE_MAP.get(clean_s, clean_s.upper())
+            q = q.filter(
+                or_(
+                    Atom.state == code,
+                    Atom.state.ilike(f"%{clean_s}%"),
+                    Atom.canonical_fir_id.ilike(f"{code}-%"),
+                )
+            )
         atoms = q.offset(offset).limit(limit).all()
 
         return [
