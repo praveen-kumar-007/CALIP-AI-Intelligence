@@ -1,46 +1,44 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div style="max-width: 960px; margin: 0 auto; padding-bottom: 4rem;">
-  <div style="text-align: center; margin-bottom: 2.5rem;">
+<div class="ai-research-container">
+  <!-- Hero Header -->
+  <div class="ai-hero-header">
     <div class="hero-pill">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-      </svg>
+      <span class="pulsing-glow-dot"></span>
       Dual-Corpus Legal Intelligence &amp; Verified Research
     </div>
-    <h1 style="font-size: 2.4rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.75rem; letter-spacing: -0.02em;">
-      AI Case Intelligence &amp; Legal Citation Assistant
+    <h1 class="ai-hero-title">
+      AI Case Intelligence &amp; Verified Legal Citation Assistant
     </h1>
-    <p style="color: var(--text-muted); font-size: 1.05rem; max-width: 720px; margin: 0 auto;">
-      Cross-examines internal case records, FIR cognitive atoms, and verified Indian statutory provisions &amp; judicial authorities with exact citations and structured legal matrices.
+    <p class="ai-hero-subtitle">
+      Cross-examines internal case records, FIR cognitive atoms, and verified Indian statutory provisions &amp; judicial authorities with pinpoint citations and structured legal matrices.
     </p>
   </div>
 
-  <!-- Query Box -->
-  <div class="ai-box" style="margin-bottom: 2rem;">
+  <!-- Apple Spotlight Glassmorphism Query Box -->
+  <div class="ai-search-card">
     <form action="/ai-research" method="get">
-      <div style="display: flex; flex-direction: column; gap: 1rem;">
-        <textarea 
-          name="query" 
-          rows="3" 
-          class="search-input" 
-          style="width: 100%; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1rem; font-size: 1.05rem; line-height: 1.5; color: var(--text-main);"
-          placeholder="Ask any legal question (e.g. 'What are the charges and acts in the Nagpur case (FIR 147/2002)?', 'What was decided regarding Section 207 CrPC?')..."
-          required
-        >{{ query or "" }}</textarea>
+      <div class="search-card-inner">
+        <div class="search-textarea-wrapper">
+          <textarea 
+            name="query" 
+            rows="3" 
+            class="ai-spotlight-textarea"
+            placeholder="Ask any legal question (e.g. 'What are the charges and acts in the Nagpur case (FIR 147/2002)?', 'What did the court decide regarding Section 207 CrPC?')..."
+            required
+          >{{ query or "" }}</textarea>
+        </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-          <div style="display: flex; gap: 1rem; font-size: 0.85rem; color: var(--text-dim); align-items: center;">
-            <span>Engine: <strong style="color: var(--primary-accent); font-family: var(--font-mono);">{{ (ai_provider or 'Cloud AI')|upper }} ({{ ai_model or 'Production LLM' }})</strong></span>
-            <span>&bull;</span>
-            <span style="color: #10b981; display: flex; align-items: center; gap: 0.35rem;">
-              <span style="width: 7px; height: 7px; background: #10b981; border-radius: 50%; display: inline-block;"></span>
-              Dual Grounding Active
-            </span>
+        <div class="search-action-bar">
+          <div class="engine-meta-pill">
+            <span class="engine-indicator"></span>
+            <span>Engine: <strong style="color: var(--accent-primary); font-family: var(--font-mono);">{{ (ai_provider or 'Cloud AI')|upper }} ({{ ai_model or 'Production LLM' }})</strong></span>
+            <span class="meta-separator">&bull;</span>
+            <span style="color: var(--accent-emerald); font-weight: 600;">Dual Grounding Active</span>
           </div>
-          <button type="submit" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1.4rem;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <button type="submit" class="btn btn-primary btn-apple-action">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polygon points="5 3 19 12 5 21 5 3"/>
             </svg>
             Generate Verified Briefing
@@ -50,49 +48,53 @@
     </form>
   </div>
 
-  <!-- Quick Legal Prompts -->
-  <div style="margin-bottom: 2.5rem;">
-    <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-bottom: 0.6rem; letter-spacing: 0.05em;">
-      Suggested Inquiries:
+  <!-- Quick Apple Prompt Capsule Chips -->
+  <div class="suggested-queries-section">
+    <div class="suggested-label">
+      Suggested Legal Inquiries:
     </div>
-    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-      <a href="/ai-research?query=What+are+the+charges+and+acts+in+the+Nagpur+case+(FIR+147/2002)?" class="btn btn-secondary btn-sm" style="font-size: 0.82rem;">
-        &bull; Nagpur Case (FIR 147/2002) Charges &amp; Acts
+    <div class="suggested-chips-grid">
+      <a href="/ai-research?query=What+are+the+charges+and+acts+in+the+Nagpur+case+(FIR+147/2002)?" class="ios-prompt-pill">
+        <span class="pill-sparkle">✨</span>
+        <span>Nagpur Case (FIR 147/2002) Charges &amp; Acts</span>
       </a>
-      <a href="/ai-research?query=What+did+the+court+decide+regarding+Section+207+CrPC+documents?" class="btn btn-secondary btn-sm" style="font-size: 0.82rem;">
-        &bull; Section 207 CrPC Rulings
+      <a href="/ai-research?query=What+did+the+court+decide+regarding+Section+207+CrPC+documents?" class="ios-prompt-pill">
+        <span class="pill-sparkle">✨</span>
+        <span>Section 207 CrPC Rulings &amp; Discovery</span>
       </a>
-      <a href="/ai-research?query=What+cases+and+FIR+numbers+are+listed+in+the+MIS+report?" class="btn btn-secondary btn-sm" style="font-size: 0.82rem;">
-        &bull; MIS Report Cases &amp; FIRs
+      <a href="/ai-research?query=What+cases+and+FIR+numbers+are+listed+in+the+MIS+report?" class="ios-prompt-pill">
+        <span class="pill-sparkle">✨</span>
+        <span>MIS Report Cases &amp; FIR Hierarchy</span>
       </a>
-      <a href="/ai-research?query=What+are+the+essential+ingredients+of+Section+409+IPC+criminal+breach+of+trust?" class="btn btn-secondary btn-sm" style="font-size: 0.82rem;">
-        &bull; Section 409 IPC Ingredients
+      <a href="/ai-research?query=What+are+the+essential+ingredients+of+Section+409+IPC+criminal+breach+of+trust?" class="ios-prompt-pill">
+        <span class="pill-sparkle">✨</span>
+        <span>Section 409 IPC Ingredients &amp; Precedents</span>
       </a>
     </div>
   </div>
 
-  <!-- Answer Display -->
+  <!-- Pure Apple iOS Glassmorphism Briefing Display -->
   {% if result %}
-  <div class="category-block briefing-card" id="briefing-card" style="padding: 2.25rem; margin-bottom: 3rem; border: 1px solid var(--border-focus); border-radius: 12px; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(12px);">
+  <div class="briefing-card" id="briefing-card">
     
     <!-- Top Action Bar -->
-    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 1.25rem; margin-bottom: 1.75rem; flex-wrap: wrap; gap: 1rem;">
+    <div class="briefing-header-bar">
       <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-        <span class="badge badge-emerald" style="padding: 0.35rem 0.75rem; font-size: 0.825rem; font-weight: 700;">
+        <span class="badge badge-emerald" style="padding: 0.35rem 0.85rem; font-size: 0.82rem; font-weight: 700; border-radius: var(--radius-full);">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: -1px;">
             <polyline points="20 6 9 17 4 12"></polyline>
           </svg>
           Official Legal Briefing
         </span>
         {% if result.sources %}
-        <span style="font-size: 0.85rem; color: var(--text-dim);">
-          <strong style="color: #38bdf8;">{{ result.sources|length }}</strong> CALIP Evidence Records
+        <span style="font-size: 0.85rem; color: var(--text-muted);">
+          <strong style="color: var(--accent-cyan);">{{ result.sources|length }}</strong> CALIP Evidence Records
         </span>
         {% endif %}
         {% if result.external_sources %}
         <span style="font-size: 0.85rem; color: var(--text-dim);">&bull;</span>
-        <span style="font-size: 0.85rem; color: var(--text-dim);">
-          <strong style="color: #a78bfa;">{{ result.external_sources|length }}</strong> External Authorities
+        <span style="font-size: 0.85rem; color: var(--text-muted);">
+          <strong style="color: var(--accent-indigo);">{{ result.external_sources|length }}</strong> External Authorities
         </span>
         {% endif %}
       </div>
@@ -126,50 +128,50 @@
 
     <!-- Evidentiary Citations Panel: CALIP Internal Files -->
     {% if result.sources %}
-    <div id="calip-citations-section" style="border-top: 1px solid var(--border-subtle); padding-top: 2rem; margin-top: 2.5rem;">
+    <div id="calip-citations-section" class="citations-section-box">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-        <h3 style="font-size: 1.2rem; font-weight: 700; color: #f8fafc; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <h3 class="citation-group-title" style="color: var(--text-pure);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
             <polyline points="14 2 14 8 20 8"></polyline>
           </svg>
           CALIP Internal Evidence Records &amp; Page Citations
         </h3>
-        <span class="badge badge-indigo">{{ result.sources|length }} Sources Grounded</span>
+        <span class="badge badge-cyan">{{ result.sources|length }} Sources Grounded</span>
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 0.85rem;">
         {% for src in result.sources %}
-        <div class="citation-card" id="source-card-{{ loop.index }}" style="border-left: 3px solid #38bdf8; transition: all 0.25s ease;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem;">
+        <div class="citation-card citation-card-internal" id="source-card-{{ loop.index }}">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem; flex-wrap: wrap; gap: 0.5rem;">
             <div style="display: flex; align-items: center; gap: 0.6rem;">
               <span class="badge badge-indigo" style="font-weight: 700;">Source {{ loop.index }}</span>
-              <strong style="color: var(--text-main); font-size: 0.95rem;">
+              <strong style="color: var(--text-pure); font-size: 0.95rem;">
                 {{ src.document_title or "Case Document" }}
               </strong>
             </div>
-            <span class="badge badge-indigo" style="font-family: var(--font-mono);">Page {{ src.page_number or 1 }}</span>
+            <span class="badge badge-cyan" style="font-family: var(--font-mono);">Page {{ src.page_number or 1 }}</span>
           </div>
           <div style="font-size: 0.825rem; color: var(--text-muted); margin-bottom: 0.6rem;">
-            {% if src.court %}Court: <span style="color: var(--text-main);">{{ src.court }}</span> &bull;{% endif %}
-            {% if src.case_title %}Case: <span style="color: var(--text-main);">{{ src.case_title }}</span> &bull;{% endif %}
-            Match Score: <span style="color: #34d399; font-weight: 600;">{{ (src.similarity_score * 100)|round|int if src.similarity_score else 88 }}%</span>
+            {% if src.court %}Court: <span style="color: var(--text-main); font-weight: 500;">{{ src.court }}</span> &bull;{% endif %}
+            {% if src.case_title %}Case: <span style="color: var(--text-main); font-weight: 500;">{{ src.case_title }}</span> &bull;{% endif %}
+            Match Score: <span style="color: var(--accent-emerald); font-weight: 700;">{{ (src.similarity_score * 100)|round|int if src.similarity_score else 88 }}%</span>
           </div>
-          <div style="font-family: var(--font-mono); font-size: 0.825rem; color: #e2e8f0; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.08); padding: 0.85rem 1.1rem; border-radius: var(--radius-sm); white-space: pre-wrap; line-height: 1.6;">
+          <div class="citation-snippet-box">
             {{ src.chunk_text[:380] }}{% if src.chunk_text|length > 380 %}...{% endif %}
           </div>
           <div style="margin-top: 0.85rem; display: flex; justify-content: flex-end; align-items: center; gap: 0.5rem;">
             <div class="doc-actions-group">
               {% if src.pdf_url %}
-              <a href="{{ src.pdf_url }}" target="_blank" class="action-pill action-pill-pdf" title="View Source PDF">
+              <a href="{{ src.pdf_url }}" target="_blank" class="btn btn-secondary btn-sm" title="View Source PDF" style="font-size: 0.76rem; padding: 0.25rem 0.6rem;">
                 PDF &nearr;
               </a>
               {% endif %}
               {% if src.document_id %}
-              <a href="/documents/{{ src.document_id }}#tab-extracted-text" class="action-pill action-pill-ocr" title="Inspect OCR &amp; Extracted Text">
+              <a href="/documents/{{ src.document_id }}#tab-extracted-text" class="btn btn-secondary btn-sm" title="Inspect OCR &amp; Extracted Text" style="font-size: 0.76rem; padding: 0.25rem 0.6rem;">
                 OCR Text
               </a>
-              <a href="/documents/{{ src.document_id }}/download/txt" class="action-pill action-pill-txt" title="Download Plain Text">
+              <a href="/documents/{{ src.document_id }}/download/txt" class="btn btn-outline-cyan btn-sm" title="Download Plain Text" style="font-size: 0.76rem; padding: 0.25rem 0.6rem;">
                 TXT &darr;
               </a>
               {% endif %}
@@ -183,36 +185,36 @@
 
     <!-- External Verified Authorities & Precedents -->
     {% if result.external_sources %}
-    <div id="external-citations-section" style="border-top: 1px solid var(--border-subtle); padding-top: 2rem; margin-top: 2.5rem;">
+    <div id="external-citations-section" class="citations-section-box">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-        <h3 style="font-size: 1.2rem; font-weight: 700; color: #f8fafc; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <h3 class="citation-group-title" style="color: var(--text-pure);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5856d6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"></circle>
             <line x1="2" y1="12" x2="22" y2="12"></line>
             <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
           </svg>
           External Verified Authorities &amp; Judicial Precedents
         </h3>
-        <span class="badge badge-purple">{{ result.external_sources|length }} Citations Verified</span>
+        <span class="badge badge-indigo">{{ result.external_sources|length }} Citations Verified</span>
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 0.85rem;">
         {% for ext in result.external_sources %}
-        <div class="citation-card" style="border-left: 3px solid #a78bfa;">
+        <div class="citation-card citation-card-external">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.4rem; gap: 1rem;">
-            <strong style="color: #f1f5f9; font-size: 0.95rem;">
+            <strong style="color: var(--text-pure); font-size: 0.95rem;">
               {{ ext.title }}
             </strong>
-            <span class="badge badge-purple" style="white-space: nowrap;">{{ ext.authority or 'Judicial Authority' }}</span>
+            <span class="badge badge-indigo" style="white-space: nowrap;">{{ ext.authority or 'Judicial Authority' }}</span>
           </div>
           {% if ext.snippet %}
-          <div style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.6; margin-bottom: 0.6rem;">
+          <div style="font-size: 0.86rem; color: var(--text-main); line-height: 1.6; margin-bottom: 0.6rem;">
             {{ ext.snippet }}
           </div>
           {% endif %}
           {% if ext.source_url %}
           <div style="display: flex; justify-content: flex-end;">
-            <a href="{{ ext.source_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="font-size: 0.8rem; display: flex; align-items: center; gap: 0.35rem; color: #c084fc;">
+            <a href="{{ ext.source_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="font-size: 0.8rem; display: flex; align-items: center; gap: 0.35rem; color: var(--accent-indigo);">
               Inspect Authority Record &nearr;
             </a>
           </div>
@@ -224,14 +226,14 @@
     {% endif %}
 
     <!-- Provenance & Signature Footer -->
-    <div style="border-top: 1px solid var(--border-subtle); padding-top: 1.25rem; margin-top: 2rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-dim); flex-wrap: wrap; gap: 0.75rem;">
+    <div class="briefing-provenance-bar">
       <div>
-        <span>Cryptographic Provenance: </span>
-        <code style="font-family: var(--font-mono); color: #94a3b8;">SHA256 Grounded Dual-Corpus Verification</code>
+        <span style="color: var(--text-muted); font-weight: 500;">Cryptographic Provenance: </span>
+        <code style="font-family: var(--font-mono); color: var(--accent-primary); font-size: 0.82rem; background: rgba(0, 122, 255, 0.08); padding: 0.15rem 0.45rem; border-radius: 4px;">SHA256 Grounded Dual-Corpus Verification</code>
       </div>
       <div>
-        <span>Inference Engine: </span>
-        <code style="font-family: var(--font-mono); color: #38bdf8;">{{ result.model }}</code>
+        <span style="color: var(--text-muted); font-weight: 500;">Inference Engine: </span>
+        <code style="font-family: var(--font-mono); color: var(--accent-cyan); font-size: 0.82rem; background: rgba(2, 132, 199, 0.08); padding: 0.15rem 0.45rem; border-radius: 4px;">{{ result.model }}</code>
       </div>
     </div>
 
@@ -250,13 +252,11 @@
     // If marked is loaded and rendered_html was incomplete, run marked.parse
     if (typeof marked !== 'undefined' && rawTextEl && briefingContent) {
       const rawMarkdown = rawTextEl.value;
-      // If the content still has raw markdown artifacts like | col | or **bold**
       if (rawMarkdown && (briefingContent.innerHTML.includes('|') || briefingContent.innerHTML.includes('**'))) {
         try {
           marked.setOptions({
             gfm: true,
             breaks: true,
-            headerIds: true,
           });
           const parsed = marked.parse(rawMarkdown);
           briefingContent.innerHTML = parsed;
@@ -266,7 +266,7 @@
       }
     }
 
-    // Wrap tables in responsive container if not already wrapped
+    // Enhance and style all tables with Apple frosted container
     if (briefingContent) {
       const tables = briefingContent.querySelectorAll('table');
       tables.forEach(table => {
@@ -277,6 +277,20 @@
           table.parentNode.insertBefore(wrapper, table);
           wrapper.appendChild(table);
         }
+      });
+
+      // Transform raw bracketed query examples like [What are the charges...?] into interactive Apple iOS capsule pills
+      const queryCells = briefingContent.querySelectorAll('td, li, p');
+      queryCells.forEach(el => {
+        el.innerHTML = el.innerHTML.replace(/\[\s*([A-Za-z0-9\s,–—\/\(\)\'\"]+\?)\s*\]/g, (match, query) => {
+          const cleanQuery = query.trim().replace(/^[\*\#\_]+|[\*\#\_]+$/g, '');
+          const encoded = encodeURIComponent(cleanQuery);
+          return `<a href="/ai-research?query=${encoded}" class="ios-query-chip" title="Click to run this verified inquiry">
+            <span class="ios-chip-sparkle">✨</span>
+            <span class="ios-chip-text">${cleanQuery}</span>
+            <span class="ios-chip-arrow">&rarr;</span>
+          </a>`;
+        });
       });
 
       // Highlight interactive citations when clicked
@@ -290,7 +304,7 @@
             const target = document.getElementById('source-card-' + srcIdx);
             if (target) {
               target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              target.style.boxShadow = '0 0 0 2px #38bdf8, 0 0 20px rgba(56, 189, 248, 0.4)';
+              target.style.boxShadow = '0 0 0 2px #007aff, 0 8px 30px rgba(0, 122, 255, 0.3)';
               setTimeout(() => {
                 target.style.boxShadow = '';
               }, 2500);
@@ -309,10 +323,10 @@
     navigator.clipboard.writeText(rawTextEl.value).then(() => {
       const originalHtml = btn.innerHTML;
       btn.innerHTML = `
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
-        <span style="color: #34d399;">Copied!</span>
+        <span style="color: #10b981; font-weight: 600;">Copied!</span>
       `;
       setTimeout(() => {
         btn.innerHTML = originalHtml;
@@ -325,205 +339,501 @@
 
 <style>
   /* ==========================================================================
-     CALIP LEGAL BRIEFING TYPOGRAPHY & TABLE STYLING
+     PURE APPLE IOS GLASSMORPHISM DESIGN SYSTEM FOR AI RESEARCH
      ========================================================================== */
-  .legal-briefing-body {
-    font-size: 1.05rem;
-    line-height: 1.8;
-    color: #e2e8f0;
+  .ai-research-container {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding-bottom: 5rem;
   }
 
-  .legal-briefing-body p,
-  .legal-briefing-body .legal-p {
-    margin-bottom: 1.25rem;
-    color: #cbd5e1;
-    line-height: 1.8;
+  .ai-hero-header {
+    text-align: center;
+    margin-bottom: 2.75rem;
+  }
+
+  .pulsing-glow-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #007aff;
+    display: inline-block;
+    box-shadow: 0 0 10px #007aff;
+    animation: applePulse 2s infinite ease-in-out;
+  }
+
+  @keyframes applePulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
+  }
+
+  .ai-hero-title {
+    font-size: 2.65rem;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.85rem;
+    background: linear-gradient(135deg, #0b1329 20%, #007aff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .ai-hero-subtitle {
+    color: var(--text-muted);
+    font-size: 1.08rem;
+    max-width: 760px;
+    margin: 0 auto;
+    line-height: 1.65;
+  }
+
+  /* Apple Spotlight Search Card */
+  .ai-search-card {
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--border-card);
+    outline: 1px solid var(--border-card-outer);
+    border-radius: var(--radius-xl);
+    padding: 1.4rem;
+    margin-bottom: 2rem;
+    box-shadow: 
+      0 20px 45px -10px rgba(0, 122, 255, 0.1),
+      0 4px 16px -2px rgba(15, 23, 42, 0.03),
+      inset 0 1px 1px #ffffff;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .ai-search-card:focus-within {
+    outline-color: rgba(0, 122, 255, 0.35);
+    box-shadow: 
+      0 25px 60px -10px rgba(0, 122, 255, 0.16),
+      0 0 0 3px rgba(0, 122, 255, 0.12),
+      inset 0 1px 1px #ffffff;
+    transform: translateY(-2px);
+  }
+
+  .search-card-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+  }
+
+  .ai-spotlight-textarea {
+    width: 100%;
+    background: #ffffff;
+    border: 1.5px solid rgba(0, 122, 255, 0.15);
+    border-radius: var(--radius-md);
+    padding: 1.15rem 1.35rem;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: var(--text-pure);
+    font-family: var(--font-sans);
+    resize: vertical;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.02);
+  }
+
+  .ai-spotlight-textarea:focus {
+    outline: none;
+    border-color: #007aff;
+    box-shadow: 0 0 0 3.5px rgba(0, 122, 255, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.02);
+  }
+
+  .search-action-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .engine-meta-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    font-size: 0.84rem;
+    color: var(--text-muted);
+    background: rgba(248, 250, 252, 0.85);
+    padding: 0.35rem 0.85rem;
+    border-radius: var(--radius-full);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+  }
+
+  .engine-indicator {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #10b981;
+    display: inline-block;
+  }
+
+  .meta-separator {
+    color: var(--text-dim);
+  }
+
+  .btn-apple-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.6rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    border-radius: var(--radius-full);
+    box-shadow: 0 4px 14px rgba(0, 122, 255, 0.3);
+  }
+
+  /* Suggested Prompts Grid */
+  .suggested-queries-section {
+    margin-bottom: 2.75rem;
+  }
+
+  .suggested-label {
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.06em;
+  }
+
+  .suggested-chips-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .ios-prompt-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 1rem;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(0, 122, 255, 0.18);
+    border-radius: var(--radius-full);
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: var(--accent-primary);
+    text-decoration: none;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .ios-prompt-pill:hover {
+    background: #007aff;
+    color: #ffffff;
+    border-color: #007aff;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0, 122, 255, 0.25);
+  }
+
+  .pill-sparkle {
+    font-size: 0.85rem;
+  }
+
+  /* Apple Frosted Glass Briefing Card */
+  .briefing-card {
+    background: rgba(255, 255, 255, 0.86);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--border-card);
+    outline: 1px solid var(--border-card-outer);
+    border-radius: var(--radius-xl);
+    padding: 2.5rem;
+    margin-bottom: 3.5rem;
+    box-shadow: 
+      0 25px 60px -15px rgba(15, 23, 42, 0.08),
+      0 4px 18px -2px rgba(15, 23, 42, 0.03),
+      inset 0 1px 1px #ffffff;
+  }
+
+  .briefing-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+    padding-bottom: 1.35rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  /* Legal Briefing Typography */
+  .legal-briefing-body {
+    font-size: 1.05rem;
+    line-height: 1.85;
+    color: var(--text-main);
+  }
+
+  .legal-briefing-body p {
+    margin-bottom: 1.35rem;
+    line-height: 1.85;
+    color: #334155;
   }
 
   .legal-briefing-body strong {
     font-weight: 700;
-    color: #ffffff;
+    color: var(--text-pure);
   }
 
   .legal-briefing-body em {
     font-style: italic;
-    color: #93c5fd;
+    color: var(--accent-cyan);
   }
 
-  .legal-briefing-body h1,
-  .legal-briefing-body .legal-h1 {
-    font-size: 1.85rem;
+  .legal-briefing-body h1 {
+    font-size: 1.75rem;
     font-weight: 800;
-    color: #f8fafc;
+    color: var(--text-pure);
     margin-top: 2rem;
     margin-bottom: 1rem;
-    border-bottom: 2px solid rgba(99, 102, 241, 0.25);
+    border-bottom: 2px solid rgba(0, 0, 0, 0.06);
     padding-bottom: 0.5rem;
+    letter-spacing: -0.02em;
   }
 
-  .legal-briefing-body h2,
-  .legal-briefing-body .legal-h2 {
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: #f8fafc;
+  .legal-briefing-body h2 {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--text-pure);
     margin-top: 2.25rem;
     margin-bottom: 1rem;
     display: flex;
     align-items: center;
     gap: 0.65rem;
-    position: relative;
     padding-left: 0.85rem;
-    border-left: 4px solid var(--primary-accent, #6366f1);
+    border-left: 4px solid var(--accent-primary);
+    letter-spacing: -0.015em;
   }
 
-  .legal-briefing-body h3,
-  .legal-briefing-body .legal-h3 {
+  .legal-briefing-body h3 {
     font-size: 1.15rem;
     font-weight: 700;
-    color: #93c5fd;
+    color: var(--accent-primary);
     margin-top: 1.75rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .legal-briefing-body h4,
-  .legal-briefing-body .legal-h4 {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #94a3b8;
-    margin-top: 1.25rem;
-    margin-bottom: 0.5rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    margin-bottom: 0.85rem;
   }
 
   .legal-briefing-body ul,
-  .legal-briefing-body .legal-list {
-    margin-bottom: 1.4rem;
-    padding-left: 1.5rem;
+  .legal-briefing-body ol {
+    margin-bottom: 1.5rem;
+    padding-left: 1.6rem;
   }
 
   .legal-briefing-body li {
-    margin-bottom: 0.5rem;
-    color: #cbd5e1;
-    line-height: 1.7;
+    margin-bottom: 0.55rem;
+    color: #334155;
+    line-height: 1.8;
   }
 
-  .legal-briefing-body .legal-quote,
   .legal-briefing-body blockquote {
-    margin: 1.25rem 0;
-    padding: 1rem 1.25rem;
-    background: rgba(99, 102, 241, 0.07);
-    border-left: 4px solid #6366f1;
-    border-radius: 0 8px 8px 0;
-    color: #e2e8f0;
+    margin: 1.5rem 0;
+    padding: 1rem 1.35rem;
+    background: rgba(0, 122, 255, 0.05);
+    border-left: 4px solid var(--accent-primary);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    color: var(--text-pure);
     font-style: italic;
   }
 
-  .legal-briefing-body hr,
-  .legal-briefing-body .legal-divider {
+  .legal-briefing-body hr {
     border: 0;
     height: 1px;
-    background: rgba(255, 255, 255, 0.1);
-    margin: 2rem 0;
+    background: rgba(0, 0, 0, 0.08);
+    margin: 2.25rem 0;
   }
 
-  /* Responsive GFM Tables */
+  /* Responsive Apple Frosted Glass Tables */
   .table-responsive-wrapper {
     width: 100%;
     overflow-x: auto;
-    margin: 1.5rem 0 2rem 0;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(15, 23, 42, 0.6);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    margin: 1.75rem 0 2.25rem 0;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: #ffffff;
+    box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.05), inset 0 1px 1px #ffffff;
   }
 
-  .legal-table,
-  .legal-briefing-body table {
+  .legal-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.925rem;
+    font-size: 0.94rem;
     text-align: left;
   }
 
-  .legal-table th,
-  .legal-briefing-body table th {
-    background: rgba(99, 102, 241, 0.15);
-    color: #f8fafc;
-    padding: 0.9rem 1.1rem;
-    font-weight: 700;
-    font-size: 0.825rem;
+  .legal-table th {
+    background: linear-gradient(180deg, #f8fafc 0%, #edf2f7 100%);
+    color: var(--text-pure);
+    padding: 1.05rem 1.35rem;
+    font-weight: 800;
+    font-size: 0.82rem;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    border-bottom: 2px solid rgba(99, 102, 241, 0.4);
+    letter-spacing: 0.06em;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.08);
     white-space: nowrap;
   }
 
-  .legal-table td,
-  .legal-briefing-body table td {
-    padding: 0.85rem 1.1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    color: #e2e8f0;
-    vertical-align: top;
-    line-height: 1.6;
+  .legal-table td {
+    padding: 1rem 1.35rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    color: #1e293b;
+    vertical-align: middle;
+    line-height: 1.65;
   }
 
-  .legal-table tr:nth-child(even),
-  .legal-briefing-body table tr:nth-child(even) {
-    background: rgba(255, 255, 255, 0.02);
+  .legal-table tr:last-child td {
+    border-bottom: none;
   }
 
-  .legal-table tr:hover,
-  .legal-briefing-body table tr:hover {
-    background: rgba(99, 102, 241, 0.08);
+  .legal-table tr:nth-child(even) {
+    background: rgba(248, 250, 252, 0.55);
   }
 
-  /* Citation Badges */
+  .legal-table tr:hover {
+    background: rgba(0, 122, 255, 0.035);
+  }
+
+  /* Interactive Apple iOS Query Chip in Tables */
+  .ios-query-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.95rem;
+    border-radius: var(--radius-sm);
+    background: rgba(0, 122, 255, 0.08);
+    border: 1px solid rgba(0, 122, 255, 0.22);
+    color: #007aff;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-decoration: none;
+    line-height: 1.4;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 2px 6px rgba(0, 122, 255, 0.04);
+  }
+
+  .ios-query-chip:hover {
+    background: #007aff;
+    color: #ffffff;
+    border-color: #007aff;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(0, 122, 255, 0.28);
+  }
+
+  .ios-chip-sparkle {
+    font-size: 0.88rem;
+  }
+
+  .ios-chip-arrow {
+    font-weight: 800;
+    transition: transform 0.15s ease;
+  }
+
+  .ios-query-chip:hover .ios-chip-arrow {
+    transform: translateX(4px);
+  }
+
+  /* Citations Section */
+  .citations-section-box {
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    padding-top: 2.25rem;
+    margin-top: 2.75rem;
+  }
+
+  .citation-group-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0;
+  }
+
+  .citation-card {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-card-outer);
+    border-radius: var(--radius-md);
+    padding: 1.35rem 1.6rem;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.03);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .citation-card-internal {
+    border-left: 4px solid var(--accent-cyan);
+  }
+
+  .citation-card-external {
+    border-left: 4px solid var(--accent-indigo);
+  }
+
+  .citation-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  }
+
+  .citation-snippet-box {
+    font-family: var(--font-mono);
+    font-size: 0.84rem;
+    color: #0f172a;
+    background: #f8fafc;
+    border: 1px solid rgba(0, 0, 0, 0.07);
+    padding: 0.9rem 1.15rem;
+    border-radius: var(--radius-sm);
+    white-space: pre-wrap;
+    line-height: 1.65;
+  }
+
+  .briefing-provenance-bar {
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    padding-top: 1.35rem;
+    margin-top: 2.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.84rem;
+    flex-wrap: wrap;
+    gap: 0.85rem;
+  }
+
+  /* Inline citation badges */
   .citation-badge {
     display: inline-flex;
     align-items: center;
-    padding: 0.15rem 0.55rem;
-    border-radius: 4px;
-    font-size: 0.8rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--radius-full);
+    font-size: 0.78rem;
     font-family: var(--font-mono);
-    font-weight: 600;
-    margin: 0 0.2rem;
+    font-weight: 700;
+    margin: 0 0.25rem;
     transition: all 0.2s ease;
     white-space: nowrap;
+    text-decoration: none;
   }
 
   .citation-internal {
-    background: rgba(56, 189, 248, 0.15);
-    color: #38bdf8;
-    border: 1px solid rgba(56, 189, 248, 0.35);
+    background: rgba(2, 132, 199, 0.1);
+    color: #0284c7;
+    border: 1px solid rgba(2, 132, 199, 0.25);
   }
 
   .citation-internal:hover {
-    background: rgba(56, 189, 248, 0.25);
-    border-color: #38bdf8;
-    box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+    background: #0284c7;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
   }
 
   .citation-external {
-    background: rgba(168, 85, 247, 0.15);
-    color: #c084fc;
-    border: 1px solid rgba(168, 85, 247, 0.35);
+    background: rgba(88, 86, 214, 0.1);
+    color: #5856d6;
+    border: 1px solid rgba(88, 86, 214, 0.25);
   }
 
   .citation-external:hover {
-    background: rgba(168, 85, 247, 0.25);
-    border-color: #c084fc;
-    box-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
-  }
-
-  .inline-code {
-    font-family: var(--font-mono);
-    font-size: 0.85em;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    padding: 0.15rem 0.4rem;
-    border-radius: 4px;
-    color: #38bdf8;
+    background: #5856d6;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(88, 86, 214, 0.3);
   }
 
   @media print {
@@ -531,7 +841,7 @@
       background: white !important;
       color: black !important;
     }
-    .header, .footer, .ai-box, #copy-briefing-btn, .nav-btn-desktop {
+    .header, .footer, .ai-search-card, .suggested-queries-section, #copy-briefing-btn {
       display: none !important;
     }
     .briefing-card {
@@ -540,14 +850,6 @@
       background: white !important;
       color: black !important;
       padding: 0 !important;
-    }
-    .legal-briefing-body, .legal-briefing-body p, .legal-briefing-body td, .legal-briefing-body li {
-      color: #111827 !important;
-    }
-    .legal-table th {
-      background: #f3f4f6 !important;
-      color: #111827 !important;
-      border-bottom: 2px solid #374151 !important;
     }
   }
 </style>

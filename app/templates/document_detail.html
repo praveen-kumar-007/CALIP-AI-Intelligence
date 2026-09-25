@@ -175,7 +175,7 @@
 </div>
 
   <!-- AI Executive Brief & Legal Summary Card -->
-  <div id="ai-summary-card" class="category-block ai-summary-card" style="padding: 1.75rem; margin-bottom: 2rem; border: 1.5px solid rgba(99, 102, 241, 0.3); border-radius: var(--radius-lg); background: var(--bg-card);">
+  <div id="ai-summary-card" class="category-block ai-summary-card" style="padding: 2.25rem; margin-bottom: 2.5rem; background: rgba(255, 255, 255, 0.86); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border: 1px solid var(--border-card); outline: 1px solid var(--border-card-outer); border-radius: var(--radius-xl); box-shadow: var(--shadow-md), inset 0 1px 1px #ffffff;">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.85rem;">
       <div style="display: flex; align-items: center; gap: 0.75rem;">
         <span style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 9px; background: linear-gradient(135deg, #4f46e5, #0891b2); color: white; box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);">
@@ -558,6 +558,35 @@ function copyAiSummary() {
 }
 
 // Render markdown on load if available
+function enhanceAiSummaryDom(el) {
+  if (!el) return;
+  // Wrap any tables in responsive container
+  const tables = el.querySelectorAll('table');
+  tables.forEach(table => {
+    table.classList.add('legal-table');
+    if (!table.parentElement.classList.contains('table-responsive-wrapper')) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'table-responsive-wrapper';
+      table.parentNode.insertBefore(wrapper, table);
+      wrapper.appendChild(table);
+    }
+  });
+
+  // Transform bracketed queries into interactive Apple iOS capsule pills
+  const queryCells = el.querySelectorAll('td, li, p');
+  queryCells.forEach(cell => {
+    cell.innerHTML = cell.innerHTML.replace(/\[\s*([A-Za-z0-9\s,–—\/\(\)\'\"]+\?)\s*\]/g, (match, query) => {
+      const cleanQuery = query.trim().replace(/^[\*\#\_]+|[\*\#\_]+$/g, '');
+      const encoded = encodeURIComponent(cleanQuery);
+      return `<a href="/ai-research?query=${encoded}" class="ios-query-chip" title="Click to run this verified inquiry">
+        <span class="ios-chip-sparkle">✨</span>
+        <span class="ios-chip-text">${cleanQuery}</span>
+        <span class="ios-chip-arrow">&rarr;</span>
+      </a>`;
+    });
+  });
+}
+
 function renderAiSummaryMarkdown() {
   const el = document.getElementById('ai-summary-content');
   if (!el) return;
@@ -565,6 +594,7 @@ function renderAiSummaryMarkdown() {
   if (window.marked && raw && raw.trim() && !raw.startsWith('Extracted legal text available.')) {
     el.setAttribute('data-raw', raw);
     el.innerHTML = marked.parse(raw);
+    enhanceAiSummaryDom(el);
   }
 }
 document.addEventListener('DOMContentLoaded', renderAiSummaryMarkdown);
@@ -593,6 +623,7 @@ async function triggerRegenerateSummary(docId) {
         contentEl.setAttribute('data-raw', data.summary.summary_text);
         if (window.marked) {
           contentEl.innerHTML = marked.parse(data.summary.summary_text);
+          enhanceAiSummaryDom(contentEl);
         } else {
           contentEl.textContent = data.summary.summary_text;
         }
