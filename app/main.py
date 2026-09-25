@@ -471,6 +471,11 @@ def ai_research_page(request: Request, query: str | None = Query(default=None)):
     )
 
 
+@app.get("/admin", response_class=RedirectResponse)
+def admin_redirect():
+    return RedirectResponse(url="/admin/dashboard", status_code=307)
+
+
 @app.get("/admin/dashboard", response_class=HTMLResponse)
 def admin_dashboard_page(request: Request):
     stats = get_platform_statistics()
@@ -1534,6 +1539,7 @@ CALIP Document Ref: {doc.get('id')} | Case: {doc.get('case_id')} | Hash: {doc.ge
 
 
 @app.get("/health")
+@app.get("/api/health")
 async def health_check():
     stats = get_platform_statistics()
     return JSONResponse({

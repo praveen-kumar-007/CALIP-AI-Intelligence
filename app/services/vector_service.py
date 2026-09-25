@@ -151,10 +151,23 @@ def index_document_chunks(document_id: str, case_id: str | None, pages: list[dic
             db.add(chunk_obj)
             count += 1
         db.commit()
+        invalidate_vector_cache()
     finally:
         db.close()
 
     return count
+
+
+_VECTOR_CACHE_DATA: list[dict[str, Any]] | None = None
+_VECTOR_CACHE_MATRIX: np.ndarray | None = None
+_VECTOR_CACHE_TIME: float = 0.0
+
+
+def invalidate_vector_cache():
+    global _VECTOR_CACHE_DATA, _VECTOR_CACHE_MATRIX, _VECTOR_CACHE_TIME
+    _VECTOR_CACHE_DATA = None
+    _VECTOR_CACHE_MATRIX = None
+    _VECTOR_CACHE_TIME = 0.0
 
 
 def vector_search(
@@ -165,26 +178,42 @@ def vector_search(
 ) -> list[dict[str, Any]]:
     """
     Computes query embedding and performs cosine similarity search across all document chunks.
+    Utilizes high-speed in-memory embedding matrix caching for sub-10ms responses.
     """
+    global _VECTOR_CACHE_DATA, _VECTOR_CACHE_MATRIX, _VECTOR_CACHE_TIME
+    import time
+
     query_emb = np.array(generate_embedding(query), dtype=np.float32)
 
     db = SessionLocal()
     results: list[dict[str, Any]] = []
     try:
-        query_set = db.query(DocumentChunk)
-        if case_id:
-            query_set = query_set.filter(DocumentChunk.case_id == case_id)
+        # If searching globally without case_id filter, use high-speed in-memory cache
+        if not case_id and _VECTOR_CACHE_DATA is not None and _VECTOR_CACHE_MATRIX is not None and (time.time() - _VECTOR_CACHE_TIME < 600):
+            chunk_objects = _VECTOR_CACHE_DATA
+            emb_matrix = _VECTOR_CACHE_MATRIX
+        else:
+            query_set = db.query(
+                DocumentChunk.id,
+                DocumentChunk.document_id,
+                DocumentChunk.case_id,
+                DocumentChunk.page_number,
+                DocumentChunk.chunk_text,
+                DocumentChunk.embedding,
+            ).filter(DocumentChunk.embedding != None)
 
-        all_chunks = query_set.all()
-        if not all_chunks:
-            return []
+            if case_id:
+                query_set = query_set.filter(DocumentChunk.case_id == case_id)
 
-        chunk_embeddings = []
-        chunk_objects = []
+            rows = query_set.all()
+            if not rows:
+                return []
 
-        for chk in all_chunks:
-            if chk.embedding:
-                emb = chk.embedding
+            chunk_embeddings = []
+            chunk_objects = []
+
+            for row in rows:
+                emb = row.embedding
                 if isinstance(emb, (str, bytes)):
                     try:
                         emb = json.loads(emb)
@@ -192,12 +221,23 @@ def vector_search(
                         continue
                 if isinstance(emb, list) and len(emb) == len(query_emb):
                     chunk_embeddings.append(emb)
-                    chunk_objects.append(chk)
+                    chunk_objects.append({
+                        "id": row.id,
+                        "document_id": row.document_id,
+                        "case_id": row.case_id,
+                        "page_number": row.page_number,
+                        "chunk_text": row.chunk_text,
+                    })
 
-        if not chunk_embeddings:
-            return []
+            if not chunk_embeddings:
+                return []
 
-        emb_matrix = np.array(chunk_embeddings, dtype=np.float32)  # (N, D)
+            emb_matrix = np.array(chunk_embeddings, dtype=np.float32)
+
+            if not case_id:
+                _VECTOR_CACHE_DATA = chunk_objects
+                _VECTOR_CACHE_MATRIX = emb_matrix
+                _VECTOR_CACHE_TIME = time.time()
         # Cosine similarity for normalized vectors is simply dot product
         similarities = np.dot(emb_matrix, query_emb)  # (N,)
 
@@ -206,22 +246,25 @@ def vector_search(
         for idx in top_indices:
             score = float(similarities[idx])
             chk = chunk_objects[idx]
-            doc = db.query(Document).filter_by(id=chk.document_id).first()
-            case = db.query(Case).filter_by(id=chk.case_id).first() if chk.case_id else None
+            chk_id = chk["id"]
+            doc_id = chk["document_id"]
+            case_id_val = chk["case_id"]
+            doc = db.query(Document).filter_by(id=doc_id).first()
+            case = db.query(Case).filter_by(id=case_id_val).first() if case_id_val else None
 
             if court_filter and case and court_filter.lower() not in (case.court_name or "").lower():
                 continue
 
             results.append({
-                "chunk_id": chk.id,
-                "document_id": chk.document_id,
+                "chunk_id": chk_id,
+                "document_id": doc_id,
                 "document_title": doc.title if doc else "Document",
-                "case_id": chk.case_id,
+                "case_id": case_id_val,
                 "case_title": case.title if case else None,
                 "case_number": case.case_number if case else None,
                 "court": case.court_name if case else (doc.court if doc else None),
-                "page_number": chk.page_number,
-                "chunk_text": chk.chunk_text,
+                "page_number": chk["page_number"],
+                "chunk_text": chk["chunk_text"],
                 "source_url": doc.source_url if doc else None,
                 "pdf_url": doc.original_pdf_url if doc else None,
                 "similarity_score": round(score, 4),

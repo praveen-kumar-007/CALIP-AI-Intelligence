@@ -6,11 +6,19 @@ from app.db.models import Case, Document, Judgment, Order, Application, Court, A
 from app.services.longtail_scraper import get_cached_or_live_catalog, sync_catalog_to_database
 
 
+_SEED_CHECKED = False
+
 def ensure_seed_data():
     """Initializes database with longtail cases catalog if cases table is empty."""
+    global _SEED_CHECKED
+    if _SEED_CHECKED:
+        return
     db = SessionLocal()
     try:
         case_count = db.query(Case).count()
+        if case_count > 0:
+            _SEED_CHECKED = True
+            return
         if case_count == 0:
             print("[LegalData] DB is empty. Loading longtailcases catalog...")
             catalog = get_cached_or_live_catalog()

@@ -46,3 +46,4 @@ Thumbs.db
 # Data folder (Cloud-first: all data stored in Supabase PostgreSQL)
 data/
 calip.db
+scratch/
