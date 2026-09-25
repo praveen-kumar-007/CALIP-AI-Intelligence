@@ -521,10 +521,7 @@ def store_extracted_ocr_separately(
     pages = extraction_res.get("pages", [])
     full_text = extraction_res.get("full_text", "")
 
-    # 1. Plain text file
-    txt_path.write_text(full_text, encoding="utf-8")
-
-    # 2. Build RAG chunks with page and section metadata
+    # Build RAG chunks with page and section metadata
     rag_chunks: list[dict[str, Any]] = []
     chunk_counter = 0
 
@@ -582,88 +579,7 @@ def store_extracted_ocr_separately(
                     "char_count": len(para),
                     "chunk_text": para,
                 })
-                chunk_counter += 1
-
-    rag_chunks_path.write_text(json.dumps(rag_chunks, indent=2, ensure_ascii=False), encoding="utf-8")
-
-    # 3. LLM-ready Context format with standard provenance header tags
-    llm_context_blocks = [
-        f"# LEGAL RECORD: {title}",
-        f"**Case Reference:** {case_id or 'Unassigned'}",
-        f"**Court:** {court or 'Judicial Forum'}",
-        f"**Document ID:** {document_id}",
-        f"**Cryptographic Hash (SHA-256):** {file_hash or 'Not specified'}",
-        f"**Extraction Method:** {extraction_res.get('pages', [{}])[0].get('method', 'PyMuPDF/OCR')}",
-        f"**Total Pages:** {extraction_res.get('page_count', 1)} | **Average Confidence:** {extraction_res.get('average_confidence', 1.0)*100:.1f}%\n",
-        "--- START VERIFIED DOCUMENT TEXT ---\n",
-    ]
-
-    for p in pages:
-        llm_context_blocks.append(
-            f"[[PAGE {p['page_number']} | SOURCE: {title} | CONFIDENCE: {p.get('confidence', 1.0)*100:.0f}%]]\n"
-            f"{p['text']}\n"
-        )
-
-    llm_context_blocks.append("--- END VERIFIED DOCUMENT TEXT ---")
-    llm_markdown = "\n".join(llm_context_blocks)
-    llm_context_path.write_text(llm_markdown, encoding="utf-8")
-
-    # 4. Master Structured JSON Artifact
-    structured_doc = {
-        "document_id": document_id,
-        "title": title,
-        "case_id": case_id,
-        "court": court,
-        "file_hash": file_hash,
-        "original_url": original_url,
-        "extracted_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        "page_count": extraction_res.get("page_count", 0),
-        "total_words": extraction_res.get("total_words", 0),
-        "total_characters": extraction_res.get("total_characters", 0),
-        "ocr_required": extraction_res.get("ocr_required", False),
-        "ocr_pages_count": extraction_res.get("ocr_pages_count", 0),
-        "average_confidence": extraction_res.get("average_confidence", 0.0),
-        "pages": pages,
-        "rag_chunks_count": len(rag_chunks),
-        "storage_paths": {
-            "plain_text": str(txt_path),
-            "structured_json": str(json_path),
-            "rag_chunks_json": str(rag_chunks_path),
-            "llm_context_md": str(llm_context_path),
-        },
-    }
-
-    json_path.write_text(json.dumps(structured_doc, indent=2, ensure_ascii=False), encoding="utf-8")
-
-    return {
-        "plain_text": str(txt_path),
-        "structured_json": str(json_path),
-        "rag_chunks_json": str(rag_chunks_path),
-        "llm_context_md": str(llm_context_path),
-    }
-
-
-def get_extracted_ocr_data(document_id: str) -> dict[str, Any] | None:
-    """
-    Retrieves the separately stored structured OCR JSON for a document.
-    Auto-heals from SQLite database records if the physical JSON file is missing.
-    """
-    json_path = OCR_STORAGE_DIR / f"{document_id}.json"
-    if json_path.exists():
-        try:
-            return json.loads(json_path.read_text(encoding="utf-8"))
-        except Exception as e:
-            print(f"[OCR] Error reading {json_path}: {e}")
-
-    # Auto-heal from database if file is absent on disk
-    return auto_heal_document_storage(document_id)
-
-
-def auto_heal_document_storage(document_id: str) -> dict[str, Any] | None:
-    """
-    Checks if database has extracted text or pages for this document, and
-    reconstructs the separated .txt, .json, _rag_chunks.json, and _llm_context.md files.
-    """
+    # Persist pages and extracted text directly into PostgreSQL database
     try:
         from app.db.session import SessionLocal
         from app.db.models import Document, DocumentPage
@@ -671,92 +587,185 @@ def auto_heal_document_storage(document_id: str) -> dict[str, Any] | None:
         db = SessionLocal()
         try:
             doc = db.query(Document).filter_by(id=document_id).first()
-            if not doc:
-                return None
+            if doc:
+                doc.extracted_text = full_text
+                doc.page_count = len(pages) or doc.page_count
+                doc.ocr_confidence = extraction_res.get("average_confidence", 0.95)
+                db.commit()
 
-            pages_recs = db.query(DocumentPage).filter_by(document_id=document_id).order_by(DocumentPage.page_number).all()
-            
-            pages_data = []
-            full_text_parts = []
-            
-            if pages_recs:
-                for p in pages_recs:
-                    t = clean_legal_text(p.page_text or "")
-                    blocks = detect_layout_blocks(t, p.page_number)
-                    pages_data.append({
-                        "page_number": p.page_number,
-                        "text": t,
-                        "confidence": p.ocr_confidence or 0.95,
-                        "method": p.extraction_method or "pymupdf_text",
-                        "ocr_applied": p.has_images or False,
-                        "word_count": len(t.split()),
-                        "char_count": len(t),
-                        "layout_blocks": blocks,
-                    })
-                    full_text_parts.append(f"--- Page {p.page_number} ---\n{t}")
-            elif doc.extracted_text and len(doc.extracted_text.strip()) > 10:
-                t = clean_legal_text(doc.extracted_text)
-                blocks = detect_layout_blocks(t, 1)
+                # Upsert DocumentPages in DB
+                db.query(DocumentPage).filter_by(document_id=document_id).delete()
+                for p in pages:
+                    p_num = p["page_number"]
+                    doc_page = DocumentPage(
+                        id=f"{document_id}_p{p_num}",
+                        document_id=document_id,
+                        page_number=p_num,
+                        page_text=p.get("text", ""),
+                        has_images=p.get("ocr_applied", False),
+                        ocr_confidence=p.get("confidence", 0.95),
+                        extraction_method=p.get("method", "pymupdf_text"),
+                    )
+                    db.add(doc_page)
+                db.commit()
+        finally:
+            db.close()
+    except Exception as db_exc:
+        print(f"[OCR Storage] DB persistence note: {db_exc}")
+
+    # Optional local file caching (only if explicitly enabled via environment)
+    if os.getenv("SAVE_LOCAL_OCR_FILES", "false").lower() == "true":
+        try:
+            OCR_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+            txt_path.write_text(full_text, encoding="utf-8")
+            rag_chunks_path.write_text(json.dumps(rag_chunks, indent=2, ensure_ascii=False), encoding="utf-8")
+            llm_context_blocks = [
+                f"# LEGAL RECORD: {title}",
+                f"**Case Reference:** {case_id or 'Unassigned'}",
+                f"**Court:** {court or 'Judicial Forum'}",
+                f"**Document ID:** {document_id}",
+                f"**Cryptographic Hash (SHA-256):** {file_hash or 'Not specified'}",
+                f"**Extraction Method:** {extraction_res.get('pages', [{}])[0].get('method', 'PyMuPDF/OCR')}",
+                f"**Total Pages:** {extraction_res.get('page_count', 1)} | **Average Confidence:** {extraction_res.get('average_confidence', 1.0)*100:.1f}%\n",
+                "--- START VERIFIED DOCUMENT TEXT ---\n",
+            ]
+            for p in pages:
+                llm_context_blocks.append(
+                    f"[[PAGE {p['page_number']} | SOURCE: {title} | CONFIDENCE: {p.get('confidence', 1.0)*100:.0f}%]]\n"
+                    f"{p['text']}\n"
+                )
+            llm_context_blocks.append("--- END VERIFIED DOCUMENT TEXT ---")
+            llm_context_path.write_text("\n".join(llm_context_blocks), encoding="utf-8")
+
+            structured_doc = {
+                "document_id": document_id,
+                "title": title,
+                "case_id": case_id,
+                "court": court,
+                "file_hash": file_hash,
+                "original_url": original_url,
+                "extracted_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "page_count": extraction_res.get("page_count", 0),
+                "total_words": extraction_res.get("total_words", 0),
+                "total_characters": extraction_res.get("total_characters", 0),
+                "ocr_required": extraction_res.get("ocr_required", False),
+                "ocr_pages_count": extraction_res.get("ocr_pages_count", 0),
+                "average_confidence": extraction_res.get("average_confidence", 0.0),
+                "pages": pages,
+                "rag_chunks_count": len(rag_chunks),
+                "storage_paths": {
+                    "plain_text": str(txt_path),
+                    "structured_json": str(json_path),
+                    "rag_chunks_json": str(rag_chunks_path),
+                    "llm_context_md": str(llm_context_path),
+                },
+            }
+            json_path.write_text(json.dumps(structured_doc, indent=2, ensure_ascii=False), encoding="utf-8")
+        except Exception:
+            pass
+
+    return {
+        "storage": "postgresql",
+        "document_id": document_id,
+        "page_count": len(pages),
+        "total_characters": len(full_text),
+    }
+
+
+def get_extracted_ocr_data(document_id: str) -> dict[str, Any] | None:
+    """
+    Retrieves the structured OCR and page data for a document directly from the PostgreSQL database.
+    Does not depend on local disk storage.
+    """
+    from app.db.session import SessionLocal
+    from app.db.models import Document, DocumentPage
+
+    db = SessionLocal()
+    try:
+        doc = db.query(Document).filter_by(id=document_id).first()
+        if not doc:
+            return None
+
+        pages_recs = db.query(DocumentPage).filter_by(document_id=document_id).order_by(DocumentPage.page_number).all()
+        pages_data = []
+        full_text_parts = []
+
+        if pages_recs:
+            for p in pages_recs:
+                t = clean_legal_text(p.page_text or "")
+                blocks = detect_layout_blocks(t, p.page_number)
                 pages_data.append({
-                    "page_number": 1,
+                    "page_number": p.page_number,
                     "text": t,
-                    "confidence": doc.ocr_confidence or 0.95,
-                    "method": doc.extraction_method or "pymupdf_text",
-                    "ocr_applied": doc.ocr_required or False,
+                    "confidence": p.ocr_confidence or 0.95,
+                    "method": p.extraction_method or "pymupdf_text",
+                    "ocr_applied": p.has_images or False,
                     "word_count": len(t.split()),
                     "char_count": len(t),
                     "layout_blocks": blocks,
                 })
-                full_text_parts.append(f"--- Page 1 ---\n{t}")
-            else:
-                return None
+                full_text_parts.append(f"--- Page {p.page_number} ---\n{t}")
+        elif doc.extracted_text and len(doc.extracted_text.strip()) > 5:
+            t = clean_legal_text(doc.extracted_text)
+            blocks = detect_layout_blocks(t, 1)
+            pages_data.append({
+                "page_number": 1,
+                "text": t,
+                "confidence": doc.ocr_confidence or 0.95,
+                "method": doc.extraction_method or "pymupdf_text",
+                "ocr_applied": doc.ocr_required or False,
+                "word_count": len(t.split()),
+                "char_count": len(t),
+                "layout_blocks": blocks,
+            })
+            full_text_parts.append(f"--- Page 1 ---\n{t}")
+        else:
+            return None
 
-            full_text = "\n\n".join(full_text_parts)
-            extraction_res = {
-                "page_count": len(pages_data),
-                "ocr_required": doc.ocr_required or False,
-                "ocr_pages_count": sum(1 for p in pages_data if p.get("ocr_applied")),
-                "average_confidence": doc.ocr_confidence or 0.95,
-                "total_characters": sum(p["char_count"] for p in pages_data),
-                "total_words": sum(p["word_count"] for p in pages_data),
-                "pages": pages_data,
-                "full_text": full_text,
-            }
-
-            store_extracted_ocr_separately(
-                document_id=document_id,
-                title=doc.title or "Legal Document",
-                extraction_res=extraction_res,
-                case_id=doc.case_id,
-                court=doc.court,
-                file_hash=doc.file_hash,
-                original_url=doc.original_pdf_url,
-            )
-
-            json_path = OCR_STORAGE_DIR / f"{document_id}.json"
-            if json_path.exists():
-                return json.loads(json_path.read_text(encoding="utf-8"))
-        finally:
-            db.close()
-    except Exception as exc:
-        print(f"[OCR] Auto-heal failed for {document_id}: {exc}")
-    return None
+        full_text = "\n\n".join(full_text_parts) if full_text_parts else (doc.extracted_text or "")
+        return {
+            "document_id": document_id,
+            "title": doc.title or "Legal Document",
+            "case_id": doc.case_id,
+            "court": doc.court,
+            "file_hash": doc.file_hash,
+            "original_url": doc.original_pdf_url or doc.source_url,
+            "page_count": len(pages_data),
+            "ocr_required": doc.ocr_required or False,
+            "ocr_pages_count": sum(1 for p in pages_data if p.get("ocr_applied")),
+            "average_confidence": doc.ocr_confidence or 0.95,
+            "total_characters": len(full_text),
+            "total_words": len(full_text.split()),
+            "pages": pages_data,
+            "full_text": full_text,
+        }
+    finally:
+        db.close()
 
 
 def get_llm_ready_context(document_id: str) -> str | None:
-    """Retrieves the prompt-ready LLM context string for a document."""
-    md_path = OCR_STORAGE_DIR / f"{document_id}_llm_context.md"
-    if md_path.exists():
-        try:
-            return md_path.read_text(encoding="utf-8")
-        except Exception:
-            pass
-    # If not on disk, try auto-healing first
-    auto_heal_document_storage(document_id)
-    if md_path.exists():
-        try:
-            return md_path.read_text(encoding="utf-8")
-        except Exception:
-            pass
-    return None
+    """Retrieves the prompt-ready LLM context string directly from database records."""
+    ocr_data = get_extracted_ocr_data(document_id)
+    if not ocr_data or not ocr_data.get("full_text"):
+        return None
+
+    title = ocr_data.get("title") or "Legal Document"
+    case_ref = ocr_data.get("case_id") or "Unassigned"
+    court = ocr_data.get("court") or "Court of Record"
+    pages = ocr_data.get("pages", [])
+
+    lines = [
+        f"# RECORD ARTIFACT: {title}",
+        f"**Case Reference:** {case_ref}",
+        f"**Court / Jurisdiction:** {court}",
+        f"**Page Count:** {len(pages)} pages | **Verified DB Storage**",
+        "",
+        "--- START VERIFIED RECORD TRANSCRIPT ---",
+    ]
+    for p in pages:
+        lines.append(f"## PAGE {p['page_number']}")
+        lines.append(p.get("text") or "")
+        lines.append("")
+    lines.append("--- END VERIFIED RECORD TRANSCRIPT ---")
+    return "\n".join(lines)
 

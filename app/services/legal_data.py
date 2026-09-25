@@ -70,7 +70,6 @@ def get_case_by_id(case_id: str) -> dict[str, Any] | None:
         if not c:
             return None
 
-        from app.services.ocr_service import OCR_STORAGE_DIR
         from app.services.linkage_service import get_case_linkages
 
         # Build folder hierarchy for case
@@ -80,9 +79,8 @@ def get_case_by_id(case_id: str) -> dict[str, Any] | None:
             subfolders = db.query(LongtailFolder).filter_by(parent_id=f.id).all()
             f_docs = []
             for d in f.documents:
-                txt_file = OCR_STORAGE_DIR / f"{d.id}.txt"
-                has_txt = txt_file.exists() or bool(d.extracted_text)
-                has_ocr = (OCR_STORAGE_DIR / f"{d.id}.json").exists() or bool(d.pages)
+                has_txt = bool(d.extracted_text)
+                has_ocr = bool(d.extracted_text) or bool(d.pages)
                 f_docs.append({
                     "id": d.id,
                     "title": d.title,
@@ -96,9 +94,8 @@ def get_case_by_id(case_id: str) -> dict[str, Any] | None:
             for sf in subfolders:
                 sf_docs = []
                 for d in sf.documents:
-                    txt_file = OCR_STORAGE_DIR / f"{d.id}.txt"
-                    has_txt = txt_file.exists() or bool(d.extracted_text)
-                    has_ocr = (OCR_STORAGE_DIR / f"{d.id}.json").exists() or bool(d.pages)
+                    has_txt = bool(d.extracted_text)
+                    has_ocr = bool(d.extracted_text) or bool(d.pages)
                     sf_docs.append({
                         "id": d.id,
                         "title": d.title,
@@ -124,9 +121,8 @@ def get_case_by_id(case_id: str) -> dict[str, Any] | None:
 
         case_docs = []
         for d in c.documents:
-            txt_file = OCR_STORAGE_DIR / f"{d.id}.txt"
-            has_txt = txt_file.exists() or bool(d.extracted_text)
-            has_ocr = (OCR_STORAGE_DIR / f"{d.id}.json").exists() or bool(d.pages)
+            has_txt = bool(d.extracted_text)
+            has_ocr = bool(d.extracted_text) or bool(d.pages)
             case_docs.append({
                 "id": d.id,
                 "title": d.title,
@@ -164,7 +160,6 @@ def get_all_documents(limit: int = 50, offset: int = 0, query: str | None = None
     ensure_seed_data()
     db = SessionLocal()
     try:
-        from app.services.ocr_service import OCR_STORAGE_DIR
         q = db.query(Document)
         if query:
             q = q.filter(
@@ -174,9 +169,8 @@ def get_all_documents(limit: int = 50, offset: int = 0, query: str | None = None
         docs = q.offset(offset).limit(limit).all()
         result = []
         for d in docs:
-            txt_file = OCR_STORAGE_DIR / f"{d.id}.txt"
-            has_txt = txt_file.exists() or bool(d.extracted_text)
-            has_ocr = (OCR_STORAGE_DIR / f"{d.id}.json").exists() or bool(d.pages)
+            has_txt = bool(d.extracted_text)
+            has_ocr = bool(d.extracted_text) or bool(d.pages)
             result.append({
                 "id": d.id,
                 "case_id": d.case_id,
@@ -205,15 +199,13 @@ def get_document_by_id(document_id: str) -> dict[str, Any] | None:
     ensure_seed_data()
     db = SessionLocal()
     try:
-        from app.services.ocr_service import OCR_STORAGE_DIR
         from app.services.linkage_service import get_document_linkages
         d = db.query(Document).filter_by(id=document_id).first()
         if not d:
             return None
         
-        txt_file = OCR_STORAGE_DIR / f"{d.id}.txt"
-        has_txt = txt_file.exists() or bool(d.extracted_text)
-        has_ocr = (OCR_STORAGE_DIR / f"{d.id}.json").exists() or bool(d.pages)
+        has_txt = bool(d.extracted_text)
+        has_ocr = bool(d.extracted_text) or bool(d.pages)
         linkages = get_document_linkages(d.id)
 
         return {
@@ -256,21 +248,7 @@ def get_all_judgments(limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
     db = SessionLocal()
     try:
         judgments = db.query(Judgment).offset(offset).limit(limit).all()
-        if not judgments:
-            # Fallback sample
-            return [
-                {
-                    "id": "judg-001",
-                    "case_id": "lt-4",
-                    "title": "Judgment on Criminal Revision & Quashing Petition",
-                    "date": "2024-03-12",
-                    "court": "Bombay High Court",
-                    "bench": "Division Bench",
-                    "summary": "The court held that in the absence of specific overt acts, vicarious criminal liability cannot be automatically imputed.",
-                    "document_id": "doc-001",
-                }
-            ]
-        return [
+        results = [
             {
                 "id": j.id,
                 "case_id": j.case_id,
@@ -283,6 +261,30 @@ def get_all_judgments(limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
             }
             for j in judgments
         ]
+        # Also query documents categorized as judgments from the database
+        if len(results) < limit:
+            docs = (
+                db.query(Document)
+                .filter(
+                    (Document.document_type.ilike("%judgment%"))
+                    | (Document.title.ilike("%judgment%"))
+                )
+                .offset(offset)
+                .limit(limit - len(results))
+                .all()
+            )
+            for d in docs:
+                results.append({
+                    "id": d.id,
+                    "case_id": d.case_id,
+                    "title": d.title,
+                    "date": d.document_date or (d.created_at.strftime("%Y-%m-%d") if d.created_at else None),
+                    "court": d.court or "Court of Record",
+                    "bench": None,
+                    "summary": (d.extracted_text[:200] + "...") if d.extracted_text else f"{d.title} ({d.document_type})",
+                    "document_id": d.id,
+                })
+        return results
     finally:
         db.close()
 
@@ -291,36 +293,38 @@ def get_judgment_by_id(judgment_id: str) -> dict[str, Any] | None:
     db = SessionLocal()
     try:
         j = db.query(Judgment).filter_by(id=judgment_id).first()
-        if not j:
-            # Return sample if requested
+        if j:
             return {
-                "id": judgment_id,
-                "case_id": "lt-4",
-                "title": "Judgment on Criminal Revision & Quashing Petition",
-                "date": "2024-03-12",
-                "court": "Bombay High Court",
-                "bench": "Division Bench",
-                "judges": "Hon'ble Justice A. S. Chandurkar & Hon'ble Justice Pushpa Ganediwala",
-                "summary": "The court held that in the absence of specific overt acts, vicarious criminal liability cannot be automatically imputed.",
-                "issues": "Whether directors can be held vicariously liable for corporate transactions under IPC without specific averments.",
-                "reasoning": "Criminal law does not recognize vicarious liability unless a statute expressly provides for it.",
-                "decision": "Proceedings quashed qua the applicant directors.",
-                "document_id": "doc-001",
+                "id": j.id,
+                "case_id": j.case_id,
+                "title": j.title,
+                "date": j.date,
+                "court": j.court,
+                "bench": j.bench,
+                "judges": j.judges,
+                "summary": j.summary,
+                "issues": j.issues,
+                "reasoning": j.reasoning,
+                "decision": j.decision,
+                "document_id": j.document_id,
             }
-        return {
-            "id": j.id,
-            "case_id": j.case_id,
-            "title": j.title,
-            "date": j.date,
-            "court": j.court,
-            "bench": j.bench,
-            "judges": j.judges,
-            "summary": j.summary,
-            "issues": j.issues,
-            "reasoning": j.reasoning,
-            "decision": j.decision,
-            "document_id": j.document_id,
-        }
+        d = db.query(Document).filter_by(id=judgment_id).first()
+        if d:
+            return {
+                "id": d.id,
+                "case_id": d.case_id,
+                "title": d.title,
+                "date": d.document_date or (d.created_at.strftime("%Y-%m-%d") if d.created_at else None),
+                "court": d.court or "Court of Record",
+                "bench": None,
+                "judges": None,
+                "summary": d.extracted_text[:400] if d.extracted_text else d.title,
+                "issues": None,
+                "reasoning": None,
+                "decision": None,
+                "document_id": d.id,
+            }
+        return None
     finally:
         db.close()
 
@@ -329,20 +333,7 @@ def get_all_orders(limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
     db = SessionLocal()
     try:
         orders = db.query(Order).offset(offset).limit(limit).all()
-        if not orders:
-            return [
-                {
-                    "id": "ord-001",
-                    "case_id": "lt-4",
-                    "order_date": "2023-11-20",
-                    "court": "Sessions Court Nagpur",
-                    "bench": "Special MPID Court",
-                    "order_type": "Interim Order",
-                    "summary": "Application under Section 207 Cr.P.C. for supply of deficient prosecution copies allowed in part.",
-                    "document_id": "doc-002",
-                }
-            ]
-        return [
+        results = [
             {
                 "id": o.id,
                 "case_id": o.case_id,
@@ -355,6 +346,30 @@ def get_all_orders(limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
             }
             for o in orders
         ]
+        # Also query documents categorized as orders from the database
+        if len(results) < limit:
+            order_docs = (
+                db.query(Document)
+                .filter(
+                    (Document.document_type.in_(["Order", "Application / Order"]))
+                    | (Document.title.ilike("%order%"))
+                )
+                .offset(offset)
+                .limit(limit - len(results))
+                .all()
+            )
+            for d in order_docs:
+                results.append({
+                    "id": d.id,
+                    "case_id": d.case_id,
+                    "order_date": d.document_date or (d.created_at.strftime("%Y-%m-%d") if d.created_at else None),
+                    "court": d.court or "Court of Record",
+                    "bench": None,
+                    "order_type": d.document_type or "Order",
+                    "summary": (d.extracted_text[:200] + "...") if d.extracted_text else f"{d.title} ({d.document_type})",
+                    "document_id": d.id,
+                })
+        return results
     finally:
         db.close()
 
@@ -363,35 +378,37 @@ def get_order_by_id(order_id: str) -> dict[str, Any] | None:
     db = SessionLocal()
     try:
         o = db.query(Order).filter_by(id=order_id).first()
-        if not o:
+        if o:
             return {
-                "id": order_id,
-                "case_id": "lt-4",
-                "order_date": "2023-11-20",
-                "court": "Sessions Court Nagpur",
-                "bench": "Special MPID Court",
-                "order_type": "Interim Order",
-                "summary": "Application under Section 207 Cr.P.C. for supply of deficient prosecution copies allowed in part.",
-                "directions": "Prosecution directed to supply un-exhibited copies within 4 weeks.",
-                "document_id": "doc-002",
+                "id": o.id,
+                "case_id": o.case_id,
+                "order_date": o.order_date,
+                "court": o.court,
+                "bench": o.bench,
+                "order_type": o.order_type,
+                "summary": o.summary,
+                "directions": o.directions,
+                "document_id": o.document_id,
             }
-        return {
-            "id": o.id,
-            "case_id": o.case_id,
-            "order_date": o.order_date,
-            "court": o.court,
-            "bench": o.bench,
-            "order_type": o.order_type,
-            "summary": o.summary,
-            "directions": o.directions,
-            "document_id": o.document_id,
-        }
+        d = db.query(Document).filter_by(id=order_id).first()
+        if d:
+            return {
+                "id": d.id,
+                "case_id": d.case_id,
+                "order_date": d.document_date or (d.created_at.strftime("%Y-%m-%d") if d.created_at else None),
+                "court": d.court or "Court of Record",
+                "bench": None,
+                "order_type": d.document_type or "Order",
+                "summary": d.extracted_text[:400] if d.extracted_text else d.title,
+                "directions": None,
+                "document_id": d.id,
+            }
+        return None
     finally:
         db.close()
 
 
 def get_all_courts() -> list[dict[str, Any]]:
-    ensure_seed_data()
     db = SessionLocal()
     try:
         courts = db.query(Court).all()
@@ -411,14 +428,36 @@ def get_all_courts() -> list[dict[str, Any]]:
 
 
 def get_platform_statistics() -> dict[str, Any]:
-    ensure_seed_data()
     db = SessionLocal()
     try:
+        from app.db.models import DocumentChunk, LegalEntity, DocumentPage
         return {
             "cases_count": db.query(Case).count(),
             "documents_count": db.query(Document).count(),
             "courts_count": db.query(Court).count(),
             "folders_count": db.query(LongtailFolder).count(),
+            "chunks_count": db.query(DocumentChunk).count(),
+            "entities_count": db.query(LegalEntity).count(),
+            "ocr_documents_count": db.query(Document).filter(Document.extracted_text.isnot(None), Document.extracted_text != "").count(),
+            "pages_count": db.query(DocumentPage).count(),
         }
     finally:
         db.close()
+
+
+def get_jurisdiction_summary() -> list[dict[str, Any]]:
+    """Returns dynamic jurisdiction and subject breakdown directly from the cases table in DB."""
+    db = SessionLocal()
+    try:
+        from sqlalchemy import func
+        rows = (
+            db.query(Case.subject, func.count(Case.id))
+            .filter(Case.subject.isnot(None))
+            .group_by(Case.subject)
+            .order_by(func.count(Case.id).desc())
+            .all()
+        )
+        return [{"subject": r[0], "count": r[1]} for r in rows if r[0]]
+    finally:
+        db.close()
+

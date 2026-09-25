@@ -184,8 +184,15 @@ def vector_search(
 
         for chk in all_chunks:
             if chk.embedding:
-                chunk_embeddings.append(chk.embedding)
-                chunk_objects.append(chk)
+                emb = chk.embedding
+                if isinstance(emb, (str, bytes)):
+                    try:
+                        emb = json.loads(emb)
+                    except Exception:
+                        continue
+                if isinstance(emb, list) and len(emb) == len(query_emb):
+                    chunk_embeddings.append(emb)
+                    chunk_objects.append(chk)
 
         if not chunk_embeddings:
             return []

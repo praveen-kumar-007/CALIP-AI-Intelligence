@@ -7,7 +7,6 @@ from sqlalchemy import or_
 
 from app.db.session import SessionLocal
 from app.db.models import Case, Document, LongtailFolder, RelationshipEdge, LegalEntity
-from app.services.ocr_service import OCR_STORAGE_DIR
 
 # Regex patterns for extracting legal identifiers
 CASE_NUM_PATTERN = re.compile(
@@ -104,10 +103,9 @@ def get_case_linkages(case_id: str) -> dict[str, Any]:
             doc_lower = (doc.title or "").lower()
             folder_title = doc.folder.title.lower() if doc.folder else ""
 
-            # Check if TXT file exists on disk
-            txt_file = OCR_STORAGE_DIR / f"{doc.id}.txt"
-            has_txt = txt_file.exists() or bool(doc.extracted_text)
-            has_ocr = (OCR_STORAGE_DIR / f"{doc.id}.json").exists() or bool(doc.pages)
+            # Check database for text and OCR
+            has_txt = bool(doc.extracted_text)
+            has_ocr = bool(doc.extracted_text) or bool(doc.pages)
 
             doc_entry = {
                 "id": doc.id,
@@ -166,14 +164,13 @@ def get_case_linkages(case_id: str) -> dict[str, Any]:
             ).limit(10).all()
 
             for md in matched_docs:
-                txt_file = OCR_STORAGE_DIR / f"{md.id}.txt"
                 cross_referenced_docs.append({
                     "id": md.id,
                     "title": md.title,
                     "url": md.original_pdf_url or md.source_url,
                     "case_id": md.case_id,
                     "case_title": md.case.title if md.case else "External Case",
-                    "has_txt": txt_file.exists() or bool(md.extracted_text),
+                    "has_txt": bool(md.extracted_text),
                     "match_type": "Direct Case / FIR Citation",
                 })
 
@@ -228,12 +225,11 @@ def get_document_linkages(document_id: str) -> dict[str, Any]:
                 ).limit(8).all()
 
             for sib in siblings:
-                txt_file = OCR_STORAGE_DIR / f"{sib.id}.txt"
                 sibling_docs.append({
                     "id": sib.id,
                     "title": sib.title,
                     "url": sib.original_pdf_url or sib.source_url,
-                    "has_txt": txt_file.exists() or bool(sib.extracted_text),
+                    "has_txt": bool(sib.extracted_text),
                     "document_type": sib.document_type or "Document",
                 })
 

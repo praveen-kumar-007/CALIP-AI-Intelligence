@@ -44,13 +44,14 @@ def scan_and_ingest_incoming_folder() -> list[dict[str, Any]]:
     4. Automatically chunks and embeds into vector store.
     5. Extracts legal entities into knowledge graph.
     """
-    INCOMING_DIR.mkdir(parents=True, exist_ok=True)
+    if not INCOMING_DIR.exists():
+        return []
     incoming_files = [f for f in INCOMING_DIR.iterdir() if f.is_file() and not f.name.startswith(".")]
     
     if not incoming_files:
         return []
 
-    print(f"[AutoAdjust] Found {len(incoming_files)} incoming document(s) in {INCOMING_DIR}. Processing...")
+    print(f"[AutoAdjust] Found {len(incoming_files)} incoming document(s). Processing...")
     results = []
 
     for file_path in incoming_files:
@@ -59,17 +60,18 @@ def scan_and_ingest_incoming_folder() -> list[dict[str, Any]]:
             suffix = file_path.suffix.lower()
 
             if suffix == ".pdf":
-                dest_path = DOWNLOADS_DIR / f"incoming_{int(time.time())}_{filename}"
-                shutil.move(str(file_path), str(dest_path))
-
                 title = filename.rsplit(".", 1)[0].replace("_", " ").replace("-", " ").title()
                 res = ingest_local_pdf(
-                    local_path=str(dest_path),
+                    local_path=str(file_path),
                     title=f"Incoming: {title}",
                     document_type="Document",
                 )
                 print(f"[AutoAdjust] Successfully ingested incoming PDF: {filename} -> Doc ID: {res['document_id']}")
                 results.append(res)
+                try:
+                    file_path.unlink()
+                except Exception:
+                    pass
             else:
                 print(f"[AutoAdjust] Skipping unsupported file extension: {filename}")
         except Exception as exc:

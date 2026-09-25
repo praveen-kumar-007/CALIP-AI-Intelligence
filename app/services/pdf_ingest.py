@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import os
 import re
+import tempfile
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlparse
@@ -83,12 +84,10 @@ def safe_filename(url: str, doc_id: str | None = None) -> str:
 
 
 def download_pdf_file(url: str, doc_id: str | None = None) -> str:
+    temp_dir = Path(tempfile.gettempdir()) / "calip_temp"
+    temp_dir.mkdir(parents=True, exist_ok=True)
     file_name = safe_filename(url, doc_id)
-    dest_path = DOWNLOADS_DIR / file_name
-
-    # If file already downloaded and not empty, reuse it
-    if dest_path.exists() and dest_path.stat().st_size > 500:
-        return str(dest_path)
+    dest_path = temp_dir / file_name
 
     resp = requests.get(url, headers=HEADERS, timeout=40, stream=True)
     resp.raise_for_status()
@@ -200,14 +199,14 @@ def ingest_local_pdf(
                 case_id=case_id,
                 title=title,
                 original_pdf_url=original_pdf_url,
-                local_pdf_path=local_path,
+                local_pdf_path=None,
                 file_hash=file_hash,
                 page_count=page_count,
                 ocr_required=ocr_required,
                 ocr_status="completed",
                 ocr_confidence=avg_confidence,
                 extraction_method=extraction_method,
-                extracted_text=full_text[:30000],  # first 30k chars preview in DB
+                extracted_text=full_text,  # Full text stored directly in PostgreSQL
                 processing_status="EXTRACTED",
                 court=court,
                 document_type=detected_type,
@@ -216,14 +215,14 @@ def ingest_local_pdf(
             )
             db.add(doc)
         else:
-            doc.local_pdf_path = local_path
+            doc.local_pdf_path = None
             doc.file_hash = file_hash
             doc.page_count = page_count
             doc.ocr_required = ocr_required
             doc.ocr_status = "completed"
             doc.ocr_confidence = avg_confidence
             doc.extraction_method = extraction_method
-            doc.extracted_text = full_text[:30000]
+            doc.extracted_text = full_text
             doc.processing_status = "EXTRACTED"
             if detected_type and doc.document_type in ("Document", "Legal Document", None):
                 doc.document_type = detected_type
@@ -315,21 +314,31 @@ def process_and_ingest_pdf(
     document_id: str | None = None,
     court: str | None = None,
     document_type: str = "Document",
+    cleanup_temp_pdf: bool = True,
 ) -> dict[str, Any]:
     """
-    Downloads remote PDF from longtailcases / web and calls `ingest_local_pdf`.
+    Downloads remote PDF from longtailcases / web, extracts OCR and pages,
+    stores structured records directly in PostgreSQL (Supabase), and
+    cleans up the temporary local PDF file to preserve disk space.
     """
     if not document_id:
         document_id = f"doc_{hashlib.md5(pdf_url.encode()).hexdigest()[:16]}"
 
     local_path = download_pdf_file(pdf_url, document_id)
-    return ingest_local_pdf(
-        local_path=local_path,
-        title=title,
-        case_id=case_id,
-        document_id=document_id,
-        court=court,
-        document_type=document_type,
-        original_pdf_url=pdf_url,
-    )
+    try:
+        return ingest_local_pdf(
+            local_path=local_path,
+            title=title,
+            case_id=case_id,
+            document_id=document_id,
+            court=court,
+            document_type=document_type,
+            original_pdf_url=pdf_url,
+        )
+    finally:
+        if cleanup_temp_pdf and os.path.exists(local_path):
+            try:
+                os.remove(local_path)
+            except Exception:
+                pass
 

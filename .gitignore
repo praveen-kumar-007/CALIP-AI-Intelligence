@@ -43,11 +43,6 @@ Thumbs.db
 *.db-wal
 *.db-shm
 
-# Large PDF Files in Downloads & Incoming Dropzone (keeps git repo lightweight)
-data/downloads/*.pdf
-data/incoming/*
-!data/incoming/.gitkeep
-!data/downloads/.gitkeep
-
-# Exclude root 0-byte database if created
-/calip.db
+# Data folder (Cloud-first: all data stored in Supabase PostgreSQL)
+data/
+calip.db

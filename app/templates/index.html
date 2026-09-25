@@ -20,7 +20,7 @@
     AI-Readable Legal Document &amp; Case Intelligence &bull; Cognitive Atomic Legal Intelligence Platform
   </div>
   <h1 class="hero-title">
-    Search, Structure & Retrieve <br>
+    Cognitive Atomic Legal Intelligence Platform <br>
     <span class="text-gradient">Every Legal Record with Provenance</span>
   </h1>
   <p class="hero-subtitle">
@@ -56,22 +56,22 @@
 <section class="stats-grid">
   <div class="stat-card">
     <span class="stat-label">Indexed Cases</span>
-    <span class="stat-number">{{ stats.cases_count or cases|length }}</span>
+    <span class="stat-number">{{ stats.cases_count or 0 }}</span>
     <span style="font-size: 0.8rem; color: var(--accent-cyan);">Full metadata & history</span>
   </div>
   <div class="stat-card">
     <span class="stat-label">PDF & Documents</span>
-    <span class="stat-number">{{ stats.documents_count or documents|length }}</span>
+    <span class="stat-number">{{ stats.documents_count or 0 }}</span>
     <span style="font-size: 0.8rem; color: var(--accent-emerald);">Extracted, OCR & Chunks</span>
   </div>
   <div class="stat-card">
     <span class="stat-label">Hierarchical Folders</span>
-    <span class="stat-number">{{ stats.folders_count or 334 }}</span>
+    <span class="stat-number">{{ stats.folders_count or 0 }}</span>
     <span style="font-size: 0.8rem; color: var(--accent-amber);">Preserved folder tree</span>
   </div>
   <div class="stat-card">
     <span class="stat-label">Courts & Benches</span>
-    <span class="stat-number">{{ stats.courts_count or 38 }}</span>
+    <span class="stat-number">{{ stats.courts_count or 0 }}</span>
     <span style="font-size: 0.8rem; color: #a5b4fc;">Supreme, High, District</span>
   </div>
 </section>
@@ -108,105 +108,35 @@
   </form>
 </section>
 
-<!-- Jurisdictions & Longtail Hierarchy Sections -->
+<!-- Jurisdictions & Legal Catalog Sections -->
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
   <div>
     <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--text-main);">Jurisdictions & Legal Catalog</h2>
-    <p style="font-size: 0.9rem; color: var(--text-muted);">Mirrored hierarchy from longtailcases.com structured into state and court categories.</p>
+    <p style="font-size: 0.9rem; color: var(--text-muted);">Dynamic classifications and cataloged categories directly from the database.</p>
   </div>
   <a href="/longtail" class="btn btn-secondary btn-sm">View Full Nested Tree &rarr;</a>
 </div>
 
 <div class="card-grid" style="margin-bottom: 3.5rem;">
-  <!-- Maharashtra -->
-  <div class="legal-card">
-    <div class="card-header">
-      <h3 class="card-title">Maharashtra Cases</h3>
-      <span class="badge badge-indigo">11 Cases</span>
+  {% if jurisdictions %}
+    {% for j in jurisdictions %}
+    <div class="legal-card">
+      <div class="card-header">
+        <h3 class="card-title">{{ j.subject }}</h3>
+        <span class="badge badge-indigo">{{ j.count }} Case{% if j.count != 1 %}s{% endif %}</span>
+      </div>
+      <p class="card-summary">
+        Authoritative legal proceedings, verified filings, orders, and case files cataloged under {{ j.subject }}.
+      </p>
+      <div class="card-footer">
+        <a href="/cases?q={{ j.subject }}" class="btn btn-outline-cyan btn-sm">Explore Cases &rarr;</a>
+        <a href="/search?q={{ j.subject }}" style="font-size: 0.8rem; color: var(--text-dim);">Search Records</a>
+      </div>
     </div>
-    <p class="card-summary">
-      Nagpur (147/2002), Wardha (573/2002), Santacruz (412/2007, 200/2005), EOW (324/2002), CBI Mumbai (83/2002), Osmanabad, Amravati, Pune Vishrambag & Pimpri.
-    </p>
-    <div class="card-footer">
-      <a href="/cases?state=Maharashtra" class="btn btn-outline-cyan btn-sm">Explore Cases &rarr;</a>
-      <a href="/longtail#Maharashtra" style="font-size: 0.8rem; color: var(--text-dim);">Browse Folders</a>
-    </div>
-  </div>
-
-  <!-- Gujarat -->
-  <div class="legal-card">
-    <div class="card-header">
-      <h3 class="card-title">Gujarat Cases</h3>
-      <span class="badge badge-cyan">9 Cases</span>
-    </div>
-    <p class="card-summary">
-      Anand (361/2023), Udna (387/2023), Adajan (388/2023), Umra (389/2023), Varacha (390/2023), Valsad, Gandevi, Navsari, Morbi (1545/2003).
-    </p>
-    <div class="card-footer">
-      <a href="/cases?state=Gujarat" class="btn btn-outline-cyan btn-sm">Explore Cases &rarr;</a>
-      <a href="/longtail#Gujarat" style="font-size: 0.8rem; color: var(--text-dim);">Browse Folders</a>
-    </div>
-  </div>
-
-  <!-- Delhi & Kolkata -->
-  <div class="legal-card">
-    <div class="card-header">
-      <h3 class="card-title">Delhi & Kolkata Cases</h3>
-      <span class="badge badge-emerald">5 Cases</span>
-    </div>
-    <p class="card-summary">
-      Patiala House (480/2023), Sarojini Nagar (266/2023), Bhat Para (318/2023), Sonar Pur, Alipore (33/2002).
-    </p>
-    <div class="card-footer">
-      <a href="/cases?state=Delhi" class="btn btn-outline-cyan btn-sm">Explore Cases &rarr;</a>
-      <a href="/longtail#Delhi" style="font-size: 0.8rem; color: var(--text-dim);">Browse Folders</a>
-    </div>
-  </div>
-
-  <!-- Supreme Court & High Court -->
-  <div class="legal-card">
-    <div class="card-header">
-      <h3 class="card-title">Supreme & High Court</h3>
-      <span class="badge badge-amber">5 Sections</span>
-    </div>
-    <p class="card-summary">
-      Transfer Petitions, Modification Applications, Writ Petitions, Miscellaneous Orders, and High Court Group Applications.
-    </p>
-    <div class="card-footer">
-      <a href="/longtail#Supreme Court" class="btn btn-outline-cyan btn-sm">View Applications &rarr;</a>
-      <a href="/judgments" style="font-size: 0.8rem; color: var(--text-dim);">Judgments</a>
-    </div>
-  </div>
-
-  <!-- Library of Judgements -->
-  <div class="legal-card">
-    <div class="card-header">
-      <h3 class="card-title">Library of Judgements</h3>
-      <span class="badge badge-indigo">Precedents</span>
-    </div>
-    <p class="card-summary">
-      Reported Supreme Court and High Court precedents on Specific Relief, Section 406/420 IPC, Section 138 NI Act, and Vicarious Liability.
-    </p>
-    <div class="card-footer">
-      <a href="/judgments" class="btn btn-outline-cyan btn-sm">Read Judgments &rarr;</a>
-      <a href="/documents/49" style="font-size: 0.8rem; color: var(--text-dim);">Doc #49</a>
-    </div>
-  </div>
-
-  <!-- MIS & Control Sheets -->
-  <div class="legal-card">
-    <div class="card-header">
-      <h3 class="card-title">MIS & Court Dates</h3>
-      <span class="badge badge-cyan">Registry</span>
-    </div>
-    <p class="card-summary">
-      Summary All Cases MIS Report, Website Control Sheets, Casewise Court Dates, and Weekly/Yearly Court Proceedings.
-    </p>
-    <div class="card-footer">
-      <a href="/documents/doc_edc5599f4ddad443" class="btn btn-outline-cyan btn-sm">View Ingested MIS &rarr;</a>
-      <a href="https://longtailcases.com/uploads/new_mis/MIS.pdf?v=1763839426" target="_blank" style="font-size: 0.8rem; color: var(--text-dim);">Original PDF</a>
-    </div>
-  </div>
+    {% endfor %}
+  {% else %}
+    <p style="color: var(--text-muted);">No jurisdiction categories found in the database.</p>
+  {% endif %}
 </div>
 
 <!-- Featured Cases Table -->

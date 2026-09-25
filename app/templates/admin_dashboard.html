@@ -100,7 +100,7 @@
       Drop your PDF here or click to browse
     </h4>
     <p style="font-size: 0.85rem; color: var(--text-muted); max-width: 500px; margin: 0 auto;">
-      Automatically computes SHA-256 hash, runs OCR with OpenCV enhancement, writes separate text files to <code style="color: #38bdf8;">data/ocr_extracted/</code>, and indexes chunks for RAG.
+      Automatically computes SHA-256 hash, runs OCR with OpenCV enhancement, stores full text and pages in <code style="color: #38bdf8;">PostgreSQL (Supabase)</code>, and indexes chunks for RAG.
     </p>
   </div>
 
@@ -196,7 +196,7 @@
       </div>
       <div>
         <span style="color: var(--text-muted);">Storage Output:</span>
-        <code style="font-family: var(--font-mono); color: #047857; background: rgba(16, 185, 129, 0.1); padding: 0.15rem 0.4rem; border-radius: 4px;">data/ocr_extracted/{doc_id}.json</code>
+        <code style="font-family: var(--font-mono); color: #047857; background: rgba(16, 185, 129, 0.1); padding: 0.15rem 0.4rem; border-radius: 4px;">PostgreSQL documents &amp; document_pages</code>
       </div>
     </div>
 

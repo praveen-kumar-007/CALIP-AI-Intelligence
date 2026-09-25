@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 from pathlib import Path
 from typing import Any
 from dotenv import load_dotenv
@@ -66,18 +67,22 @@ class Settings:
     SCRAPER_USER_AGENT: str = os.getenv("SCRAPER_USER_AGENT", "CALIP-Legal-Intelligence/1.0 (Research Platform)")
     SCRAPER_TIMEOUT_SECONDS: int = _get_int("SCRAPER_TIMEOUT_SECONDS", 15)
 
-    # Directories & Data Storage
+    # Directories & Ephemeral Temp Storage (Cloud & Serverless Ready: No local data/ folder)
     PROJECT_ROOT: Path = BASE_DIR
-    DATA_DIR: Path = Path(os.getenv("DATA_DIR", str(BASE_DIR / "data")))
-    DOWNLOADS_DIR: Path = Path(os.getenv("DOWNLOADS_DIR", str(BASE_DIR / "data" / "downloads")))
-    INCOMING_DIR: Path = Path(os.getenv("INCOMING_DIR", str(BASE_DIR / "data" / "incoming")))
-    OCR_STORAGE_DIR: Path = Path(os.getenv("OCR_STORAGE_DIR", str(BASE_DIR / "data" / "ocr_extracted")))
-    CATALOG_CACHE_PATH: Path = Path(os.getenv("CATALOG_CACHE_PATH", str(BASE_DIR / "data" / "longtail_catalog_tree.json")))
+    TEMP_DIR: Path = Path(os.getenv("TEMP_DIR", str(Path(tempfile.gettempdir()) / "calip_temp")))
+    DATA_DIR: Path = TEMP_DIR
+    DOWNLOADS_DIR: Path = TEMP_DIR / "downloads"
+    INCOMING_DIR: Path = TEMP_DIR / "incoming"
+    OCR_STORAGE_DIR: Path = TEMP_DIR / "ocr_extracted"
+    CATALOG_CACHE_PATH: Path = TEMP_DIR / "longtail_catalog_tree.json"
     STATIC_DIR: Path = Path(os.getenv("STATIC_DIR", str(BASE_DIR / "app" / "static")))
     TEMPLATES_DIR: Path = Path(os.getenv("TEMPLATES_DIR", str(BASE_DIR / "app" / "templates")))
 
-    # Database
-    DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'data' / 'calip.db'}")
+    # Database: Supabase Cloud PostgreSQL
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_URL",
+        "postgresql://postgres:CalipDB2026@db.qmnzsgnompkfdqtdadhy.supabase.co:5432/postgres",
+    )
 
     # Auto-Sync & Real-Time Ingest
     AUTO_SYNC_ENABLED: bool = _get_bool("AUTO_SYNC_ENABLED", True)
@@ -123,9 +128,9 @@ class Settings:
     )
 
     def init_directories(self) -> None:
-        """Ensure all required runtime directories exist without crashing in read-only environments."""
+        """Ensure ephemeral runtime directories exist without writing to project workspace."""
         for directory in [
-            self.DATA_DIR,
+            self.TEMP_DIR,
             self.DOWNLOADS_DIR,
             self.INCOMING_DIR,
             self.OCR_STORAGE_DIR,

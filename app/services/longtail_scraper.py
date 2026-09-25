@@ -16,8 +16,7 @@ from app.db.models import Case, Court, Document, LongtailFolder, RelationshipEdg
 
 BASE_URL = settings.LONGTAIL_BASE_URL
 HEADERS = {"User-Agent": settings.SCRAPER_USER_AGENT}
-DATA_DIR = settings.DATA_DIR
-CATALOG_CACHE_PATH = settings.CATALOG_CACHE_PATH
+_CATALOG_CACHE: dict[str, Any] = {}
 
 CASE_PATTERN = re.compile(
     r"(?P<court>[^()\n]+?)\s*(?:\((?P<case_number>[\w/ -]+)\))?$", re.IGNORECASE
@@ -341,10 +340,8 @@ def harvest_all_longtail_hierarchy(limit_cases: int | None = None) -> dict[str, 
     print("[Harvest] Starting complete longtailcases.com hierarchy crawl...")
     items = get_homepage_categories_and_cases()
     if not items:
-        # Fallback to local cache if offline
-        if CATALOG_CACHE_PATH.exists():
-            with open(CATALOG_CACHE_PATH, "r", encoding="utf-8") as f:
-                return json.load(f)
+        if _CATALOG_CACHE:
+            return _CATALOG_CACHE
         return {"categories": {}, "total_cases": 0, "total_documents": 0}
 
     catalog: dict[str, list[dict[str, Any]]] = {}
@@ -395,31 +392,35 @@ def harvest_all_longtail_hierarchy(limit_cases: int | None = None) -> dict[str, 
         "categories": catalog,
     }
 
-    # Save to disk
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    with open(CATALOG_CACHE_PATH, "w", encoding="utf-8") as f:
-        json.dump(result, f, indent=2, ensure_ascii=False)
+    # Cache in memory
+    _CATALOG_CACHE.clear()
+    _CATALOG_CACHE.update(result)
 
     print(f"[Harvest] Completed. Captured {result['total_cases']} cases across {len(catalog)} categories.")
     return result
 
 
 def get_cached_or_live_catalog() -> dict[str, Any]:
-    if CATALOG_CACHE_PATH.exists():
-        try:
-            with open(CATALOG_CACHE_PATH, "r", encoding="utf-8") as f:
-                cat = json.load(f)
-                return enrich_catalog_with_doc_details(cat)
-        except Exception:
-            pass
-    # If no cache exists, harvest first 15 cases quickly so app starts immediately
+    global _CATALOG_CACHE
+    if _CATALOG_CACHE:
+        return enrich_catalog_with_doc_details(_CATALOG_CACHE)
     cat = harvest_all_longtail_hierarchy(limit_cases=12)
     return enrich_catalog_with_doc_details(cat)
 
 
 def enrich_catalog_with_doc_details(catalog: dict[str, Any]) -> dict[str, Any]:
-    from app.services.ocr_service import OCR_STORAGE_DIR
     categories = catalog.get("categories", {})
+    try:
+        from app.db.session import SessionLocal
+        from app.db.models import Document
+        db = SessionLocal()
+        existing_doc_ids = {
+            r[0] for r in db.query(Document.id).filter(Document.extracted_text.isnot(None), Document.extracted_text != "").all()
+        }
+        db.close()
+    except Exception:
+        existing_doc_ids = set()
+
     for cat_name, cases in categories.items():
         for case in cases:
             # Process direct docs
@@ -428,7 +429,7 @@ def enrich_catalog_with_doc_details(catalog: dict[str, Any]) -> dict[str, Any]:
                 doc_slug = re.sub(r"[^a-zA-Z0-9]", "_", url.split("/")[-1])[:32]
                 doc_id = f"doc-{doc_slug}"
                 doc["doc_id"] = doc_id
-                doc["has_txt"] = (OCR_STORAGE_DIR / f"{doc_id}.txt").exists()
+                doc["has_txt"] = doc_id in existing_doc_ids
 
             # Process folder docs
             for folder in case.get("folders", []):
@@ -437,7 +438,7 @@ def enrich_catalog_with_doc_details(catalog: dict[str, Any]) -> dict[str, Any]:
                     doc_slug = re.sub(r"[^a-zA-Z0-9]", "_", url.split("/")[-1])[:32]
                     doc_id = f"doc-{doc_slug}"
                     fdoc["doc_id"] = doc_id
-                    fdoc["has_txt"] = (OCR_STORAGE_DIR / f"{doc_id}.txt").exists()
+                    fdoc["has_txt"] = doc_id in existing_doc_ids
 
                 for sub in folder.get("subfolders", []):
                     for sdoc in sub.get("documents", []):
@@ -445,7 +446,7 @@ def enrich_catalog_with_doc_details(catalog: dict[str, Any]) -> dict[str, Any]:
                         doc_slug = re.sub(r"[^a-zA-Z0-9]", "_", url.split("/")[-1])[:32]
                         doc_id = f"doc-{doc_slug}"
                         sdoc["doc_id"] = doc_id
-                        sdoc["has_txt"] = (OCR_STORAGE_DIR / f"{doc_id}.txt").exists()
+                        sdoc["has_txt"] = doc_id in existing_doc_ids
 
     return catalog
 

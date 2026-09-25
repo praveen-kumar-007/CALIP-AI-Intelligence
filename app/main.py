@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import datetime
+import json
 import os
 import re
+import tempfile
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, FileResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -27,6 +29,7 @@ from app.services.legal_data import (
     get_order_by_id,
     get_all_courts,
     get_platform_statistics,
+    get_jurisdiction_summary,
 )
 from app.services.longtail_scraper import (
     get_cached_or_live_catalog,
@@ -39,7 +42,6 @@ from app.services.ocr_service import (
     get_extracted_ocr_data,
     get_llm_ready_context,
     store_extracted_ocr_separately,
-    OCR_STORAGE_DIR,
 )
 from app.services.rag_service import ask_legal_question
 from app.services.vector_service import vector_search, index_document_chunks
@@ -96,6 +98,7 @@ templates = Jinja2Templates(directory=str(settings.TEMPLATES_DIR))
 def home_page(request: Request):
     cases = get_all_cases(limit=10)
     stats = get_platform_statistics()
+    jurisdictions = get_jurisdiction_summary()
     return templates.TemplateResponse(
         request=request,
         name="index.html",
@@ -103,6 +106,7 @@ def home_page(request: Request):
             "title": "CALIP | Legal Case & Document Intelligence Platform",
             "cases": cases,
             "stats": stats,
+            "jurisdictions": jurisdictions,
             "canonical_url": "https://longtailcases.com/",
         },
     )
@@ -180,47 +184,30 @@ def document_detail_page(request: Request, document_id: str):
         raise HTTPException(status_code=404, detail="Document not found.")
     case = get_case_by_id(doc["case_id"]) if doc.get("case_id") else None
 
-    # Load separately stored OCR & LLM artifacts (with auto-healing if absent)
+    # Load OCR & LLM artifacts directly from Supabase PostgreSQL database
     ocr_artifact = get_extracted_ocr_data(document_id)
     llm_context = get_llm_ready_context(document_id)
 
-    # Check if physical files exist in separated storage
-    txt_path = OCR_STORAGE_DIR / f"{document_id}.txt"
-    json_path = OCR_STORAGE_DIR / f"{document_id}.json"
-
-    # Prioritize complete text from separated storage over truncated DB preview
-    full_extracted_text = None
-    if txt_path.exists():
-        try:
-            full_extracted_text = txt_path.read_text(encoding="utf-8")
-        except Exception:
-            pass
+    # Get complete text directly from database
+    full_extracted_text = doc.get("extracted_text")
     if not full_extracted_text and ocr_artifact and ocr_artifact.get("full_text"):
         full_extracted_text = ocr_artifact["full_text"]
-    if not full_extracted_text:
-        full_extracted_text = doc.get("extracted_text")
 
-    # Auto-Extract if text is missing but PDF is available in data/downloads/ or data/incoming/
+    # Auto-Extract if text is missing but remote PDF is available on longtailcases.com
     if not full_extracted_text or len(full_extracted_text.strip()) == 0:
-        matched_pdf = find_local_pdf_for_document(
-            doc_id=document_id,
-            original_url=doc.get("original_pdf_url"),
-            title=doc.get("title"),
-        )
-        if matched_pdf and matched_pdf.exists():
+        pdf_url = doc.get("original_pdf_url") or doc.get("pdf_url")
+        if pdf_url and pdf_url.startswith("http"):
             try:
-                ingest_res = ingest_local_pdf(
-                    local_path=str(matched_pdf),
-                    title=doc.get("title") or matched_pdf.stem,
+                ingest_res = process_and_ingest_pdf(
+                    pdf_url=pdf_url,
+                    title=doc.get("title") or "Document",
                     document_id=document_id,
                     case_id=doc.get("case_id"),
                     court=doc.get("court"),
                     document_type=doc.get("document_type") or "Document",
-                    original_pdf_url=doc.get("original_pdf_url"),
+                    cleanup_temp_pdf=True,
                 )
-                if txt_path.exists():
-                    full_extracted_text = txt_path.read_text(encoding="utf-8")
-                elif ingest_res and ingest_res.get("full_text"):
+                if ingest_res and ingest_res.get("full_text"):
                     full_extracted_text = ingest_res["full_text"]
                 doc = get_document_by_id(document_id) or doc
                 # Reload artifacts after auto-ingest
@@ -272,8 +259,8 @@ def document_detail_page(request: Request, document_id: str):
             "ai_model": active_model_str,
             "ai_provider": active_provider_str,
             "doc_entities": doc_entities,
-            "has_txt_download": txt_path.exists() or bool(full_extracted_text),
-            "has_json_download": json_path.exists() or bool(ocr_artifact),
+            "has_txt_download": bool(full_extracted_text),
+            "has_json_download": bool(ocr_artifact),
             "canonical_url": f"https://longtailcases.com/documents/{doc['id']}",
         },
     )
@@ -281,57 +268,61 @@ def document_detail_page(request: Request, document_id: str):
 
 @app.get("/documents/{document_id}/download/txt")
 def download_document_extracted_text(document_id: str):
-    txt_path = OCR_STORAGE_DIR / f"{document_id}.txt"
-    if not txt_path.exists():
-        # Auto-generate from DB on-demand so it never fails
-        doc = get_document_by_id(document_id)
-        if not doc:
-            raise HTTPException(status_code=404, detail="Document not found.")
-        text_content = doc.get("extracted_text")
-        if not text_content and doc.get("pages"):
-            text_content = "\n\n".join(p.get("page_text") or "" for p in doc["pages"])
-        if not text_content:
-            text_content = (
-                f"CALIP LEGAL INTELLIGENCE ARCHIVE\n"
-                f"Document ID: {document_id}\n"
-                f"Title: {doc.get('title')}\n"
-                f"Court: {doc.get('court') or 'Court of Record'}\n"
-                f"Date: {doc.get('document_date') or 'Recorded'}\n"
-                f"SHA-256 Digest: {doc.get('file_hash') or 'Verified Provenance'}\n"
-                f"--------------------------------------------------\n\n"
-                f"Document indexed and partitioned for RAG & LLM Legal Research.\n"
-            )
-        txt_path.write_text(text_content, encoding="utf-8")
-
-    return FileResponse(
-        path=str(txt_path),
+    doc = get_document_by_id(document_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    text_content = doc.get("extracted_text")
+    if not text_content and doc.get("pages"):
+        text_content = "\n\n".join(p.get("page_text") or "" for p in doc["pages"])
+    if not text_content:
+        text_content = (
+            f"CALIP LEGAL INTELLIGENCE ARCHIVE\n"
+            f"Document ID: {document_id}\n"
+            f"Title: {doc.get('title')}\n"
+            f"Court: {doc.get('court') or 'Court of Record'}\n"
+            f"Date: {doc.get('document_date') or 'Recorded'}\n"
+            f"SHA-256 Digest: {doc.get('file_hash') or 'Verified Provenance'}\n"
+            f"--------------------------------------------------\n\n"
+            f"Document indexed and partitioned for RAG & LLM Legal Research.\n"
+        )
+    return Response(
+        content=text_content,
         media_type="text/plain; charset=utf-8",
-        filename=f"{document_id}_extracted_text.txt",
+        headers={"Content-Disposition": f'attachment; filename="{document_id}_extracted_text.txt"'},
     )
 
 
 @app.get("/documents/{document_id}/view/txt", response_class=PlainTextResponse)
 def view_document_extracted_text(document_id: str):
-    txt_path = OCR_STORAGE_DIR / f"{document_id}.txt"
-    if not txt_path.exists():
-        download_document_extracted_text(document_id)
-    return PlainTextResponse(txt_path.read_text(encoding="utf-8"))
+    doc = get_document_by_id(document_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    text_content = doc.get("extracted_text")
+    if not text_content and doc.get("pages"):
+        text_content = "\n\n".join(p.get("page_text") or "" for p in doc["pages"])
+    if not text_content:
+        text_content = f"No extracted text found in database for document {document_id}."
+    return PlainTextResponse(content=text_content, media_type="text/plain; charset=utf-8")
 
 
 @app.get("/documents/{document_id}/download/json")
 def download_document_rag_json(document_id: str):
-    json_path = OCR_STORAGE_DIR / f"{document_id}.json"
-    if not json_path.exists():
+    ocr_data = get_extracted_ocr_data(document_id)
+    if not ocr_data:
         doc = get_document_by_id(document_id)
         if not doc:
             raise HTTPException(status_code=404, detail="Document not found.")
-        pages = doc.get("pages") or [{"page_number": 1, "page_text": doc.get("extracted_text") or doc.get("title", "")}]
-        store_extracted_ocr_separately(document_id, doc.get("title", "Document"), pages, doc.get("file_hash"))
-
-    return FileResponse(
-        path=str(json_path),
+        ocr_data = {
+            "document_id": document_id,
+            "title": doc.get("title"),
+            "court": doc.get("court"),
+            "full_text": doc.get("extracted_text") or "",
+        }
+    json_bytes = json.dumps(ocr_data, indent=2, ensure_ascii=False)
+    return Response(
+        content=json_bytes,
         media_type="application/json; charset=utf-8",
-        filename=f"{document_id}_rag_artifact.json",
+        headers={"Content-Disposition": f'attachment; filename="{document_id}_rag_artifact.json"'},
     )
 
 
@@ -993,7 +984,9 @@ async def api_document_upload(
         raise HTTPException(status_code=400, detail="Only PDF files are supported for upload.")
 
     safe_name = f"upload_{int(datetime.datetime.now().timestamp())}_{re.sub(r'[^A-Za-z0-9_.-]', '_', file.filename)}"
-    dest_path = DOWNLOADS_DIR / safe_name
+    temp_dir = Path(tempfile.gettempdir()) / "calip_temp"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    dest_path = temp_dir / safe_name
 
     contents = await file.read()
     with open(dest_path, "wb") as f:
@@ -1001,14 +994,21 @@ async def api_document_upload(
 
     doc_title = title.strip() if title and title.strip() else file.filename.rsplit(".", 1)[0].replace("_", " ").title()
 
-    result = ingest_local_pdf(
-        local_path=str(dest_path),
-        title=doc_title,
-        case_id=case_id,
-        court=court,
-        document_type=document_type,
-    )
-    return JSONResponse(result)
+    try:
+        result = ingest_local_pdf(
+            local_path=str(dest_path),
+            title=doc_title,
+            case_id=case_id,
+            court=court,
+            document_type=document_type,
+        )
+        return JSONResponse(result)
+    finally:
+        if dest_path.exists():
+            try:
+                dest_path.unlink()
+            except Exception:
+                pass
 
 
 @app.get("/api/documents/{document_id}/ocr-text")
@@ -1062,19 +1062,18 @@ def api_document_llm_context(document_id: str):
 
 @app.get("/api/pipeline/stats")
 def api_pipeline_stats():
-    """Returns dynamic statistics on separated OCR files, incoming folder, and sync status."""
-    ocr_files = list(OCR_STORAGE_DIR.glob("*.json"))
-    incoming_files = list(INCOMING_DIR.glob("*.*"))
+    """Returns dynamic statistics on database OCR records, incoming folder, and sync status."""
     stats = get_platform_statistics()
     sync_status = get_sync_status()
+    incoming_files = list(INCOMING_DIR.glob("*.*")) if INCOMING_DIR.exists() else []
 
     return JSONResponse({
-        "ocr_extracted_documents_count": len(ocr_files),
+        "ocr_extracted_documents_count": stats.get("ocr_documents_count", stats.get("documents_count", 0)),
         "incoming_queue_files_count": len(incoming_files),
         "platform_stats": stats,
         "sync_status": sync_status,
-        "ocr_storage_dir": str(OCR_STORAGE_DIR),
-        "incoming_dir": str(INCOMING_DIR),
+        "ocr_storage_dir": "PostgreSQL Database (Supabase)",
+        "incoming_dir": "Cloud Stream (Supabase)",
     })
 
 
@@ -1290,13 +1289,10 @@ async def api_document_summarize(document_id: str):
         if not doc:
             raise HTTPException(status_code=404, detail="Document not found.")
 
-        txt_path = OCR_STORAGE_DIR / f"{document_id}.txt"
-        text_content = ""
-        if txt_path.exists():
-            text_content = txt_path.read_text(encoding="utf-8")
-        elif doc.extracted_text:
-            text_content = doc.extracted_text
-        else:
+        text_content = doc.extracted_text or ""
+        if not text_content and doc.pages:
+            text_content = "\n\n".join(p.page_text or "" for p in doc.pages)
+        if not text_content:
             # Check if local PDF exists to extract text first
             matched = find_local_pdf_for_document(
                 doc_id=document_id,

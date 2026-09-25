@@ -125,6 +125,9 @@ def extractive_legal_summary(
     return summary
 
 
+_SUMMARY_MEMORY_CACHE: dict[str, dict[str, Any]] = {}
+
+
 def generate_document_summary(
     document_id: str,
     text: str,
@@ -137,13 +140,15 @@ def generate_document_summary(
     Generates a structured executive legal summary using local Ollama model (qwen3:8b)
     with automatic persistent caching and rule-based fallback.
     """
-    summary_md_path = OCR_STORAGE_DIR / f"{document_id}_summary.md"
-    summary_json_path = OCR_STORAGE_DIR / f"{document_id}_summary.json"
+    if not force_regenerate and document_id in _SUMMARY_MEMORY_CACHE:
+        return _SUMMARY_MEMORY_CACHE[document_id]
 
+    summary_json_path = OCR_STORAGE_DIR / f"{document_id}_summary.json"
     if not force_regenerate and summary_json_path.exists():
         try:
             cached = json.loads(summary_json_path.read_text(encoding="utf-8"))
             if cached.get("summary_text") and len(cached["summary_text"]) > 100:
+                _SUMMARY_MEMORY_CACHE[document_id] = cached
                 return cached
         except Exception:
             pass
@@ -205,33 +210,30 @@ Be precise, objective, quote exact Section numbers and dates where present, and 
         "source_chars_analyzed": len(cleaned_text),
     }
 
-    try:
-        summary_md_path.write_text(final_summary, encoding="utf-8")
-        summary_json_path.write_text(json.dumps(result_data, indent=2, ensure_ascii=False), encoding="utf-8")
-    except Exception as e:
-        print(f"[SummaryService] Error caching summary to disk: {e}")
+    _SUMMARY_MEMORY_CACHE[document_id] = result_data
+
+    if os.getenv("SAVE_LOCAL_OCR_FILES", "false").lower() == "true":
+        try:
+            summary_md_path = OCR_STORAGE_DIR / f"{document_id}_summary.md"
+            summary_md_path.write_text(final_summary, encoding="utf-8")
+            summary_json_path.write_text(json.dumps(result_data, indent=2, ensure_ascii=False), encoding="utf-8")
+        except Exception as e:
+            print(f"[SummaryService] Error caching summary to disk: {e}")
 
     return result_data
 
 
 def get_document_summary(document_id: str) -> dict[str, Any] | None:
-    """Loads cached summary from disk if available."""
+    """Loads cached summary from memory or disk if available."""
+    if document_id in _SUMMARY_MEMORY_CACHE:
+        return _SUMMARY_MEMORY_CACHE[document_id]
+
     summary_json_path = OCR_STORAGE_DIR / f"{document_id}_summary.json"
     if summary_json_path.exists():
         try:
-            return json.loads(summary_json_path.read_text(encoding="utf-8"))
-        except Exception:
-            pass
-    summary_md_path = OCR_STORAGE_DIR / f"{document_id}_summary.md"
-    if summary_md_path.exists():
-        try:
-            txt = summary_md_path.read_text(encoding="utf-8")
-            return {
-                "document_id": document_id,
-                "summary_text": txt,
-                "model": "cached_markdown",
-                "generated_at": datetime.datetime.utcnow().isoformat(),
-            }
+            cached = json.loads(summary_json_path.read_text(encoding="utf-8"))
+            _SUMMARY_MEMORY_CACHE[document_id] = cached
+            return cached
         except Exception:
             pass
     return None
@@ -239,8 +241,11 @@ def get_document_summary(document_id: str) -> dict[str, Any] | None:
 
 def find_local_pdf_for_document(doc_id: str, original_url: str | None = None, title: str | None = None) -> Path | None:
     """Finds matching PDF in data/downloads/ or data/incoming/."""
-    # 1. Exact filename matches
-    candidates = list(DOWNLOADS_DIR.glob("*.pdf")) + list(settings.INCOMING_DIR.glob("*.pdf"))
+    candidates = []
+    if DOWNLOADS_DIR.exists():
+        candidates.extend(list(DOWNLOADS_DIR.glob("*.pdf")))
+    if settings.INCOMING_DIR.exists():
+        candidates.extend(list(settings.INCOMING_DIR.glob("*.pdf")))
     
     # Check original_url filename
     if original_url:
@@ -277,18 +282,14 @@ def batch_extract_and_summarize_all(limit: int | None = None, summarize: bool = 
     4. Auto-heals existing DB documents with missing separated files.
     5. Updates database records.
     """
-    from app.services.ocr_service import auto_heal_document_storage
-
     db = SessionLocal()
     processed_count = 0
     summarized_count = 0
-    auto_healed_count = 0
     errors: list[str] = []
 
     try:
         # Step A: Scan all local downloaded PDFs
-        pdf_files = list(DOWNLOADS_DIR.glob("*.pdf"))
-        # Exclude tiny test fixtures or filter by size
+        pdf_files = list(DOWNLOADS_DIR.glob("*.pdf")) if DOWNLOADS_DIR.exists() else []
         pdf_files.sort(key=lambda x: x.stat().st_size)
 
         if limit:
@@ -304,15 +305,12 @@ def batch_extract_and_summarize_all(limit: int | None = None, summarize: bool = 
                 ).first()
 
                 doc_id = doc.id if doc else f"doc_{pdf_path.stem.replace('-', '_')}"
-                txt_path = OCR_STORAGE_DIR / f"{doc_id}.txt"
-                json_path = OCR_STORAGE_DIR / f"{doc_id}.json"
 
                 full_text = ""
-                # If both files exist and not empty, load full text
-                if txt_path.exists() and json_path.exists() and txt_path.stat().st_size > 10:
-                    full_text = txt_path.read_text(encoding="utf-8")
+                if doc and doc.extracted_text and len(doc.extracted_text) > 10:
+                    full_text = doc.extracted_text
                 else:
-                    # Ingest or re-ingest local PDF to guarantee all separated storage files
+                    # Ingest or re-ingest local PDF to guarantee all DB records
                     from app.services.pdf_ingest import ingest_local_pdf
                     title = doc.title if doc else pdf_path.stem.replace("_", " ").replace("-", " ")
                     res = ingest_local_pdf(
@@ -343,15 +341,10 @@ def batch_extract_and_summarize_all(limit: int | None = None, summarize: bool = 
             except Exception as e:
                 errors.append(f"{pdf_path.name}: {str(e)}")
 
-        # Step B: Auto-heal all documents already in SQLite that have text but missing .json
-        existing_docs = db.query(Document).filter(Document.extracted_text.isnot(None)).all()
-        for ed in existing_docs:
-            json_file = OCR_STORAGE_DIR / f"{ed.id}.json"
-            if not json_file.exists():
-                healed = auto_heal_document_storage(ed.id)
-                if healed:
-                    auto_healed_count += 1
-            if summarize:
+        # Step B: Summarize any existing DB documents that have text
+        if summarize:
+            existing_docs = db.query(Document).filter(Document.extracted_text.isnot(None)).all()
+            for ed in existing_docs:
                 sum_file = OCR_STORAGE_DIR / f"{ed.id}_summary.json"
                 if not sum_file.exists() and ed.extracted_text:
                     generate_document_summary(
@@ -370,7 +363,6 @@ def batch_extract_and_summarize_all(limit: int | None = None, summarize: bool = 
     return {
         "total_pdfs_scanned": len(pdf_files),
         "processed_count": processed_count,
-        "auto_healed_count": auto_healed_count,
         "summarized_count": summarized_count,
         "errors": errors,
     }
