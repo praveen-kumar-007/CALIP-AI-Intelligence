@@ -33,27 +33,7 @@ export function LongtailPage() {
     }
   };
 
-  const categories = catalog?.categories || {
-    '1. Regular Cases': [
-      {
-        case_id: '1',
-        title: 'State of Maharashtra vs Accused (Nagpur)',
-        case_number: '147/2002',
-        url: '#',
-        documents: [
-          { id: '1', title: 'Charge Sheet under Section 173 CrPC', url: '#' },
-        ],
-        folders: [
-          {
-            title: 'Police Investigation & FIR',
-            documents: [
-              { id: '2', title: 'FIR No 147/2002 Copy', url: '#', has_txt: true },
-            ],
-          },
-        ],
-      },
-    ],
-  };
+  const categories = catalog?.categories || {};
 
   return (
     <>

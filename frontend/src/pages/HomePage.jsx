@@ -26,23 +26,16 @@ export function HomePage() {
         ]);
 
         if (statsData.status === 'fulfilled') {
-          const s = statsData.value?.stats || statsData.value || {};
+          const val = statsData.value || {};
+          const s = val.stats || val;
           setStats({
-            cases_count: s.cases_count ?? s.total_cases ?? 15,
-            documents_count: s.documents_count ?? s.total_documents ?? 40,
-            folders_count: s.folders_count ?? 12,
-            courts_count: s.courts_count ?? s.total_courts ?? 7,
+            cases_count: s.cases_count ?? s.total_cases ?? 0,
+            documents_count: s.documents_count ?? s.total_documents ?? 0,
+            folders_count: s.folders_count ?? 0,
+            courts_count: s.courts_count ?? s.total_courts ?? 0,
           });
-          if (statsData.value?.jurisdictions) {
-            setJurisdictions(statsData.value.jurisdictions);
-          } else {
-            // Default jurisdictions if not returned
-            setJurisdictions([
-              { subject: 'Criminal Procedure & Bail', count: 18 },
-              { subject: 'Constitutional Writs & Rights', count: 12 },
-              { subject: 'Corporate & Arbitration', count: 9 },
-              { subject: 'Revenue & Civil Disputes', count: 14 },
-            ]);
+          if (val.jurisdictions && Array.isArray(val.jurisdictions) && val.jurisdictions.length > 0) {
+            setJurisdictions(val.jurisdictions);
           }
         }
 

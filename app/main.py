@@ -575,10 +575,16 @@ async def sitemap_orders():
 # ==========================================
 
 @app.get("/api")
+@app.get("/api/stats")
 async def api_documentation():
+    stats = get_platform_statistics()
+    jurisdictions = get_jurisdiction_summary()
     return JSONResponse({
+        "status": "success",
         "platform": "CALIP Legal Intelligence Platform",
         "version": "1.0.0",
+        "stats": stats,
+        "jurisdictions": jurisdictions,
         "description": "Public read-only REST API exposing cases, documents, judgments, orders, courts, search, and RAG answer engine. Completely unauthenticated and open for all AI agents and web crawlers.",
         "ai_crawling_manifests": {
             "llms_manifest": "/llms.txt",
@@ -618,13 +624,26 @@ async def api_documentation():
 
 @app.get("/api/cases")
 async def api_cases_list(
-    limit: int = Query(default=50, le=100),
+    limit: int = Query(default=100, le=500),
     offset: int = Query(default=0),
     state: str | None = Query(default=None),
     q: str | None = Query(default=None),
 ):
+    db = SessionLocal()
+    try:
+        total_count = db.query(Case).count()
+    finally:
+        db.close()
     cases = get_all_cases(limit=limit, offset=offset, state=state, query=q)
-    return JSONResponse({"count": len(cases), "offset": offset, "limit": limit, "items": cases})
+    return JSONResponse({
+        "status": "success",
+        "total": total_count,
+        "count": len(cases),
+        "offset": offset,
+        "limit": limit,
+        "items": cases,
+        "cases": cases,
+    })
 
 
 @app.get("/api/cases/{case_id}")
@@ -651,12 +670,25 @@ async def api_case_relationships(case_id: str):
 
 @app.get("/api/documents")
 async def api_documents_list(
-    limit: int = Query(default=50, le=100),
+    limit: int = Query(default=1000, le=2000),
     offset: int = Query(default=0),
     q: str | None = Query(default=None),
 ):
+    db = SessionLocal()
+    try:
+        total_count = db.query(Document).count()
+    finally:
+        db.close()
     docs = get_all_documents(limit=limit, offset=offset, query=q)
-    return JSONResponse({"count": len(docs), "offset": offset, "limit": limit, "items": docs})
+    return JSONResponse({
+        "status": "success",
+        "total": total_count,
+        "count": len(docs),
+        "offset": offset,
+        "limit": limit,
+        "items": docs,
+        "documents": docs,
+    })
 
 
 @app.get("/api/documents/{document_id}")

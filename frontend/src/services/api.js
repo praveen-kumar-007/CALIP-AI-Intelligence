@@ -38,7 +38,19 @@ export const api = {
 
   async getPlatformStats() {
     logApi('getPlatformStats', {});
-    const res = await fetch(`${BASE_URL}/api`);
+    try {
+      const res = await fetch(`${BASE_URL}/api/stats`);
+      if (res.ok) return handleResponse(res);
+    } catch (e) {
+      console.warn('Failed /api/stats, trying /api', e);
+    }
+    try {
+      const res = await fetch(`${BASE_URL}/api`);
+      if (res.ok) return handleResponse(res);
+    } catch (e) {
+      console.warn('Failed /api, trying /health', e);
+    }
+    const res = await fetch(`${BASE_URL}/health`);
     return handleResponse(res);
   },
 
@@ -56,7 +68,7 @@ export const api = {
   },
 
   // --- Cases ---
-  async getCases(court = '', status = '', limit = 50) {
+  async getCases(court = '', status = '', limit = 100) {
     const params = new URLSearchParams({ limit: limit.toString() });
     if (court) params.append('court', court);
     if (status) params.append('status', status);
@@ -90,7 +102,7 @@ export const api = {
   },
 
   // --- Documents ---
-  async getDocuments(court = '', docType = '', limit = 50) {
+  async getDocuments(court = '', docType = '', limit = 1000) {
     const params = new URLSearchParams({ limit: limit.toString() });
     if (court) params.append('court', court);
     if (docType) params.append('doc_type', docType);

@@ -442,11 +442,12 @@ def get_catalog_from_db() -> dict[str, Any]:
                         }
                         for d in sf.documents
                     ]
-                    sub_list.append({"name": sf.name, "documents": sf_docs})
+                    sub_list.append({"name": getattr(sf, "title", "Folder"), "title": getattr(sf, "title", "Folder"), "documents": sf_docs})
                     total_docs += len(sf_docs)
 
                 folder_list.append({
-                    "name": f.name,
+                    "name": getattr(f, "title", "Folder"),
+                    "title": getattr(f, "title", "Folder"),
                     "documents": f_docs,
                     "subfolders": sub_list,
                 })

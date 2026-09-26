@@ -15,7 +15,7 @@ export function CasesPage() {
     async function loadCases() {
       try {
         setLoading(true);
-        const data = await api.getCases(currentState, '', 60);
+        const data = await api.getCases(currentState, '', 100);
         setCases(Array.isArray(data) ? data : data?.cases || data?.items || []);
       } catch (err) {
         console.error('Failed loading cases:', err);
