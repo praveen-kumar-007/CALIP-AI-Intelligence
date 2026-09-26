@@ -38,6 +38,7 @@ Thumbs.db
 *.log
 *.tmp
 *.sqlite3
+report.pdf
 
 # SQLite WAL and Shared Memory files
 *.db-wal

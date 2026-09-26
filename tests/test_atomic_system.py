@@ -54,15 +54,15 @@ def test_document_classifier_types():
 
 
 def test_atoms_dashboard_html_page():
-    """Tests that /atoms server-rendered dashboard loads and contains canonical atoms."""
+    """Tests that /atoms React SPA route loads successfully."""
     response = client.get("/atoms")
     assert response.status_code == 200
-    assert "Legal Cognitive Atoms" in response.text
-    assert "MH-NAGPUR-KOTWALI-0147-2002" in response.text
+    assert 'id="root"' in response.text
+    assert "CALIP" in response.text
 
 
 def test_atom_detail_html_page():
-    """Tests that /atoms/{atom_id} renders the 24 tabs and procedural lineage flow."""
+    """Tests that /atoms/{atom_id} React SPA route loads successfully."""
     # Fetch an atom first
     atoms = get_all_atoms(limit=1)
     assert len(atoms) > 0
@@ -70,9 +70,7 @@ def test_atom_detail_html_page():
 
     response = client.get(f"/atoms/{atom_id}")
     assert response.status_code == 200
-    assert "Visual Procedural Lineage Flow" in response.text
-    assert "Accused &amp; Charges" in response.text
-    assert "Grounded Atomic Legal Reasoning Engine" in response.text
+    assert 'id="root"' in response.text
 
 
 def test_api_atoms_list():
@@ -139,7 +137,7 @@ def test_api_atomic_reasoning_endpoint(monkeypatch):
 
 
 def test_review_queue_page_loads():
-    """Tests that /admin/review-queue loads for human-in-the-loop verification."""
+    """Tests that /admin/review-queue React SPA loads for human-in-the-loop verification."""
     response = client.get("/admin/review-queue")
     assert response.status_code == 200
-    assert "Atom Verification &amp; Review Queue" in response.text
+    assert 'id="root"' in response.text

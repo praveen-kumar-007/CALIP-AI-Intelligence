@@ -9,19 +9,19 @@ def test_homepage_loads():
     response = client.get("/")
     assert response.status_code == 200
     assert "CALIP" in response.text
-    assert "AI-Readable Legal" in response.text
+    assert 'id="root"' in response.text
 
 
 def test_cases_page_loads():
     response = client.get("/cases")
     assert response.status_code == 200
-    assert "Legal Cases Repository" in response.text
+    assert 'id="root"' in response.text
 
 
 def test_longtail_hierarchy_page_loads():
     response = client.get("/longtail")
     assert response.status_code == 200
-    assert "Longtail Cases Hierarchical Catalog" in response.text
+    assert 'id="root"' in response.text
 
 
 def test_robots_txt():

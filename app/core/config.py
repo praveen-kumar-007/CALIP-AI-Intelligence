@@ -79,7 +79,6 @@ class Settings:
     OCR_STORAGE_DIR: Path = TEMP_DIR / "ocr_extracted"
     CATALOG_CACHE_PATH: Path = TEMP_DIR / "longtail_catalog_tree.json"
     STATIC_DIR: Path = Path(os.getenv("STATIC_DIR", str(BASE_DIR / "app" / "static")))
-    TEMPLATES_DIR: Path = Path(os.getenv("TEMPLATES_DIR", str(BASE_DIR / "app" / "templates")))
 
     # Database: Supabase Cloud PostgreSQL (IPv4 & IPv6 Dual-Stack Pooler via psycopg2)
     DATABASE_URL: str = os.getenv(

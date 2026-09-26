@@ -12,7 +12,6 @@ from fastapi import FastAPI, File, Form, HTTPException, Query, Request, UploadFi
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 from app.core.config import settings
@@ -104,7 +103,20 @@ except Exception:
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(settings.STATIC_DIR)), name="static")
 
-templates = Jinja2Templates(directory=str(settings.TEMPLATES_DIR))
+REACT_DIST_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+REACT_INDEX_HTML = REACT_DIST_DIR / "index.html"
+REACT_ASSETS_DIR = REACT_DIST_DIR / "assets"
+
+if REACT_ASSETS_DIR.exists():
+    app.mount("/assets", StaticFiles(directory=str(REACT_ASSETS_DIR)), name="react_assets")
+
+def serve_react_app():
+    if REACT_INDEX_HTML.exists():
+        return FileResponse(str(REACT_INDEX_HTML), media_type="text/html")
+    raise HTTPException(
+        status_code=503,
+        detail="Frontend React build not found. Run 'npm run build' in frontend directory.",
+    )
 
 
 @app.get("/favicon.ico", include_in_schema=False)
@@ -115,233 +127,54 @@ def favicon():
     return Response(status_code=204)
 
 
-
 # ==========================================
-# 1. SERVER-RENDERED PUBLIC HTML PAGES
+# 1. REACT SPA FRONTEND PAGE ROUTES
 # ==========================================
 
 @app.get("/", response_class=HTMLResponse)
-def home_page(request: Request):
-    cases = get_all_cases(limit=10)
-    stats = get_platform_statistics()
-    jurisdictions = get_jurisdiction_summary()
-    return templates.TemplateResponse(
-        request=request,
-        name="index.html",
-        context={
-            "title": "CALIP | Legal Case & Document Intelligence Platform",
-            "cases": cases,
-            "stats": stats,
-            "jurisdictions": jurisdictions,
-            "canonical_url": "https://longtailcases.com/",
-        },
-    )
+def home_page():
+    return serve_react_app()
 
 
 @app.get("/cases", response_class=HTMLResponse)
-def cases_page(
-    request: Request,
-    state: str | None = Query(default=None),
-    q: str | None = Query(default=None),
-):
-    cases = get_all_cases(limit=60, state=state, query=q)
-    return templates.TemplateResponse(
-        request=request,
-        name="cases.html",
-        context={
-            "title": f"Legal Cases {'- ' + state if state else ''} | CALIP",
-            "cases": cases,
-            "current_state": state,
-            "query": q or "",
-            "canonical_url": "https://longtailcases.com/cases",
-        },
-    )
+def cases_page():
+    return serve_react_app()
 
 
 @app.get("/cases/{case_id}", response_class=HTMLResponse)
-def case_detail_page(request: Request, case_id: str):
-    case = get_case_by_id(case_id)
-    if not case:
-        raise HTTPException(status_code=404, detail="Case record not found.")
-    return templates.TemplateResponse(
-        request=request,
-        name="case_detail.html",
-        context={
-            "title": f"{case['title']} ({case['case_number']}) | CALIP",
-            "case": case,
-            "canonical_url": f"https://longtailcases.com/cases/{case['id']}",
-        },
-    )
+def case_detail_page(case_id: str):
+    return serve_react_app()
 
 
 @app.get("/atoms", response_class=HTMLResponse)
-def atoms_dashboard_page(request: Request, state: str | None = Query(default=None)):
-    atoms = get_all_atoms(limit=100, state=state)
-    return templates.TemplateResponse(
-        request=request,
-        name="atoms.html",
-        context={
-            "title": "Legal Cognitive Atoms Directory | CALIP",
-            "atoms": atoms,
-            "current_state": state,
-            "canonical_url": "https://longtailcases.com/atoms",
-        },
-    )
+def atoms_dashboard_page():
+    return serve_react_app()
 
 
 @app.get("/atoms/{atom_id}", response_class=HTMLResponse)
-def atom_detail_page(request: Request, atom_id: str):
-    db = SessionLocal()
-    try:
-        atom = get_atom_by_id_or_canonical(db, atom_id)
-        if not atom:
-            raise HTTPException(status_code=404, detail="Canonical Legal Cognitive Atom not found.")
-        return templates.TemplateResponse(
-            request=request,
-            name="atom_detail.html",
-            context={
-                "title": f"Atom {atom.canonical_fir_id} | CALIP",
-                "atom": atom,
-                "canonical_url": f"https://longtailcases.com/atoms/{atom.id}",
-            },
-        )
-    finally:
-        db.close()
+def atom_detail_page(atom_id: str):
+    return serve_react_app()
 
 
 @app.get("/admin/review-queue", response_class=HTMLResponse)
-def admin_review_queue_page(request: Request):
-    db = SessionLocal()
-    try:
-        queue_items = db.query(AtomReviewQueue).order_by(AtomReviewQueue.created_at.desc()).limit(50).all()
-        return templates.TemplateResponse(
-            request=request,
-            name="review_queue.html",
-            context={
-                "title": "Atom Verification Queue | CALIP Admin",
-                "queue_items": queue_items,
-            },
-        )
-    finally:
-        db.close()
+def admin_review_queue_page():
+    return serve_react_app()
 
 
 @app.get("/longtail", response_class=HTMLResponse)
-def longtail_hierarchy_page(request: Request):
-    catalog = get_cached_or_live_catalog()
-    return templates.TemplateResponse(
-        request=request,
-        name="longtail.html",
-        context={
-            "title": "Longtail Cases Catalog Hierarchy | CALIP",
-            "catalog": catalog,
-            "canonical_url": "https://longtailcases.com/longtail",
-        },
-    )
+def longtail_hierarchy_page():
+    return serve_react_app()
 
 
 @app.get("/documents", response_class=HTMLResponse)
-def documents_page(request: Request, q: str | None = Query(default=None)):
-    docs = get_all_documents(limit=50, query=q)
-    return templates.TemplateResponse(
-        request=request,
-        name="documents.html",
-        context={
-            "title": "Legal Documents Archive | CALIP",
-            "documents": docs,
-            "query": q or "",
-            "canonical_url": "https://longtailcases.com/documents",
-        },
-    )
+def documents_page():
+    return serve_react_app()
 
 
 @app.get("/documents/{document_id}", response_class=HTMLResponse)
-def document_detail_page(request: Request, document_id: str):
-    doc = get_document_by_id(document_id)
-    if not doc:
-        raise HTTPException(status_code=404, detail="Document not found.")
-    case = get_case_by_id(doc["case_id"]) if doc.get("case_id") else None
+def document_detail_page(document_id: str):
+    return serve_react_app()
 
-    # Load OCR & LLM artifacts directly from Supabase PostgreSQL database
-    ocr_artifact = get_extracted_ocr_data(document_id)
-    llm_context = get_llm_ready_context(document_id)
-
-    # Get complete text directly from database
-    full_extracted_text = doc.get("extracted_text")
-    if not full_extracted_text and ocr_artifact and ocr_artifact.get("full_text"):
-        full_extracted_text = ocr_artifact["full_text"]
-
-    # Auto-Extract if text is missing but remote PDF is available on longtailcases.com
-    if not full_extracted_text or len(full_extracted_text.strip()) == 0:
-        pdf_url = doc.get("original_pdf_url") or doc.get("pdf_url")
-        if pdf_url and pdf_url.startswith("http"):
-            try:
-                ingest_res = process_and_ingest_pdf(
-                    pdf_url=pdf_url,
-                    title=doc.get("title") or "Document",
-                    document_id=document_id,
-                    case_id=doc.get("case_id"),
-                    court=doc.get("court"),
-                    document_type=doc.get("document_type") or "Document",
-                    cleanup_temp_pdf=True,
-                )
-                if ingest_res and ingest_res.get("full_text"):
-                    full_extracted_text = ingest_res["full_text"]
-                doc = get_document_by_id(document_id) or doc
-                # Reload artifacts after auto-ingest
-                ocr_artifact = get_extracted_ocr_data(document_id) or ocr_artifact
-                llm_context = get_llm_ready_context(document_id) or llm_context
-            except Exception as e:
-                print(f"[Main] Auto-ingest on view warning: {e}")
-
-    # Re-verify ocr_artifact and llm_context are loaded
-    if not ocr_artifact:
-        ocr_artifact = get_extracted_ocr_data(document_id)
-    if not llm_context:
-        llm_context = get_llm_ready_context(document_id)
-
-    # Load or provide instant AI Executive Brief / Legal Summary (instant sub-50ms render)
-    ai_summary = get_document_summary(document_id)
-    if not ai_summary and full_extracted_text and len(full_extracted_text.strip()) > 30:
-        summary_text = extractive_legal_summary(
-            text=full_extracted_text,
-            title=doc.get("title") or "Document",
-            court=doc.get("court"),
-            document_type=doc.get("document_type"),
-        )
-        ai_summary = {
-            "document_id": document_id,
-            "summary_text": summary_text,
-            "model": "deterministic_legal_engine",
-        }
-
-    # Load entities from graph if available
-    graph_data = get_case_graph_relationships(doc["case_id"]) if doc.get("case_id") else {}
-    doc_entities = [n for n in graph_data.get("nodes", []) if n.get("type") in ("PARTY", "SECTION", "COURT", "POLICE_STATION")][:10]
-
-    from app.services.llm_provider import get_active_model_name, LLMProvider
-    active_model_str = get_active_model_name()
-    active_provider_str = LLMProvider.get_active_provider()
-
-    return templates.TemplateResponse(
-        request=request,
-        name="document_detail.html",
-        context={
-            "title": f"{doc['title']} | CALIP Document",
-            "document": doc,
-            "case": case,
-            "ocr_artifact": ocr_artifact,
-            "llm_context": llm_context,
-            "full_extracted_text": full_extracted_text,
-            "ai_summary": ai_summary,
-            "ai_model": active_model_str,
-            "ai_provider": active_provider_str,
-            "doc_entities": doc_entities,
-            "has_txt_download": bool(full_extracted_text),
-            "has_json_download": bool(ocr_artifact),
-            "canonical_url": f"https://longtailcases.com/documents/{doc['id']}",
-        },
-    )
 
 
 @app.get("/documents/{document_id}/download/txt")
@@ -413,142 +246,48 @@ def api_case_linkages(case_id: str):
 
 
 @app.get("/judgments", response_class=HTMLResponse)
-def judgments_page(request: Request):
-    judgments = get_all_judgments()
-    return templates.TemplateResponse(
-        request=request,
-        name="judgments.html",
-        context={
-            "title": "Library of Judgements & Precedents | CALIP",
-            "judgments": judgments,
-            "canonical_url": "https://longtailcases.com/judgments",
-        },
-    )
+def judgments_page():
+    return serve_react_app()
 
 
 @app.get("/judgments/{judgment_id}", response_class=HTMLResponse)
-def judgment_detail_page(request: Request, judgment_id: str):
-    judgment = get_judgment_by_id(judgment_id)
-    if not judgment:
-        raise HTTPException(status_code=404, detail="Judgment not found.")
-    return templates.TemplateResponse(
-        request=request,
-        name="judgment_detail.html",
-        context={
-            "title": f"{judgment['title']} | Judicial Precedent",
-            "judgment": judgment,
-            "canonical_url": f"https://longtailcases.com/judgments/{judgment_id}",
-        },
-    )
+def judgment_detail_page(judgment_id: str):
+    return serve_react_app()
 
 
 @app.get("/orders", response_class=HTMLResponse)
-def orders_page(request: Request):
-    orders = get_all_orders()
-    return templates.TemplateResponse(
-        request=request,
-        name="orders.html",
-        context={
-            "title": "Court Orders & Directions | CALIP",
-            "orders": orders,
-            "canonical_url": "https://longtailcases.com/orders",
-        },
-    )
+def orders_page():
+    return serve_react_app()
 
 
 @app.get("/orders/{order_id}", response_class=HTMLResponse)
-def order_detail_page(request: Request, order_id: str):
-    order = get_order_by_id(order_id)
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found.")
-    return templates.TemplateResponse(
-        request=request,
-        name="order_detail.html",
-        context={
-            "title": f"Court Order {order_id} | CALIP",
-            "order": order,
-            "canonical_url": f"https://longtailcases.com/orders/{order_id}",
-        },
-    )
+def order_detail_page(order_id: str):
+    return serve_react_app()
 
 
 @app.get("/courts", response_class=HTMLResponse)
-def courts_page(request: Request):
-    courts = get_all_courts()
-    return templates.TemplateResponse(
-        request=request,
-        name="courts.html",
-        context={
-            "title": "Courts & Jurisdictions | CALIP",
-            "courts": courts,
-            "canonical_url": "https://longtailcases.com/courts",
-        },
-    )
+def courts_page():
+    return serve_react_app()
 
 
 @app.get("/acts", response_class=HTMLResponse)
-def acts_page(request: Request):
-    return templates.TemplateResponse(
-        request=request,
-        name="acts.html",
-        context={
-            "title": "Statutory Acts & Legal Provisions | CALIP",
-            "canonical_url": "https://longtailcases.com/acts",
-        },
-    )
+def acts_page():
+    return serve_react_app()
 
 
 @app.get("/sections", response_class=HTMLResponse)
-def sections_page(request: Request):
-    return templates.TemplateResponse(
-        request=request,
-        name="acts.html",
-        context={
-            "title": "Legal Sections & Provisions | CALIP",
-            "canonical_url": "https://longtailcases.com/sections",
-        },
-    )
+def sections_page():
+    return serve_react_app()
 
 
 @app.get("/search", response_class=HTMLResponse)
-def search_page(request: Request, q: str | None = Query(default=None)):
-    results = []
-    vector_results = []
-    if q and q.strip():
-        results = get_all_cases(limit=10, query=q.strip())
-        vector_results = vector_search(query=q.strip(), top_k=5)
-
-    return templates.TemplateResponse(
-        request=request,
-        name="search.html",
-        context={
-            "title": f"Search '{q}' | CALIP Legal Intelligence" if q else "Legal Hybrid Search | CALIP",
-            "query": q or "",
-            "results": results,
-            "vector_results": vector_results,
-            "canonical_url": "https://longtailcases.com/search",
-        },
-    )
+def search_page():
+    return serve_react_app()
 
 
 @app.get("/ai-research", response_class=HTMLResponse)
-def ai_research_page(request: Request, query: str | None = Query(default=None)):
-    result = None
-    if query and query.strip():
-        result = ask_legal_question(query=query.strip(), top_k=4)
-
-    return templates.TemplateResponse(
-        request=request,
-        name="ai_research.html",
-        context={
-            "title": f"AI Legal Research: {query[:40]}... | CALIP" if query else "AI Case Intelligence & Citation Assistant | CALIP",
-            "query": query or "",
-            "result": result,
-            "ai_model": get_active_model_name(),
-            "ai_provider": LLMProvider.get_active_provider(),
-            "canonical_url": "https://longtailcases.com/ai-research",
-        },
-    )
+def ai_research_page():
+    return serve_react_app()
 
 
 @app.get("/admin", response_class=RedirectResponse)
@@ -557,31 +296,13 @@ def admin_redirect():
 
 
 @app.get("/admin/dashboard", response_class=HTMLResponse)
-def admin_dashboard_page(request: Request):
-    stats = get_platform_statistics()
-    sync_status = get_sync_status()
-    return templates.TemplateResponse(
-        request=request,
-        name="admin_dashboard.html",
-        context={
-            "title": "Pipeline & OCR Dashboard | CALIP Admin",
-            "stats": stats,
-            "sync_status": sync_status,
-            "canonical_url": "https://longtailcases.com/admin/dashboard",
-        },
-    )
+def admin_dashboard_page():
+    return serve_react_app()
 
 
 @app.get("/about", response_class=HTMLResponse)
-def about_page(request: Request):
-    return templates.TemplateResponse(
-        request=request,
-        name="about.html",
-        context={
-            "title": "About & Provenance | CALIP Legal Intelligence",
-            "canonical_url": "https://longtailcases.com/about",
-        },
-    )
+def about_page():
+    return serve_react_app()
 
 
 # ==========================================
@@ -1744,3 +1465,26 @@ async def health_check():
         "stats": stats,
         "timestamp": datetime.datetime.utcnow().isoformat(),
     })
+
+
+@app.get("/{full_path:path}", include_in_schema=False)
+async def spa_catch_all(full_path: str):
+    """
+    Fallback SPA router: Serves React SPA index.html for all client-side routes,
+    while letting static files and 404s for API pass through.
+    """
+    if (
+        full_path.startswith("api/")
+        or full_path.startswith("static/")
+        or full_path.startswith("docs")
+        or full_path.startswith("openapi.json")
+    ):
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    file_path = REACT_DIST_DIR / full_path
+    if file_path.is_file():
+        return FileResponse(str(file_path))
+    if REACT_INDEX_HTML.exists():
+        return FileResponse(str(REACT_INDEX_HTML), media_type="text/html")
+    raise HTTPException(status_code=404, detail="Page not found")
+

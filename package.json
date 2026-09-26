@@ -1,0 +1,10 @@
+{
+  "name": "calip",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CALIP - Cognitive Atomic Legal Intelligence Platform",
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build",
+    "start": "uvicorn app.main:app --host 0.0.0.0 --port 8000"
+  }
+}
