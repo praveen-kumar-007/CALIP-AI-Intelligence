@@ -32,6 +32,7 @@ from app.services.legal_data import (
     get_all_courts,
     get_platform_statistics,
     get_jurisdiction_summary,
+    resolve_original_pdf_url,
 )
 from app.services.longtail_scraper import (
     get_cached_or_live_catalog,
@@ -1432,12 +1433,19 @@ async def api_document_reextract(document_id: str):
         if not doc:
             raise HTTPException(status_code=404, detail="Document not found.")
 
-        local_path = doc.local_pdf_path
+        doc_id = str(doc.id)
+        doc_title = str(doc.title or "")
+        doc_case_id = str(doc.case_id) if doc.case_id else None
+        doc_court = str(doc.court) if doc.court else None
+        doc_type = str(doc.document_type or "document")
+        doc_orig_url = str(doc.original_pdf_url) if doc.original_pdf_url else None
+        local_path = str(doc.local_pdf_path) if doc.local_pdf_path else None
+
         if not local_path or not os.path.exists(local_path):
             matched = find_local_pdf_for_document(
-                doc_id=document_id,
-                original_url=doc.original_pdf_url,
-                title=doc.title,
+                doc_id=doc_id,
+                original_url=doc_orig_url,
+                title=doc_title,
             )
             if matched and matched.exists():
                 local_path = str(matched)
@@ -1445,12 +1453,12 @@ async def api_document_reextract(document_id: str):
         if local_path and os.path.exists(local_path):
             res = ingest_local_pdf(
                 local_path=local_path,
-                title=doc.title,
-                document_id=doc.id,
-                case_id=doc.case_id,
-                court=doc.court,
-                document_type=doc.document_type,
-                original_pdf_url=doc.original_pdf_url,
+                title=doc_title,
+                document_id=doc_id,
+                case_id=doc_case_id,
+                court=doc_court,
+                document_type=doc_type,
+                original_pdf_url=doc_orig_url,
             )
             # Generate summary after re-extraction
             full_text = res.get("full_text", "")
@@ -1458,31 +1466,31 @@ async def api_document_reextract(document_id: str):
                 generate_document_summary(
                     document_id=document_id,
                     text=full_text,
-                    title=doc.title,
-                    court=doc.court,
-                    document_type=doc.document_type,
+                    title=doc_title,
+                    court=doc_court,
+                    document_type=doc_type,
                     force_regenerate=True,
                 )
             return JSONResponse({"status": "success", "result": res})
 
-        pdf_url = resolve_original_pdf_url(doc.id, doc.original_pdf_url)
+        pdf_url = resolve_original_pdf_url(doc_id, doc_orig_url)
         if pdf_url:
             res = process_and_ingest_pdf(
                 pdf_url=pdf_url,
-                title=doc.title,
-                document_id=doc.id,
-                case_id=doc.case_id,
-                court=doc.court,
-                document_type=doc.document_type,
+                title=doc_title,
+                document_id=doc_id,
+                case_id=doc_case_id,
+                court=doc_court,
+                document_type=doc_type,
             )
             full_text = res.get("full_text", "")
             if full_text:
                 generate_document_summary(
                     document_id=document_id,
                     text=full_text,
-                    title=doc.title,
-                    court=doc.court,
-                    document_type=doc.document_type,
+                    title=doc_title,
+                    court=doc_court,
+                    document_type=doc_type,
                     force_regenerate=True,
                 )
             return JSONResponse({"status": "success", "result": res})
@@ -1516,37 +1524,44 @@ async def api_document_summarize(document_id: str):
         if not doc:
             raise HTTPException(status_code=404, detail="Document not found.")
 
-        text_content = doc.extracted_text or ""
+        doc_id = str(doc.id)
+        doc_title = str(doc.title or "")
+        doc_court = str(doc.court) if doc.court else None
+        doc_case_id = str(doc.case_id) if doc.case_id else None
+        doc_type = str(doc.document_type or "document")
+        doc_orig_url = str(doc.original_pdf_url) if doc.original_pdf_url else None
+
+        text_content = str(doc.extracted_text or "")
         if not text_content and doc.pages:
-            text_content = "\n\n".join(p.page_text or "" for p in doc.pages)
+            text_content = "\n\n".join(str(p.page_text or "") for p in doc.pages)
         if not text_content:
             # Check if local PDF exists to extract text first
             matched = find_local_pdf_for_document(
-                doc_id=document_id,
-                original_url=doc.original_pdf_url,
-                title=doc.title,
+                doc_id=doc_id,
+                original_url=doc_orig_url,
+                title=doc_title,
             )
             if matched and matched.exists():
                 res = ingest_local_pdf(
                     local_path=str(matched),
-                    title=doc.title,
-                    document_id=doc.id,
-                    case_id=doc.case_id,
-                    court=doc.court,
-                    document_type=doc.document_type,
-                    original_pdf_url=doc.original_pdf_url,
+                    title=doc_title,
+                    document_id=doc_id,
+                    case_id=doc_case_id,
+                    court=doc_court,
+                    document_type=doc_type,
+                    original_pdf_url=doc_orig_url,
                 )
-                text_content = res.get("full_text", "")
+                text_content = str(res.get("full_text", "") or "")
 
         if not text_content:
-            text_content = f"Legal Record: {doc.title}. Court: {doc.court or 'Court of Record'}."
+            text_content = f"Legal Record: {doc_title}. Court: {doc_court or 'Court of Record'}."
 
         summary_data = generate_document_summary(
             document_id=document_id,
             text=text_content,
-            title=doc.title,
-            court=doc.court,
-            document_type=doc.document_type,
+            title=doc_title,
+            court=doc_court,
+            document_type=doc_type,
             force_regenerate=True,
         )
         return JSONResponse({"status": "success", "summary": summary_data})
