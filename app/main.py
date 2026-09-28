@@ -1222,10 +1222,11 @@ async def api_document_upload(
                 pass
 
 
-@app.get("/api/documents/{document_id}/ocr-text")
-def api_document_ocr_text(document_id: str):
+@app.get("/api/documents/{document_id}/ocr", operation_id="api_document_ocr")
+@app.get("/api/documents/{document_id}/ocr-text", operation_id="api_document_ocr_text", include_in_schema=False)
+def api_document_ocr(document_id: str):
     """
-    Returns separately stored high-level OCR text and layout metadata for RAG and external LLMs.
+    Returns separately stored high-level OCR text, page-by-page layout metadata, and chunks for RAG and external LLMs.
     """
     data = get_extracted_ocr_data(document_id)
     if data:
@@ -1236,13 +1237,27 @@ def api_document_ocr_text(document_id: str):
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found.")
 
+    doc_pages = doc.get("pages") or []
+    if not doc_pages and doc.get("extracted_text"):
+        doc_pages = [{
+            "page_number": 1,
+            "text": doc.get("extracted_text"),
+            "confidence": doc.get("ocr_confidence", 0.95),
+            "method": doc.get("extraction_method", "database_fallback"),
+            "ocr_applied": doc.get("ocr_required", False),
+            "word_count": len(doc.get("extracted_text", "").split()),
+            "char_count": len(doc.get("extracted_text", "")),
+        }]
+
     return JSONResponse({
         "document_id": document_id,
         "title": doc.get("title"),
-        "full_text": doc.get("extracted_text"),
-        "page_count": doc.get("page_count", 0),
+        "full_text": doc.get("extracted_text") or ("\n\n".join(p.get("text") or p.get("page_text") or "" for p in doc_pages)),
+        "page_count": doc.get("page_count", len(doc_pages)),
         "ocr_required": doc.get("ocr_required", False),
         "average_confidence": doc.get("ocr_confidence", 0.9),
+        "pages": doc_pages,
+        "chunks": [],
         "source": "database_fallback",
     })
 
