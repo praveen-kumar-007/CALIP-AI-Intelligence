@@ -1,5 +1,6 @@
 import re
 from typing import Any
+from sqlalchemy.orm import joinedload
 
 from app.core.config import settings
 from app.db.session import SessionLocal
@@ -135,7 +136,7 @@ def ask_legal_question(
         fir_match = re.search(r"(\d+[/]\d+|\b\d{3,4}\b)", cleaned_query)
         if fir_match:
             fir_token = fir_match.group(1)
-            atom_records = db.query(Atom).filter(Atom.fir_number.ilike(f"%{fir_token}%")).all()
+            atom_records = db.query(Atom).options(joinedload(Atom.charges)).filter(Atom.fir_number.ilike(f"%{fir_token}%")).all()
 
         matched_cases = db.query(Case).filter(
             (Case.title.ilike(f"%{cleaned_query}%"))
@@ -184,10 +185,12 @@ def ask_legal_question(
         )
 
     for atom in atom_records:
+        registered_charges = [f"{c.statute} Sec {c.section}" for c in atom.charges] if atom.charges else []
+        charges_str = ", ".join(registered_charges) if registered_charges else (atom.sections_registered or "N/A")
         internal_blocks.append(
             f"[CALIP Atomic FIR Record]\nFIR Number: {atom.fir_number}\nPolice Station: {atom.police_station or 'N/A'}\n"
-            f"Year: {atom.fir_year or 'N/A'}\nActs & Sections: {atom.acts_sections or 'N/A'}\n"
-            f"Charges Framed: {atom.charges_framed or 'N/A'}\nCourt: {atom.court_jurisdiction or 'N/A'}"
+            f"Year: {atom.fir_year or 'N/A'}\nActs & Sections: {atom.sections_registered or 'N/A'}\n"
+            f"Charges Registered: {charges_str}\nJurisdiction: {atom.jurisdiction or 'N/A'}"
         )
 
     internal_str = "\n\n".join(internal_blocks) if internal_blocks else "No specific internal file excerpt located."
@@ -200,39 +203,24 @@ def ask_legal_question(
         )
     external_str = "\n\n".join(external_blocks) if external_blocks else "No external judicial authorities attached."
 
-    # 6. Comprehensive Legal Intelligence Prompt
+    # 6. Adaptive Legal Intelligence Prompt (Dynamic Formatting based on inquiry)
     system_prompt = (
         "You are the Senior Legal Intelligence Officer & Judicial Research Specialist for CALIP "
         "(Cognitive Atomic Legal Intelligence Platform).\n\n"
         "TASK:\n"
         "Produce an authoritative, comprehensive, and impeccably structured Official Legal Intelligence Briefing "
-        "answering the user's legal inquiry. Synthesize both internal case records and established Indian statutory law.\n\n"
-        "MANDATORY OUTPUT STRUCTURE (Use Markdown with clean headings and tables):\n\n"
-        "## 1. Executive Legal Summary\n"
-        "Provide a direct, authoritative legal summary addressing the core question clearly and definitively.\n\n"
-        "## 2. Statutory Provisions & Criminal Charges (Detailed Matrix)\n"
-        "Construct a detailed Markdown table detailing the relevant statutory sections and penal provisions:\n"
-        "| Statutory Section | Legislation / Act | Legal Classification | Essential Ingredients & Elements | Offence Allegation / Case Application |\n"
-        "| :--- | :--- | :--- | :--- | :--- |\n"
-        "Include all applicable provisions (e.g. IPC Sections 406, 409, 468, 471, 120-B, 34; Prevention of Corruption Act; Co-operative Societies Act) with precise legal elements.\n\n"
-        "## 3. Case Particulars & Procedural Matrix\n"
-        "Provide a structured matrix covering:\n"
-        "- **Case / FIR Reference**: e.g., C.C. No. 147/2002 (clubbing C.R. Nos. 97/2002 & 101/2002)\n"
-        "- **Originating Police Station & Jurisdiction**: e.g., Ganeshpeth Police Station / Sadar Police Station, Nagpur\n"
-        "- **Investigating Agency**: CID / Economic Offences Wing (EOW) / CBI\n"
-        "- **Accused Persons & Entities**: Key accused individuals and corporate entities (e.g. Home Trade Ltd, brokerage directors, bank officials)\n"
-        "- **Competent Forum / Court**: e.g., Court of Additional Chief Judicial Magistrate (ACJM), Nagpur / High Court of Bombay\n\n"
-        "## 4. Internal Case Record Analysis (CALIP Evidence)\n"
-        "Synthesize the factual evidence, financial audit figures, and administrative findings from the uploaded case files.\n"
-        "Cite exact sources using the format `[CALIP: Document Title, Page X]`.\n\n"
-        "## 5. Verified Legal Authorities & Judicial Precedents\n"
-        "Detail the connected High Court / Supreme Court orders, legal precedents, and statutory gazette authorities with verifiable citations.\n\n"
-        "## 6. Judicial Synthesis & Evidentiary Conclusion\n"
-        "Conclude with an evidentiary assessment summarizing what the internal records document and the legal status of the charges.\n\n"
+        "answering the user's specific legal inquiry. Synthesize both internal case records and established Indian statutory law.\n\n"
+        "DYNAMIC PRESENTATION GUIDELINES (NO HARDCODED LAYOUT):\n"
+        "Analyze the user's inquiry and available evidence to dynamically determine the best presentation format:\n"
+        "- If the user asks for comparison across multiple entities, charges, accused, or provisions: construct a structured Markdown table with clear column headers tailored to that specific comparison.\n"
+        "- If the user asks for procedural history, court milestones, or order progression: construct a chronological procedural timeline table (| Date | Forum / Court | Case / Proceeding | Order / Stage | Status |).\n"
+        "- If the user asks about vernacular documents or regional records (Marathi, Gujarati, Bengali, Hindi): present BOTH the authentic native script text and the verified English legal translation in a structured bilingual comparison format (| Original Native Script (मराठी/हिंदी/ગુજરાતી/বাংলা) | Verified English Translation | Evidentiary Significance |).\n"
+        "- If the user asks a specific statutory or procedural question (e.g. Section 207 CrPC document supply): focus directly and deeply on that issue with structured headings, statutory synthesis, evidentiary findings, and relevant precedent citations.\n\n"
         "STRICT FORMATTING RULES:\n"
         "- Format all tables using standard Markdown (`| col | col |`). Ensure each row has matching column counts.\n"
-        "- Bold all key terms, section names, and dates using standard Markdown `**term**`.\n"
-        "- Do NOT output raw unparsed formatting markers or conversational preamble.\n"
+        "- Bold all key terms, section names, dates, and case citations using standard Markdown `**term**`.\n"
+        "- Cite internal evidence using `[CALIP: Document Title, Page X]` format.\n"
+        "- Do NOT output raw unparsed code blocks or conversational filler preamble.\n"
         "- Present the briefing as an official, court-ready legal intelligence document."
     )
 

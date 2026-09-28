@@ -104,10 +104,16 @@ def query_atomic_reasoner(
             for i, ch in enumerate(matched_chunks)
         )
 
+        bilingual_str = (
+            f"Original Language: {atom.original_language or 'English'}\n"
+            f"Authentic Native Script (Original Form): {atom.original_language_summary or 'Recorded in case registry'}\n"
+            f"Verified English Legal Translation: {atom.english_translated_summary or atom.summary or 'Recorded in case registry'}"
+        )
+
         structured_prompt = f"""You are the CALIP Atomic Legal Reasoning Engine.
 You operate on canonical FIR-based Legal Cognitive Atoms.
 
-MANDATORY RULES:
+MANDATORY LEGAL RULES:
 1. Distinguish strictly between:
    - What the FIR alleges
    - What the prosecution submits
@@ -119,6 +125,14 @@ MANDATORY RULES:
 4. Do not invent sections, dates, bail results, or judgments.
 5. Provide precise citations to the Canonical Atom ID, court proceedings, and page numbers.
 
+DYNAMIC PRESENTATION REQUIREMENTS (NO HARDCODED LAYOUT):
+Determine the optimal presentation format dynamically based on the user's specific question and the available evidence:
+- If the user asks for comparisons across accused, charges, provisions, or evidentiary items, format the response using a structured Markdown Table (| Accused | Statute & Section | Specific Allegation / Overt Act | Evidentiary Exhibit | Status |).
+- If the user asks about chronology, dates, or court progression, format the response using a Procedural Timeline Table (| Date | Court / Forum | Case No. | Proceeding / Order | Stage |).
+- If the inquiry touches upon regional vernacular documents (Marathi, Gujarati, Bengali, Hindi), show BOTH the original native script text in its original form and the verified English translation in a structured bilingual comparison format (| Original Native Script (मराठी/हिंदी/ગુજરાતી/বাংলা) | Verified English Translation | Evidentiary Relevance |).
+- If the user asks for legal analysis or an executive briefing, provide well-structured sections with markdown headers (##), bold key findings, and tables where comparative data exists.
+Never lock the response into a rigid single format. Let the inquiry dictate the clearest, most authoritative structure.
+
 ==================================================
 CANONICAL LEGAL COGNITIVE ATOM
 ==================================================
@@ -128,22 +142,25 @@ FIR Number & Year: {atom.fir_number} of {atom.fir_year}
 Statutory Sections Registered: {atom.sections_registered}
 Hydration Status: {atom.hydration_status}
 
---- 1. PROCEDURAL LINEAGE ---
+--- 1. BILINGUAL REGISTRATION & TRANSLATION ---
+{bilingual_str}
+
+--- 2. PROCEDURAL LINEAGE ---
 {lineage_str}
 
---- 2. ACCUSED -> CHARGE MATRIX ---
+--- 3. ACCUSED -> CHARGE MATRIX ---
 {accused_matrix_str}
 
---- 3. FIR ALLEGATIONS (Labeled Status) ---
+--- 4. FIR ALLEGATIONS (Labeled Status) ---
 {allegations_str}
 
---- 4. BAIL TRACK RECORD ---
+--- 5. BAIL TRACK RECORD ---
 {bail_str}
 
---- 5. DOCUMENTARY & DIGITAL EVIDENCE ---
+--- 6. DOCUMENTARY & DIGITAL EVIDENCE ---
 {evidence_str}
 
---- 6. VERBATIM DOCUMENT SNIPPETS ---
+--- 7. VERBATIM DOCUMENT SNIPPETS ---
 {chunk_snippets or "No matching text snippets."}
 
 ==================================================
@@ -154,25 +171,42 @@ REASONED GROUNDED ANALYSIS:"""
         # 5. Execute through production LLM provider
         llm_response = query_llm(
             prompt=structured_prompt,
-            system_prompt="You are CALIP, an expert Atomic Legal Intelligence Assistant for Indian Criminal Law and Supreme Court / High Court jurisprudence.",
+            system_prompt="You are CALIP, an expert Atomic Legal Intelligence Assistant for Indian Criminal Law and Supreme Court / High Court jurisprudence. You format legal analyses dynamically using elegant markdown tables and bilingual cards as appropriate.",
             temperature=0.1,
             max_tokens=2048,
             timeout=12,
         )
 
         if not llm_response:
-            # Deterministic fallback answer
+            # Deterministic fallback answer with dynamic presentation
             llm_response = (
-                f"**Canonical Atom:** `{atom.canonical_fir_id}`\n\n"
-                f"**Proceedings & Lineage:**\n{lineage_str}\n\n"
-                f"**Accused & Charges:**\n{accused_matrix_str}\n\n"
-                f"**FIR Allegations:**\n{allegations_str}\n\n"
-                f"*Notice: Analysis generated directly from structured relational records.*"
+                f"## Canonical Legal Atom: `{atom.canonical_fir_id}`\n\n"
+                f"### Language & Registration\n"
+                f"- **Primary Language**: {atom.original_language or 'English'}\n"
+                f"- **Native Script (Original)**: {atom.original_language_summary or 'Recorded'}\n"
+                f"- **English Translation**: {atom.english_translated_summary or atom.summary}\n\n"
+                f"### Accused & Charges Matrix\n\n"
+                f"| Accused Code | Accused Name | Statute | Section | Charge Stage |\n"
+                f"| :--- | :--- | :--- | :--- | :--- |\n"
             )
+            for c in atom_charges:
+                ac_code = c.accused.accused_code if c.accused else "A1"
+                ac_name = c.accused.canonical_name if c.accused else "Accused"
+                llm_response += f"| `{ac_code}` | {ac_name} | {c.statute} | Sec {c.section} | {c.charge_stage} |\n"
+
+            llm_response += (
+                f"\n### Procedural Lineage\n{lineage_str}\n\n"
+                f"### FIR Allegations\n{allegations_str}\n\n"
+                f"*Notice: Grounded atomic briefing generated directly from verified relational records.*"
+            )
+
+        from app.services.markdown_renderer import render_markdown_to_html
+        rendered_html = render_markdown_to_html(llm_response)
 
         return {
             "question": question,
             "answer": llm_response,
+            "rendered_html": rendered_html,
             "atom": {
                 "id": str(atom.id),
                 "canonical_fir_id": atom.canonical_fir_id,
@@ -180,6 +214,7 @@ REASONED GROUNDED ANALYSIS:"""
                 "fir_year": atom.fir_year,
                 "police_station": atom.police_station,
                 "state": atom.state,
+                "original_language": atom.original_language or "English",
                 "hydration_status": atom.hydration_status,
                 "doc_count": len(atom.documents),
             },

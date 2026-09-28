@@ -195,6 +195,12 @@ export const api = {
     return handleResponse(res);
   },
 
+  async getAtomDocuments(atomId) {
+    logApi('getAtomDocuments', atomId);
+    const res = await fetch(`${BASE_URL}/api/atoms/${encodeURIComponent(atomId)}/documents`);
+    return handleResponse(res);
+  },
+
   async reasonWithAtom(question, atomId = null, canonicalFirId = null) {
     logApi('reasonWithAtom', { question, atomId, canonicalFirId });
     const res = await fetch(`${BASE_URL}/api/reason`, {
@@ -208,6 +214,57 @@ export const api = {
   async getReviewQueue() {
     logApi('getReviewQueue', {});
     const res = await fetch(`${BASE_URL}/api/review-queue`);
+    return handleResponse(res);
+  },
+
+  async approveReviewItem(itemId, notes = '', reviewer = 'advocate') {
+    logApi('approveReviewItem', { itemId, notes, reviewer });
+    const res = await fetch(`${BASE_URL}/api/review-queue/${encodeURIComponent(itemId)}/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assigned_to: reviewer, resolution_notes: notes }),
+    });
+    return handleResponse(res);
+  },
+
+  async correctReviewItem(itemId, correctedData, notes = '', reviewer = 'advocate') {
+    logApi('correctReviewItem', { itemId, correctedData, notes, reviewer });
+    const res = await fetch(`${BASE_URL}/api/review-queue/${encodeURIComponent(itemId)}/correct`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assigned_to: reviewer, resolution_notes: notes, corrected_data: correctedData }),
+    });
+    return handleResponse(res);
+  },
+
+  async disputeReviewItem(itemId, notes = '', reviewer = 'advocate') {
+    logApi('disputeReviewItem', { itemId, notes, reviewer });
+    const res = await fetch(`${BASE_URL}/api/review-queue/${encodeURIComponent(itemId)}/dispute`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assigned_to: reviewer, resolution_notes: notes }),
+    });
+    return handleResponse(res);
+  },
+
+  async evaluateLegalRules(payload) {
+    logApi('evaluateLegalRules', payload);
+    const res = await fetch(`${BASE_URL}/api/rules/evaluate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(res);
+  },
+
+  async processWithAlex(documentId = null, filePath = null) {
+    logApi('processWithAlex', { documentId, filePath });
+    const params = new URLSearchParams();
+    if (documentId) params.append('document_id', documentId);
+    if (filePath) params.append('file_path', filePath);
+    const res = await fetch(`${BASE_URL}/api/alex/process?${params.toString()}`, {
+      method: 'POST',
+    });
     return handleResponse(res);
   },
 
@@ -236,6 +293,19 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ state, district }),
     });
+    return handleResponse(res);
+  },
+
+  // --- Database Structure & Hierarchy ---
+  async getDatabaseStructure() {
+    logApi('getDatabaseStructure', {});
+    const res = await fetch(`${BASE_URL}/api/database-structure`);
+    return handleResponse(res);
+  },
+
+  async getHierarchy() {
+    logApi('getHierarchy', {});
+    const res = await fetch(`${BASE_URL}/api/hierarchy`);
     return handleResponse(res);
   },
 

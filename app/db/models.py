@@ -143,6 +143,7 @@ class DocumentChunk(Base):
     id = Column(String(64), primary_key=True, index=True)
     document_id = Column(String(64), ForeignKey("documents.id"), nullable=False, index=True)
     case_id = Column(String(64), nullable=True, index=True)
+    atom_id = Column(String(64), ForeignKey("atoms.id"), nullable=True, index=True)
     page_number = Column(Integer, nullable=False)
     chunk_index = Column(Integer, nullable=False)
     chunk_text = Column(Text, nullable=False)
@@ -152,6 +153,7 @@ class DocumentChunk(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     document = relationship("Document", back_populates="chunks")
+    atom = relationship("Atom")
 
 
 class Judgment(Base):
@@ -295,7 +297,9 @@ class Atom(Base):
     informant_name = Column(String(255), nullable=True)
     complainant_name = Column(String(255), nullable=True)
     sections_registered = Column(Text, nullable=True)
-    original_language = Column(String(32), default="English")
+    original_language = Column(String(128), default="English")
+    original_language_summary = Column(Text, nullable=True)  # Authentic native script text (Marathi, Hindi, Gujarati, Bengali)
+    english_translated_summary = Column(Text, nullable=True)  # Authoritative English legal translation
     zero_fir = Column(Boolean, default=False)
     cross_fir_id = Column(String(128), nullable=True)
     counter_fir_id = Column(String(128), nullable=True)
@@ -442,6 +446,8 @@ class AtomAllegation(Base):
     id = Column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)
     atom_id = Column(String(64), ForeignKey("atoms.id"), nullable=False, index=True)
     allegation_text = Column(Text, nullable=False)
+    original_language_text = Column(Text, nullable=True)  # Verbatim native script statement (मराठी/हिंदी/ગુજરાતી/বাংলা)
+    english_translated_text = Column(Text, nullable=True)  # Verified English translation
     status = Column(String(64), default="ALLEGED")  # ALLEGED, TESTIFIED, SUBMITTED, ESTABLISHED, DISPUTED, REJECTED
     source_speaker = Column(String(128), default="INFORMANT")
     source_document_id = Column(String(64), ForeignKey("documents.id"), nullable=True)

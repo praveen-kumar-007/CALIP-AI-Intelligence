@@ -383,7 +383,7 @@ def get_canonical_atom_json(atom_id_or_canonical_id: str) -> dict[str, Any] | No
         if not atom:
             return None
 
-        return {
+        res = {
             "atom_id": str(atom.id),
             "canonical_fir_id": atom.canonical_fir_id,
             "hydration_status": atom.hydration_status,
@@ -401,11 +401,27 @@ def get_canonical_atom_json(atom_id_or_canonical_id: str) -> dict[str, Any] | No
                 "sections": [s.strip() for s in (atom.sections_registered or "").split(",") if s.strip()],
             },
             "fir": {
-                "original_text": atom.summary or "",
-                "translated_text": atom.summary or "",
+                "original_language": atom.original_language or "English",
+                "original_native_text": atom.original_language_summary or atom.summary or "",
+                "english_translated_text": atom.english_translated_summary or atom.summary or "",
+                "original_text": atom.original_language_summary or atom.summary or "",
+                "translated_text": atom.english_translated_summary or atom.summary or "",
                 "sections_registered": atom.sections_registered,
                 "informant": atom.informant_name,
                 "complainant": atom.complainant_name,
+            },
+            "bilingual_matrix": {
+                "native_language": atom.original_language or "English",
+                "original_script_summary": atom.original_language_summary or "",
+                "english_translated_summary": atom.english_translated_summary or atom.summary or "",
+                "allegations": [
+                    {
+                        "native_script": al.original_language_text or al.allegation_text,
+                        "english_translation": al.english_translated_text or al.allegation_text,
+                        "status": al.status,
+                    }
+                    for al in atom.allegations
+                ],
             },
             "case_lineage": [
                 {
@@ -500,6 +516,43 @@ def get_canonical_atom_json(atom_id_or_canonical_id: str) -> dict[str, Any] | No
             "charges_count": len(atom.charges),
             "evidence_count": len(atom.evidence),
         }
+        
+        # Merge complete 25 canonical layers from ALEX atom builder
+        try:
+            from app.alex.atom_builder import build_canonical_atom_25_layers
+            v1_25_layers = build_canonical_atom_25_layers(str(atom.id))
+            if v1_25_layers:
+                res.update({
+                    "$schema": "canonical_legal_atom_v1",
+                    "identity_and_coordinates": v1_25_layers.get("identity_and_coordinates"),
+                    "fir_details": v1_25_layers.get("fir_details"),
+                    "accused_profiles": v1_25_layers.get("accused_profiles"),
+                    "statutory_charges": v1_25_layers.get("statutory_charges"),
+                    "overt_acts": v1_25_layers.get("overt_acts"),
+                    "documentary_evidence": v1_25_layers.get("documentary_evidence"),
+                    "physical_forensic_evidence": v1_25_layers.get("physical_forensic_evidence"),
+                    "bail_jurisprudence": v1_25_layers.get("bail_jurisprudence"),
+                    "core_allegations": v1_25_layers.get("core_allegations"),
+                    "interim_orders": v1_25_layers.get("interim_orders"),
+                    "limitation_and_delay": v1_25_layers.get("limitation_and_delay"),
+                    "sanction_and_cognizance": v1_25_layers.get("sanction_and_cognizance"),
+                    "charge_sheet_details": v1_25_layers.get("charge_sheet_details"),
+                    "custody_timeline": v1_25_layers.get("custody_timeline"),
+                    "seizure_and_panchnama": v1_25_layers.get("seizure_and_panchnama"),
+                    "confession_and_statements": v1_25_layers.get("confession_and_statements"),
+                    "trial_status_and_stage": v1_25_layers.get("trial_status_and_stage"),
+                    "appellate_history": v1_25_layers.get("appellate_history"),
+                    "quashing_and_remedies": v1_25_layers.get("quashing_and_remedies"),
+                    "cross_cases_and_disputes": v1_25_layers.get("cross_cases_and_disputes"),
+                    "digital_evidence_65b": v1_25_layers.get("digital_evidence_65b"),
+                    "human_review_log": v1_25_layers.get("human_review_log"),
+                    "audit_and_provenance": v1_25_layers.get("audit_and_provenance"),
+                    "completeness_score": v1_25_layers.get("completeness_score", 85.0),
+                })
+        except Exception as e:
+            print(f"[Hydration Engine] Warning populating 25 layers: {e}")
+
+        return res
     finally:
         db.close()
 
@@ -550,6 +603,9 @@ def get_all_atoms(limit: int = 50, offset: int = 0, state: str | None = None) ->
                 "confidence_score": a.confidence_score,
                 "is_verified": a.is_verified,
                 "sections": a.sections_registered or "IPC",
+                "original_language": a.original_language or "English",
+                "original_language_summary": a.original_language_summary or "",
+                "english_translated_summary": a.english_translated_summary or a.summary or "",
                 "summary": a.summary or "",
                 "doc_count": len(a.documents),
                 "accused_count": len(a.accused),

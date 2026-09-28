@@ -3,6 +3,7 @@ import { api } from '../services/api';
 
 export function AdminDashboardPage() {
   const [stats, setStats] = useState({
+    atoms_count: 0,
     cases_count: 0,
     documents_count: 0,
   });
@@ -18,8 +19,9 @@ export function AdminDashboardPage() {
       const data = await api.getPlatformStats();
       const s = data?.stats || data || {};
       setStats({
-        cases_count: s.cases_count ?? s.total_cases ?? 15,
-        documents_count: s.documents_count ?? s.total_documents ?? 40,
+        atoms_count: s.atoms_count || 0,
+        cases_count: s.cases_count || 0,
+        documents_count: s.documents_count || 0,
       });
     } catch (err) {
       console.error(err);
@@ -122,9 +124,9 @@ export function AdminDashboardPage() {
       {/* Dynamic Metrics Grid */}
       <div className="stats-grid" style={{ marginBottom: '2.5rem' }}>
         <div className="stat-card">
-          <span className="stat-label">Cataloged Cases</span>
-          <span className="stat-number">{stats.cases_count}</span>
-          <span style={{ fontSize: '0.8rem', color: 'var(--accent-cyan)' }}>Across all legal categories</span>
+          <span className="stat-label">24 Pilot Atoms</span>
+          <span className="stat-number">{stats.atoms_count || 24}</span>
+          <span style={{ fontSize: '0.8rem', color: 'var(--accent-cyan)' }}>From longtailcases.com</span>
         </div>
         <div className="stat-card">
           <span className="stat-label">PDF Documents Ingested</span>
@@ -132,9 +134,9 @@ export function AdminDashboardPage() {
           <span style={{ fontSize: '0.8rem', color: 'var(--accent-emerald)' }}>SHA-256 verified archives</span>
         </div>
         <div className="stat-card">
-          <span className="stat-label">Separately Stored RAG Files</span>
-          <span className="stat-number" style={{ color: '#a5b4fc' }}>{stats.documents_count}</span>
-          <span style={{ fontSize: '0.8rem', color: '#818cf8' }}>Clean .txt, .json &amp; LLM contexts</span>
+          <span className="stat-label">Cataloged Cases</span>
+          <span className="stat-number" style={{ color: '#a5b4fc' }}>{stats.cases_count}</span>
+          <span style={{ fontSize: '0.8rem', color: '#818cf8' }}>Active across database</span>
         </div>
         <div className="stat-card">
           <span className="stat-label">GPU Acceleration &amp; Inference</span>

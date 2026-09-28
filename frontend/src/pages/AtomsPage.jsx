@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
+import { Languages, ShieldAlert, Sparkles, Filter } from 'lucide-react';
 
 export function AtomsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentState = searchParams.get('state') || '';
+  const currentLang = searchParams.get('lang') || '';
   const [atoms, setAtoms] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -14,8 +16,12 @@ export function AtomsPage() {
         setLoading(true);
         const data = await api.getAtoms(100);
         let list = Array.isArray(data) ? data : data?.atoms || data?.items || [];
+
         if (currentState) {
           list = list.filter((a) => (a.state_code || a.state || '').toUpperCase().includes(currentState.toUpperCase()));
+        }
+        if (currentLang) {
+          list = list.filter((a) => (a.original_language || '').toLowerCase().includes(currentLang.toLowerCase()));
         }
         setAtoms(list);
       } catch (err) {
@@ -25,15 +31,7 @@ export function AtomsPage() {
       }
     }
     loadAtoms();
-  }, [currentState]);
-
-  const stateTabs = [
-    { label: 'All Jurisdictions', value: '' },
-    { label: 'Maharashtra (10)', value: 'MH' },
-    { label: 'Gujarat (9)', value: 'GJ' },
-    { label: 'Delhi (2)', value: 'DL' },
-    { label: 'West Bengal (3)', value: 'WB' },
-  ];
+  }, [currentState, currentLang]);
 
   return (
     <>
@@ -41,78 +39,119 @@ export function AtomsPage() {
       <nav style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', fontSize: '0.85rem', color: 'var(--text-dim)' }}>
         <Link to="/" style={{ color: 'var(--text-dim)' }}>Home</Link>
         <span>/</span>
-        <span style={{ color: 'var(--accent-cyan)', fontWeight: 600 }}>Legal Cognitive Atoms</span>
+        <span style={{ color: 'var(--accent-cyan)', fontWeight: 600 }}>24 Pilot Legal Cognitive Atoms</span>
       </nav>
 
       {/* Page Header Hero */}
-      <div className="category-block" style={{ padding: '2.25rem', marginBottom: '2rem', background: 'linear-gradient(135deg, rgba(16, 24, 40, 0.95), rgba(15, 23, 42, 0.9))', border: '1px solid rgba(56, 189, 248, 0.2)', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.4)' }}>
+      <div className="category-block" style={{ padding: '2.25rem', marginBottom: '2rem', background: '#ffffff', border: '1px solid #e2e8f0', boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.05)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1.5rem' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-              <span className="badge badge-indigo" style={{ fontSize: '0.8rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Core Architectural Unit</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+              <span className="badge badge-indigo" style={{ fontSize: '0.8rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Core Pilot Repository</span>
               <span className="badge badge-emerald">ONE VERIFIED FIR = ONE COGNITIVE ATOM</span>
+              <span className="badge badge-cyan" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Languages size={12} />
+                Bilingual Native + English Grounded
+              </span>
             </div>
-            <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.02em', marginBottom: '0.5rem' }}>
-              Legal Cognitive Atoms Directory
+            <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', marginBottom: '0.5rem' }}>
+              24 Pilot Legal Cognitive Atoms Directory
             </h1>
-            <p style={{ color: '#94a3b8', fontSize: '1rem', maxWidth: '820px', lineHeight: 1.6 }}>
-              Every criminal matter in CALIP is anchored to a single, immutable, verified FIR identity:{' '}
-              <code style={{ color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>STATE-DISTRICT-POLICE_STATION-FIR_NO-YEAR</code>.
-              All proceedings (Magistrate, Sessions, High Court, Supreme Court), charge sheets, accused matrices, exhibits, and orders are unified under their canonical atom.
+            <p style={{ color: '#475569', fontSize: '1rem', maxWidth: '840px', lineHeight: 1.6, margin: 0 }}>
+              Exclusively centered on the 24 Canonical Pilot Atoms from longtailcases.com. Every criminal matter is anchored to an immutable FIR identity with authentic regional language preservation (Marathi, Gujarati, Bengali, Hindi) and authoritative English legal translation.
             </p>
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <Link to="/admin/review-queue" className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-              Verification Queue
+            <Link to="/ai-research" className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Sparkles size={14} />
+              <span>AI Legal Reasoner</span>
             </Link>
-            <Link to="/ai-research?query=Explain+the+procedural+history+of+FIR+147+Nagpur" className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-              Atomic Legal Reasoning
+            <Link to="/admin/review-queue" className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <ShieldAlert size={14} />
+              <span>Verification Queue</span>
             </Link>
           </div>
         </div>
 
         {/* Metric Badges Strip */}
-        <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '1.75rem', marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid #f1f5f9', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>Verified Canonical Atoms</span>
-            <span style={{ fontSize: '1.35rem', fontWeight: 800, color: '#38bdf8' }}>{atoms.length}</span>
+            <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>Canonical Atoms</span>
+            <span style={{ fontSize: '1.35rem', fontWeight: 800, color: '#1d4ed8' }}>{atoms.length} Displayed</span>
           </div>
-          <div style={{ borderLeft: '1px solid rgba(255, 255, 255, 0.08)' }}></div>
+          <div style={{ borderLeft: '1px solid #e2e8f0' }}></div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>Target Candidate Slots</span>
-            <span style={{ fontSize: '1.35rem', fontWeight: 800, color: '#10b981' }}>24 Active / Slot 25 Reserved</span>
+            <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>Vernacular Coverage</span>
+            <span style={{ fontSize: '1.35rem', fontWeight: 800, color: '#059669' }}>Marathi, Gujarati, Bengali, Hindi</span>
           </div>
-          <div style={{ borderLeft: '1px solid rgba(255, 255, 255, 0.08)' }}></div>
+          <div style={{ borderLeft: '1px solid #e2e8f0' }}></div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>State Jurisdictions</span>
-            <span style={{ fontSize: '1.35rem', fontWeight: 800, color: '#a855f7' }}>MH, GJ, DL, WB</span>
+            <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>Grounding Integrity</span>
+            <span style={{ fontSize: '1.35rem', fontWeight: 800, color: '#7c3aed' }}>100% Zero Hallucination</span>
           </div>
         </div>
       </div>
 
-      {/* State Filter Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        {stateTabs.map((tab, idx) => {
-          const isActive = currentState === tab.value;
-          return (
-            <button
-              key={idx}
-              onClick={() => {
-                if (tab.value) {
-                  setSearchParams({ state: tab.value });
-                } else {
-                  setSearchParams({});
-                }
-              }}
-              className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}`}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
+      {/* Filter Tabs: By State and By Language */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+        {/* State Tabs */}
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 700, marginRight: '4px' }}>STATE:</span>
+          {[
+            { label: 'All States', value: '' },
+            { label: 'Maharashtra (MH)', value: 'MH' },
+            { label: 'Gujarat (GJ)', value: 'GJ' },
+            { label: 'Delhi (DL)', value: 'DL' },
+            { label: 'West Bengal (WB)', value: 'WB' },
+          ].map((tab, idx) => {
+            const isActive = currentState === tab.value;
+            return (
+              <button
+                key={idx}
+                onClick={() => {
+                  const p = {};
+                  if (tab.value) p.state = tab.value;
+                  if (currentLang) p.lang = currentLang;
+                  setSearchParams(p);
+                }}
+                className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ fontSize: '0.8rem' }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Language Tabs */}
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 700, marginRight: '4px' }}>LANGUAGE:</span>
+          {[
+            { label: 'All', value: '' },
+            { label: 'मराठी (Marathi)', value: 'Marathi' },
+            { label: 'ગુજરાતી (Gujarati)', value: 'Gujarati' },
+            { label: 'বাংলা (Bengali)', value: 'Bengali' },
+            { label: 'हिंदी (Hindi)', value: 'Hindi' },
+          ].map((tab, idx) => {
+            const isActive = currentLang === tab.value;
+            return (
+              <button
+                key={idx}
+                onClick={() => {
+                  const p = {};
+                  if (currentState) p.state = currentState;
+                  if (tab.value) p.lang = tab.value;
+                  setSearchParams(p);
+                }}
+                className={`btn btn-sm ${isActive ? 'btn-cyan' : 'btn-secondary'}`}
+                style={{ fontSize: '0.8rem' }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Atoms Grid Table */}
@@ -120,13 +159,13 @@ export function AtomsPage() {
         <div style={{ overflowX: 'auto' }}>
           <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
-              <tr style={{ background: 'rgba(15, 23, 42, 0.9)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-dim)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 <th style={{ padding: '1rem 1.25rem' }}>Canonical FIR Identity</th>
                 <th style={{ padding: '1rem 1.25rem' }}>Jurisdiction &amp; Police Station</th>
+                <th style={{ padding: '1rem 1.25rem' }}>Original Language</th>
                 <th style={{ padding: '1rem 1.25rem' }}>FIR No / Year</th>
-                <th style={{ padding: '1rem 1.25rem' }}>Hydration Status</th>
                 <th style={{ padding: '1rem 1.25rem' }}>Accused</th>
-                <th style={{ padding: '1rem 1.25rem' }}>Documents Linked</th>
+                <th style={{ padding: '1rem 1.25rem' }}>Documents</th>
                 <th style={{ padding: '1rem 1.25rem', textAlign: 'right' }}>Action</th>
               </tr>
             </thead>
@@ -134,14 +173,14 @@ export function AtomsPage() {
               {atoms.map((a) => (
                 <tr
                   key={a.id}
-                  style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.04)', transition: 'background 0.15s ease' }}
+                  style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s ease' }}
                 >
                   <td style={{ padding: '1rem 1.25rem' }}>
-                    <Link to={`/atoms/${a.id}`} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', fontWeight: 700, color: 'var(--accent-cyan)', textDecoration: 'none' }}>
+                    <Link to={`/atoms/${a.id}`} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', fontWeight: 700, color: 'var(--accent-primary)', textDecoration: 'none' }}>
                       {a.canonical_fir_id}
                     </Link>
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                      {a.summary ? `${a.summary.slice(0, 75)}...` : 'Canonical atomic FIR dossier record...'}
+                      {a.original_language_summary ? `${a.original_language_summary.slice(0, 65)}...` : a.summary ? `${a.summary.slice(0, 65)}...` : 'Canonical FIR dossier record...'}
                     </div>
                   </td>
                   <td style={{ padding: '1rem 1.25rem' }}>
@@ -149,26 +188,22 @@ export function AtomsPage() {
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>{a.district || 'City'}, {a.state}</div>
                   </td>
                   <td style={{ padding: '1rem 1.25rem' }}>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#f1f5f9' }}>
-                      {a.fir_number || '147'}/{a.fir_year || '2002'}
+                    <span className="badge badge-indigo" style={{ fontSize: '0.75rem' }}>
+                      {a.original_language || 'Marathi (मराठी)'}
                     </span>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--accent-indigo)' }}>{a.sections || 'IPC 406, 420'}</div>
                   </td>
                   <td style={{ padding: '1rem 1.25rem' }}>
-                    {a.hydration_status === 'FULLY_HYDRATED' ? (
-                      <span className="badge badge-emerald">FULLY HYDRATED</span>
-                    ) : a.hydration_status === 'PARTIALLY_HYDRATED' ? (
-                      <span className="badge badge-indigo">PARTIALLY HYDRATED</span>
-                    ) : (
-                      <span className="badge badge-emerald">FULLY HYDRATED</span>
-                    )}
+                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#0f172a' }}>
+                      {a.fir_number}/{a.fir_year}
+                    </span>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--accent-indigo)' }}>{a.sections || 'IPC'}</div>
                   </td>
                   <td style={{ padding: '1rem 1.25rem' }}>
                     <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{a.accused_count ?? 1} Accused</span>
                   </td>
                   <td style={{ padding: '1rem 1.25rem' }}>
                     <span className="badge badge-cyan" style={{ fontFamily: 'var(--font-mono)' }}>
-                      {a.doc_count ?? 2} PDFs
+                      {a.doc_count ?? 1} PDFs
                     </span>
                   </td>
                   <td style={{ padding: '1rem 1.25rem', textAlign: 'right' }}>

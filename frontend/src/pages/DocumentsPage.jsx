@@ -126,13 +126,13 @@ export function DocumentsPage() {
       </div>
 
       <div className="category-block" style={{ marginBottom: '3.5rem' }}>
-        <div style={{ padding: '1rem 1.5rem', background: 'rgba(255, 255, 255, 0.02)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div style={{ padding: '1rem 1.5rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
           <span style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>
             Showing <strong style={{ color: 'var(--text-pure)' }}>{displayedDocs.length}</strong> of{' '}
             <strong style={{ color: 'var(--text-pure)' }}>{filteredDocs.length}</strong> matched{' '}
-            (Total <strong style={{ color: 'var(--accent-cyan)' }}>{totalCount || documents.length}</strong> in Supabase Database)
+            (Total <strong style={{ color: 'var(--accent-primary)' }}>{totalCount || documents.length}</strong> in Supabase Database)
           </span>
-          <span style={{ fontSize: '0.8rem', color: 'var(--accent-cyan)' }}>
+          <span style={{ fontSize: '0.8rem', color: 'var(--accent-primary)', fontWeight: 600 }}>
             &bull; Connected to Supabase PostgreSQL &bull; Full Catalog from longtailcases.com
           </span>
         </div>
@@ -178,7 +178,7 @@ export function DocumentsPage() {
                   </td>
                   <td><span className="badge badge-indigo">{doc.document_type || 'Document'}</span></td>
                   <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{doc.court || 'District Court'}</td>
-                  <td><strong style={{ color: 'var(--text-pure)' }}>{doc.page_count || 1}</strong></td>
+                  <td><strong style={{ color: 'var(--text-pure)' }}>{doc.page_count > 0 ? doc.page_count : '-'}</strong></td>
                   <td>
                     <span className={`badge ${doc.ocr_status === 'completed' ? 'badge-emerald' : 'badge-cyan'}`}>
                       {doc.extraction_method || 'pymupdf_text'}
@@ -189,16 +189,24 @@ export function DocumentsPage() {
                   </td>
                   <td style={{ whiteSpace: 'nowrap' }}>
                     <div className="doc-actions-group">
-                      {(doc.original_pdf_url || doc.pdf_url) && (
-                        <a href={doc.original_pdf_url || doc.pdf_url} target="_blank" rel="noreferrer" className="action-pill action-pill-pdf" title="View or Download Original PDF">
-                          PDF &nearr;
-                        </a>
-                      )}
+                      <a
+                        href={
+                          doc.original_pdf_url ||
+                          doc.pdf_url ||
+                          (doc.id ? `https://longtailcases.com/uploads/files/${doc.id.replace(/^doc-/, '').replace(/_pdf$/, '.pdf')}` : 'https://longtailcases.com')
+                        }
+                        target="_blank"
+                        rel="noreferrer"
+                        className="action-pill action-pill-pdf"
+                        title="Open authentic source PDF directly on longtailcases.com"
+                      >
+                        PDF (longtail) ↗
+                      </a>
                       <Link to={`/documents/${doc.id}#tab-extracted-text`} className="action-pill action-pill-ocr" title="Inspect OCR & Extracted Text">
-                        OCR
+                        OCR &amp; Text
                       </Link>
                       <a href={`/documents/${doc.id}/download/txt`} className="action-pill action-pill-txt" title="Download Clean Plain Text (.txt)">
-                        TXT &darr;
+                        TXT ↓
                       </a>
                     </div>
                   </td>

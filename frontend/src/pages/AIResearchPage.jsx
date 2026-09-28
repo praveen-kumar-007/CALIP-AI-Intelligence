@@ -46,10 +46,10 @@ export function AIResearchPage() {
   };
 
   const samplePrompts = [
-    { label: 'Nagpur Case (FIR 147/2002) Charges & Acts', query: 'What are the charges and acts in the Nagpur case (FIR 147/2002)?' },
-    { label: 'Section 207 CrPC Rulings & Discovery', query: 'What did the court decide regarding Section 207 CrPC documents?' },
-    { label: 'MIS Report Cases & FIR Hierarchy', query: 'What cases and FIR numbers are listed in the MIS report?' },
-    { label: 'Section 409 IPC Ingredients & Precedents', query: 'What are the essential ingredients of Section 409 IPC criminal breach of trust?' },
+    { label: '📊 Accused & Charges Comparison Table', query: 'Compare the accused, statutory sections, and alleged overt acts in the Nagpur case (FIR 147/2002) in a structured table.' },
+    { label: '🌐 Bilingual Marathi / English Records', query: 'Show the original Marathi Devanagari text and verified English translation for the Nagpur FIR and seizure panchnamas in a bilingual comparison.' },
+    { label: '⏱ Procedural Timeline Across Courts', query: 'Detail the step-by-step procedural timeline across courts from FIR registration to High Court revision in the Nagpur case.' },
+    { label: '⚖️ Section 207 CrPC Document Discovery', query: 'What did the court decide regarding Section 207 CrPC documents and fair trial rights in the Nagpur case?' },
   ];
 
   return (
@@ -186,14 +186,14 @@ export function AIResearchPage() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {result.sources.map((src, i) => (
-                  <div key={i} style={{ background: '#ffffff', padding: '0.85rem 1.15rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                  <div key={i} style={{ background: '#f8fafc', padding: '0.85rem 1.15rem', borderRadius: 'var(--radius-sm)', border: '1px solid #e2e8f0' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
                       <strong style={{ color: 'var(--accent-primary)', fontSize: '0.9rem' }}>
                         [{i + 1}] {typeof src === 'string' ? src : src.title || src.court || 'Court Exhibit'}
                       </strong>
                       {src.page && <span className="badge badge-indigo">Page {src.page}</span>}
                     </div>
-                    {src.text && <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>{src.text}</p>}
+                    {src.text && <p style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.5 }}>{src.text}</p>}
                   </div>
                 ))}
               </div>

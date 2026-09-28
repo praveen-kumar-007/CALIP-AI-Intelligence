@@ -70,11 +70,13 @@ app = FastAPI(
     debug=settings.DEBUG,
 )
 
-# Enable unrestricted Cross-Origin Resource Sharing (CORS) from settings
+# Enable Cross-Origin Resource Sharing (CORS) with secure credential handling
+cors_origins = settings.CORS_ORIGINS if isinstance(settings.CORS_ORIGINS, list) else [settings.CORS_ORIGINS]
+allow_creds = False if "*" in cors_origins else True
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
+    allow_origins=cors_origins,
+    allow_credentials=allow_creds,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -85,12 +87,23 @@ async def global_exception_handler(request: Request, exc: Exception):
     import traceback
     tb = traceback.format_exc()
     print(f"[Global Exception] {request.method} {request.url}: {tb}")
-    return PlainTextResponse(f"Internal Exception on {request.url}:\n\n{tb}", status_code=500)
+    if settings.DEBUG:
+        return PlainTextResponse(f"Internal Exception on {request.url}:\n\n{tb}", status_code=500)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "status": "error",
+            "message": "An internal error occurred while processing the legal request.",
+            "path": str(request.url.path),
+        },
+    )
 
 
-# Start background auto-sync worker on application import (disabled in serverless)
+# Start background auto-sync worker (disabled in serverless or testing environments)
 try:
-    if settings.AUTO_SYNC_ENABLED and not settings.IS_SERVERLESS:
+    import sys
+    is_testing = "pytest" in sys.modules or bool(os.getenv("PYTEST_CURRENT_TEST"))
+    if settings.AUTO_SYNC_ENABLED and not settings.IS_SERVERLESS and not is_testing:
         start_auto_sync_worker(interval_seconds=settings.AUTO_SYNC_INTERVAL_SECONDS)
 except Exception as e:
     print(f"[Main] Auto-sync worker initialization warning: {e}")
@@ -161,6 +174,8 @@ def admin_review_queue_page():
     return serve_react_app()
 
 
+@app.get("/database-hierarchy", response_class=HTMLResponse)
+@app.get("/db-structure", response_class=HTMLResponse)
 @app.get("/longtail", response_class=HTMLResponse)
 def longtail_hierarchy_page():
     return serve_react_app()
@@ -691,12 +706,81 @@ async def api_documents_list(
     })
 
 
+@app.get("/api/database-structure")
+@app.get("/api/hierarchy")
+async def api_database_structure_endpoint():
+    from app.services.hierarchy_service import get_database_structure_and_hierarchy
+    data = get_database_structure_and_hierarchy()
+    return JSONResponse(data)
+
+
 @app.get("/api/documents/{document_id}")
 async def api_document_detail(document_id: str):
     doc = get_document_by_id(document_id)
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found.")
     return JSONResponse(doc)
+
+
+@app.get("/api/documents/{document_id}/raw")
+@app.get("/api/documents/{document_id}/file")
+async def api_document_raw_file(document_id: str):
+    db = SessionLocal()
+    try:
+        doc = db.query(Document).filter_by(id=document_id).first()
+        if not doc:
+            raise HTTPException(status_code=404, detail="Document not found.")
+        
+        # Check direct local file path
+        if doc.file_path and os.path.exists(doc.file_path):
+            return FileResponse(
+                doc.file_path,
+                media_type="application/pdf",
+                filename=f"{doc.id}.pdf",
+            )
+        
+        # Check download cache directory
+        local_cand = find_local_pdf_for_document(doc.id)
+        if local_cand and os.path.exists(local_cand):
+            return FileResponse(
+                local_cand,
+                media_type="application/pdf",
+                filename=f"{doc.id}.pdf",
+            )
+        
+        if doc.original_pdf_url:
+            return RedirectResponse(doc.original_pdf_url)
+        elif doc.source_url and doc.source_url.lower().endswith(".pdf"):
+            return RedirectResponse(doc.source_url)
+            
+        raise HTTPException(status_code=404, detail="Physical PDF file not found on server.")
+    finally:
+        db.close()
+
+
+@app.get("/documents/{document_id}/download/txt")
+@app.get("/api/documents/{document_id}/download/txt")
+async def api_download_document_txt(document_id: str):
+    doc = get_document_by_id(document_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    txt = doc.get("extracted_text") or "\n\n".join(p.get("text", "") for p in doc.get("pages", []))
+    headers = {"Content-Disposition": f'attachment; filename="{document_id}.txt"'}
+    return PlainTextResponse(txt, headers=headers)
+
+
+@app.get("/documents/{document_id}/download/json")
+@app.get("/api/documents/{document_id}/download/json")
+async def api_download_document_json(document_id: str):
+    doc = get_document_by_id(document_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    headers = {"Content-Disposition": f'attachment; filename="{document_id}_rag.json"'}
+    return Response(
+        content=json.dumps(doc, indent=2, default=str),
+        media_type="application/json",
+        headers=headers,
+    )
 
 
 @app.get("/api/judgments")
@@ -769,6 +853,7 @@ async def api_atoms_list(limit: int = 50, offset: int = 0, state: str | None = Q
 
 
 @app.get("/api/atoms/{atom_id}")
+@app.get("/api/atoms/canonical/{atom_id}")
 async def api_atom_detail(atom_id: str):
     """Returns canonical 25-layer JSON representation for a Legal Cognitive Atom."""
     canon_json = get_canonical_atom_json(atom_id)
@@ -858,6 +943,177 @@ async def api_review_queue():
                 }
                 for it in items
             ]
+        })
+    finally:
+        db.close()
+
+
+class ReviewActionRequest(BaseModel):
+    assigned_to: str = "advocate"
+    resolution_notes: str = ""
+    corrected_data: dict[str, Any] | None = None
+
+
+@app.post("/api/review-queue/{item_id}/approve")
+async def api_review_queue_approve(item_id: str, payload: ReviewActionRequest = ReviewActionRequest()):
+    db = SessionLocal()
+    try:
+        item = db.query(AtomReviewQueue).filter_by(id=item_id).first()
+        if not item:
+            raise HTTPException(status_code=404, detail="Review item not found.")
+        item.status = "APPROVED"
+        item.assigned_to = payload.assigned_to
+        item.resolution_notes = payload.resolution_notes or "Approved by human reviewer."
+        item.resolved_at = datetime.datetime.utcnow()
+        if item.atom_id:
+            atom = db.query(Atom).filter_by(id=item.atom_id).first()
+            if atom:
+                atom.is_verified = True
+        db.commit()
+        return JSONResponse({"status": "success", "message": f"Item {item_id} marked as APPROVED."})
+    finally:
+        db.close()
+
+
+@app.post("/api/review-queue/{item_id}/correct")
+async def api_review_queue_correct(item_id: str, payload: ReviewActionRequest):
+    db = SessionLocal()
+    try:
+        item = db.query(AtomReviewQueue).filter_by(id=item_id).first()
+        if not item:
+            raise HTTPException(status_code=404, detail="Review item not found.")
+        item.status = "CORRECTED"
+        item.assigned_to = payload.assigned_to
+        item.resolution_notes = payload.resolution_notes or "Corrected by human reviewer."
+        if payload.corrected_data:
+            item.detected_data = payload.corrected_data
+        item.resolved_at = datetime.datetime.utcnow()
+        db.commit()
+        return JSONResponse({"status": "success", "message": f"Item {item_id} updated and marked as CORRECTED."})
+    finally:
+        db.close()
+
+
+@app.post("/api/review-queue/{item_id}/dispute")
+async def api_review_queue_dispute(item_id: str, payload: ReviewActionRequest = ReviewActionRequest()):
+    db = SessionLocal()
+    try:
+        item = db.query(AtomReviewQueue).filter_by(id=item_id).first()
+        if not item:
+            raise HTTPException(status_code=404, detail="Review item not found.")
+        item.status = "DISPUTED"
+        item.assigned_to = payload.assigned_to
+        item.resolution_notes = payload.resolution_notes or "Disputed by reviewer."
+        item.resolved_at = datetime.datetime.utcnow()
+        db.commit()
+        return JSONResponse({"status": "success", "message": f"Item {item_id} marked as DISPUTED."})
+    finally:
+        db.close()
+
+
+class RuleEvaluationRequest(BaseModel):
+    atom_id: str | None = None
+    canonical_fir_id: str | None = None
+    sections: list[str] | None = None
+    allegations: list[str] | None = None
+    occurrence_date: str | None = None
+    registration_date: str | None = None
+    has_contract: bool = False
+    has_sanction: bool = False
+
+
+@app.post("/api/rules/evaluate")
+async def api_evaluate_legal_rules(payload: RuleEvaluationRequest):
+    """
+    Evaluates deterministic Indian criminal legal rules (IPC 420 ingredients,
+    CrPC 468 limitation, CrPC 197 sanction, FIR delay) on an Atom.
+    """
+    from app.services.legal_rules import run_all_deterministic_rules
+
+    sections = payload.sections or []
+    allegations = payload.allegations or []
+    occurrence_date = payload.occurrence_date
+    registration_date = payload.registration_date
+
+    # Hydrate from Atom if atom_id provided
+    if payload.atom_id or payload.canonical_fir_id:
+        db = SessionLocal()
+        try:
+            atom = get_atom_by_id_or_canonical(db, payload.atom_id or payload.canonical_fir_id)
+            if atom:
+                if not sections and atom.sections_registered:
+                    sections = [s.strip() for s in atom.sections_registered.split(",") if s.strip()]
+                if not allegations:
+                    allegations = [al.allegation_text for al in atom.allegations]
+                if not occurrence_date:
+                    occurrence_date = atom.occurrence_date
+                if not registration_date:
+                    registration_date = atom.registration_date
+        finally:
+            db.close()
+
+    eval_results = run_all_deterministic_rules(
+        sections=sections,
+        allegations=allegations,
+        occurrence_date=occurrence_date,
+        registration_date=registration_date,
+        has_contract=payload.has_contract,
+        has_sanction=payload.has_sanction,
+    )
+
+    return JSONResponse({
+        "status": "success",
+        "evaluations_count": len(eval_results),
+        "results": [
+            {
+                "rule_id": r.rule_id,
+                "rule_name": r.rule_name,
+                "verdict": r.verdict,
+                "summary": r.summary,
+                "statutory_basis": r.statutory_basis,
+                "precedents": r.precedents,
+                "confidence": r.confidence,
+                "details": r.details,
+            }
+            for r in eval_results
+        ],
+    })
+
+
+@app.post("/api/alex/process")
+async def api_alex_process_document(
+    document_id: str | None = Query(default=None),
+    file_path: str | None = Query(default=None),
+):
+    """
+    Runs the modular ALEX v1 extraction pipeline on a document or file path.
+    """
+    from app.alex.pipeline import run_alex_on_document
+
+    db = SessionLocal()
+    try:
+        target_path = file_path
+        title = ""
+        if document_id:
+            doc = db.query(Document).filter_by(id=document_id).first()
+            if doc:
+                title = doc.title or ""
+                target_path = doc.file_path or find_local_pdf_for_document(doc.id)
+
+        if not target_path or not os.path.exists(target_path):
+            raise HTTPException(status_code=400, detail=f"No accessible file found for extraction at: {target_path}")
+
+        res = run_alex_on_document(file_path=target_path, document_id=document_id, title=title)
+        return JSONResponse({
+            "status": res.status,
+            "document_id": res.document_id,
+            "file_hash": res.file_hash,
+            "classification": res.classification,
+            "entities": res.entities_extracted,
+            "atom_id": res.atom_id,
+            "canonical_pin": res.canonical_pin,
+            "completeness_score": res.canonical_atom.get("completeness_score") if res.canonical_atom else None,
+            "error": res.error,
         })
     finally:
         db.close()

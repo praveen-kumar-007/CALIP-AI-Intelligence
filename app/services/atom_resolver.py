@@ -183,8 +183,29 @@ def extract_fir_coordinates(text: str, title: str = "") -> dict[str, Any]:
         if cand_st in STATE_CODES:
             state = STATE_CODES[cand_st]
 
-    # 3. Fallback to known coordinates dictionary if not found in text headers
+    # 3. Dynamic lookup from PostgreSQL database records
     lower_comb = combined.lower()
+    if not police_station or not district or not state:
+        close_session = False
+        sess = db
+        if sess is None:
+            sess = SessionLocal()
+            close_session = True
+        try:
+            db_atoms = sess.query(Atom.police_station, Atom.district, Atom.state).distinct().all()
+            for db_ps, db_dist, db_st in db_atoms:
+                if db_ps and len(db_ps) > 2 and db_ps.lower() in lower_comb:
+                    police_station = police_station or sanitize_code(db_ps)
+                    district = district or sanitize_code(db_dist)
+                    state = state or sanitize_code(db_st)
+                    break
+        except Exception:
+            pass
+        finally:
+            if close_session:
+                sess.close()
+
+    # Fallback to dictionary if not found in DB
     if not police_station or not district or not state:
         for ps_key, (st, dist, ps) in KNOWN_POLICE_STATIONS.items():
             if ps_key in lower_comb:

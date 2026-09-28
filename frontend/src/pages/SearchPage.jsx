@@ -81,7 +81,7 @@ export function SearchPage() {
           {/* Matching Cases */}
           {results.length > 0 && (
             <div style={{ marginBottom: '2.5rem' }}>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#a5b4fc', textTransform: 'uppercase', marginBottom: '1rem' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1d4ed8', textTransform: 'uppercase', marginBottom: '1rem' }}>
                 Matched Cases ({results.length})
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -93,10 +93,10 @@ export function SearchPage() {
                           {caseItem.subject || 'Legal Case'}
                         </span>
                         <h4 style={{ fontSize: '1.15rem', fontWeight: 700 }}>
-                          <Link to={`/cases/${caseItem.id}`}>{caseItem.title}</Link>
+                          <Link to={`/atoms/${caseItem.atom_id || caseItem.id}`}>{caseItem.title}</Link>
                         </h4>
                       </div>
-                      <code style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: '#38bdf8' }}>
+                      <code style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: '#1d4ed8' }}>
                         {caseItem.case_number}
                       </code>
                     </div>
@@ -105,7 +105,7 @@ export function SearchPage() {
                     </p>
                     <div className="card-footer">
                       <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>Court: {caseItem.court}</span>
-                      <Link to={`/cases/${caseItem.id}`} className="btn btn-secondary btn-sm">Open Case &rarr;</Link>
+                      <Link to={`/atoms/${caseItem.atom_id || caseItem.id}`} className="btn btn-secondary btn-sm">Inspect Atom Dossier &rarr;</Link>
                     </div>
                   </div>
                 ))}
@@ -116,12 +116,12 @@ export function SearchPage() {
           {/* Matching Vector Chunks */}
           {vectorResults.length > 0 && (
             <div style={{ marginBottom: '3rem' }}>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#67e8f9', textTransform: 'uppercase', marginBottom: '1rem' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0284c7', textTransform: 'uppercase', marginBottom: '1rem' }}>
                 Semantic Vector Evidence Chunks ({vectorResults.length})
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {vectorResults.map((chk, idx) => (
-                  <div key={idx} className="citation-card" style={{ background: 'var(--bg-card)', borderLeft: '3px solid var(--accent-cyan)', padding: '1.25rem' }}>
+                  <div key={idx} className="citation-card" style={{ background: '#ffffff', borderLeft: '3px solid var(--accent-cyan)', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                       <strong style={{ color: 'var(--text-main)', fontSize: '1rem' }}>{chk.document_title || 'Document Record'}</strong>
                       <span className="badge badge-cyan">Page {chk.page_number || 1}</span>
@@ -130,21 +130,21 @@ export function SearchPage() {
                       {chk.case_title && `Case: ${chk.case_title} • `}
                       Similarity: {chk.similarity_score ? Math.round(chk.similarity_score * 100) : 92}%
                     </div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: 'var(--text-pure)', background: 'rgba(255, 255, 255, 0.9)', border: '1px solid rgba(0, 0, 0, 0.06)', padding: '0.85rem', borderRadius: 'var(--radius-sm)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: '#0f172a', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '0.85rem', borderRadius: 'var(--radius-sm)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
                       {chk.chunk_text || chk.snippet}
                     </div>
                     <div style={{ marginTop: '0.75rem', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem' }}>
                       <div className="doc-actions-group">
                         {chk.pdf_url && (
                           <a href={chk.pdf_url} target="_blank" rel="noreferrer" className="action-pill action-pill-pdf" title="View Source PDF">
-                            PDF &nearr;
+                            PDF ↗
                           </a>
                         )}
                         <Link to={`/documents/${chk.document_id}#tab-extracted-text`} className="action-pill action-pill-ocr" title="Inspect OCR Text">
                           OCR
                         </Link>
                         <a href={`/documents/${chk.document_id}/download/txt`} className="action-pill action-pill-txt" title="Download Plain Extracted Text">
-                          TXT &darr;
+                          TXT ↓
                         </a>
                       </div>
                     </div>

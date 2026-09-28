@@ -1,0 +1,424 @@
+{
+  "timestamp": "2026-09-28T08:07:30.626555+00:00",
+  "total_pilot_atoms_evaluated": 24,
+  "metrics": {
+    "overall_accuracy_f1": 1.0,
+    "statutory_extraction_f1": 1.0,
+    "accused_extraction_f1": 1.0,
+    "average_25_layer_completeness": 52.17,
+    "average_provenance_verifiability": 75.0,
+    "ai_grounding_pass_rate": 91.7,
+    "hallucination_rate_percent": 0.0,
+    "false_certainty_violations": 0
+  },
+  "deterministic_rules": {
+    "total_rule_evaluations": 96,
+    "procedural_violations_flagged": 0,
+    "defense_opportunities_uncovered": 20
+  },
+  "cases": [
+    {
+      "case_num": 1,
+      "atom_id": "16ae89b5-896c-409f-922d-1b4e2c3ddb75",
+      "canonical_pin": "MH-MUMBAI-SANTACRUZ-0412-2007",
+      "district": "MUMBAI",
+      "state": "MH",
+      "sections": [
+        "IPC 420",
+        "406",
+        "34"
+      ],
+      "completeness_score": 52.0,
+      "provenance_verifiability": 75.0,
+      "rules_evaluated": 4,
+      "is_grounded": true,
+      "grounding_confidence": 1.0
+    },
+    {
+      "case_num": 2,
+      "atom_id": "16e85478-6ae2-43e8-b8f6-e05f1bc7f61f",
+      "canonical_pin": "GJ-SURAT-UMRA-0389-2023",
+      "district": "SURAT",
+      "state": "GJ",
+      "sections": [
+        "IPC 420",
+        "406",
+        "120B"
+      ],
+      "completeness_score": 52.0,
+      "provenance_verifiability": 75.0,
+      "rules_evaluated": 4,
+      "is_grounded": true,
+      "grounding_confidence": 1.0
+    },
+    {
+      "case_num": 3,
+      "atom_id": "192b6db3-6505-488d-906c-0b54442dc519",
+      "canonical_pin": "DL-NEWDELHI-TILAKMARG-0480-2023",
+      "district": "NEWDELHI",
+      "state": "DL",
+      "sections": [
+        "IPC 420",
+        "406",
+        "120B"
+      ],
+      "completeness_score": 52.0,
+      "provenance_verifiability": 75.0,
+      "rules_evaluated": 4,
+      "is_grounded": true,
+      "grounding_confidence": 1.0
+    },
+    {
+      "case_num": 4,
+      "atom_id": "37940bcb-e1b2-4370-a6d9-4cb3e30e5e2d",
+      "canonical_pin": "MH-OSMANABAD-CITY-0398-2002",
+      "district": "OSMANABAD",
+      "state": "MH",
+      "sections": [
+        "IPC 406",
+        "409",
+        "420",
+        "120B"
+      ],
+      "completeness_score": 52.0,
+      "provenance_verifiability": 75.0,
+      "rules_evaluated": 4,
+      "is_grounded": true,
+      "grounding_confidence": 1.0
+    },
+    {
+      "case_num": 5,
+      "atom_id": "3f2ad764-7c6e-4d5e-acd0-f979abcd6c41",
+      "canonical_pin": "WB-BARRACKPORE-BHATPARA-0318-2023",
+      "district": "BARRACKPORE",
+      "state": "WB",
+      "sections": [
+        "IPC 420",
+        "406"
+      ],
+      "completeness_score": 52.0,
+      "provenance_verifiability": 75.0,
+      "rules_evaluated": 4,
+      "is_grounded": true,
+      "grounding_confidence": 1.0
+    },
+    {
+      "case_num": 6,
+      "atom_id": "40cff430-499e-4cfa-bf00-c8c1c6462cfd",
+      "canonical_pin": "GJ-SURAT-ADAJAN-0388-2023",
+      "district": "SURAT",
+      "state": "GJ",
+      "sections": [
+        "IPC 420",
+        "406"
+      ],
+      "completeness_score": 52.0,
+      "provenance_verifiability": 75.0,
+      "rules_evaluated": 4,
+      "is_grounded": true,
+      "grounding_confidence": 1.0
+    },
+    {
+      "case_num": 7,
+      "atom_id": "45a062cd-1c70-42b5-b244-27f633821213",
+      "canonical_pin": "MH-MUMBAI-CBI-0083-2002",
+      "district": "MUMBAI",
+      "state": "MH",
+      "sections": [
+        "IPC 120B",
+        "420",
+        "PC Act Sec 13(2) r/w 13(1)(d)"
+      ],
+      "completeness_score": 52.0,
+      "provenance_verifiability": 75.0,
+      "rules_evaluated": 4,
+      "is_grounded": false,
+      "grounding_confidence": 0.85
+    },
+    {
+      "case_num": 8,
+      "atom_id": "46542384-a9ba-4a03-813b-b7c87f6c62ca",
+      "canonical_pin": "GJ-MORBI-CITY-1545-2003",
+      "district": "MORBI",
+      "state": "GJ",
+      "sections": [
+        "IPC 420",
+        "406"
+      ],
+      "completeness_score": 52.0,
+      "provenance_verifiability": 75.0,
+      "rules_evaluated": 4,
+      "is_grounded": true,
+      "grounding_confidence": 1.0
+    },
+    {
+      "case_num": 9,
+      "atom_id": "65155fe3-8ce2-4114-b4f5-069e4a296026",
+      "canonical_pin": "DL-SOUTHDELHI-SAROJININAGAR-0266-2023",
+      "district": "SOUTHDELHI",
+      "state": "DL",
+      "sections": [
+        "IPC 420",
+        "406"
+      ],
+      "completeness_score": 52.0,
+      "provenance_verifiability": 75.0,
+      "rules_evaluated": 4,
+      "is_grounded": true,
+      "grounding_confidence": 1.0
+    },
+    {
+      "case_num": 10,
+      "atom_id": "6806e63d-3329-439c-8aee-fe54ddee6a0d",
+      "canonical_pin": "MH-PUNE-VISHRAMBAG-0255-2023",
+      "district": "PUNE",
+      "state": "MH",
+      "sections": [
+        "IPC 420",
+        "406",
+        "34"
+      ],
+      "completeness_score": 52.0,
+      "provenance_verifiability": 75.0,
+      "rules_evaluated": 4,
+      "is_grounded": true,
+      "grounding_confidence": 1.0
+    },
+    {
+      "case_num": 11,
+      "atom_id": "7dcf6498-4197-429d-8025-9ed52517b548",
+      "canonical_pin": "WB-KOLKATA-ALIPORE-0033-2002",
+      "district": "KOLKATA",
+      "state": "WB",
+      "sections": [
+        "IPC 406",
+        "409",
+        "420",
+        "120B"
+      ],
+      "completeness_score": 52.0,
+      "provenance_verifiability": 75.0,
+      "rules_evaluated": 4,
+      "is_grounded": true,
+      "grounding_confidence": 1.0
+    },
+    {
+      "case_num": 12,
+      "atom_id": "7ee7ee19-4157-435d-9e53-336043e01443",
+      "canonical_pin": "GJ-SURAT-UDHNA-0387-2023",
+      "district": "SURAT",
+      "state": "GJ",
+      "sections": [
+        "IPC 420",
+        "406"
+      ],
+      "completeness_score": 52.0,
+      "provenance_verifiability": 75.0,
+      "rules_evaluated": 4,
+      "is_grounded": true,
+      "grounding_confidence": 1.0
+    },
+    {
+      "case_num": 13,
+      "atom_id": "8494671c-8f22-48e7-8f1c-e45f72fa5d05",
+      "canonical_pin": "GJ-NAVSARI-TOWN-0399-2023",
+      "district": "NAVSARI",
+      "state": "GJ",
+      "sections": [
+        "IPC 420",
+        "406"
+      ],
+      "completeness_score": 52.0,
+      "provenance_verifiability": 75.0,
+      "rules_evaluated": 4,
+      "is_grounded": true,
+      "grounding_confidence": 1.0
+    },
+    {
+      "case_num": 14,
+      "atom_id": "8a626465-defd-4204-bd61-f428bdac7a3a",
+      "canonical_pin": "MH-NAGPUR-KOTWALI-0147-2002",
+      "district": "NAGPUR",
+      "state": "MH",
+      "sections": [
+        "IPC 406",
+        "409",
+        "420",
+        "120B"
+      ],
+      "completeness_score": 56.0,
+      "provenance_verifiability": 75.0,
+      "rules_evaluated": 4,
+      "is_grounded": true,
+      "grounding_confidence": 1.0
+    },
+    {
+      "case_num": 15,
+      "atom_id": "8efb1cde-804a-4582-87eb-ef9994dc4e19",
+      "canonical_pin": "MH-AMRAVATI-CITY-0847-2002",
+      "district": "AMRAVATI",
+      "state": "MH",
+      "sections": [
+        "IPC 406",
+        "409",
+        "420"
+      ],
+      "completeness_score": 52.0,
+      "provenance_verifiability": 75.0,
+      "rules_evaluated": 4,
+      "is_grounded": true,
+      "grounding_confidence": 1.0
+    },
+    {
+      "case_num": 16,
+      "atom_id": "a5200ec0-4fa4-4390-8eec-efd9fc293be5",
+      "canonical_pin": "MH-PUNE-PIMPRI-0256-2023",
+      "district": "PUNE",
+      "state": "MH",
+      "sections": [
+        "IPC 420",
+        "406"
+      ],
+      "completeness_score": 52.0,
+      "provenance_verifiability": 75.0,
+      "rules_evaluated": 4,
+      "is_grounded": true,
+      "grounding_confidence": 1.0
+    },
+    {
+      "case_num": 17,
+      "atom_id": "c15defa3-883a-4630-a88b-d9d2219f458c",
+      "canonical_pin": "GJ-NAVSARI-GANDEVI-0396-2023",
+      "district": "NAVSARI",
+      "state": "GJ",
+      "sections": [
+        "IPC 420",
+        "406"
+      ],
+      "completeness_score": 52.0,
+      "provenance_verifiability": 75.0,
+      "rules_evaluated": 4,
+      "is_grounded": true,
+      "grounding_confidence": 1.0
+    },
+    {
+      "case_num": 18,
+      "atom_id": "cd571405-1743-4007-a32a-23b7bbd74fe4",
+      "canonical_pin": "WB-SOUTH24PARGANAS-SONARPUR-0000-2023",
+      "district": "SOUTH24PARGANAS",
+      "state": "WB",
+      "sections": [
+        "IPC 420",
+        "406"
+      ],
+      "completeness_score": 52.0,
+      "provenance_verifiability": 75.0,
+      "rules_evaluated": 4,
+      "is_grounded": true,
+      "grounding_confidence": 1.0
+    },
+    {
+      "case_num": 19,
+      "atom_id": "d64382b3-26e0-461c-ad20-6043697eed0d",
+      "canonical_pin": "GJ-ANAND-TOWN-0361-2023",
+      "district": "ANAND",
+      "state": "GJ",
+      "sections": [
+        "IPC 420",
+        "406",
+        "120B"
+      ],
+      "completeness_score": 52.0,
+      "provenance_verifiability": 75.0,
+      "rules_evaluated": 4,
+      "is_grounded": true,
+      "grounding_confidence": 1.0
+    },
+    {
+      "case_num": 20,
+      "atom_id": "d8361f71-f089-4b6c-a67a-034f843347e1",
+      "canonical_pin": "GJ-VALSAD-TOWN-0395-2023",
+      "district": "VALSAD",
+      "state": "GJ",
+      "sections": [
+        "IPC 420",
+        "406"
+      ],
+      "completeness_score": 52.0,
+      "provenance_verifiability": 75.0,
+      "rules_evaluated": 4,
+      "is_grounded": true,
+      "grounding_confidence": 1.0
+    },
+    {
+      "case_num": 21,
+      "atom_id": "da2e4497-8949-4664-bca4-e0ed09f7a474",
+      "canonical_pin": "MH-MUMBAI-SANTACRUZ-0200-2005",
+      "district": "MUMBAI",
+      "state": "MH",
+      "sections": [
+        "IPC 420",
+        "467",
+        "468",
+        "471"
+      ],
+      "completeness_score": 52.0,
+      "provenance_verifiability": 75.0,
+      "rules_evaluated": 4,
+      "is_grounded": true,
+      "grounding_confidence": 1.0
+    },
+    {
+      "case_num": 22,
+      "atom_id": "ef1f3932-e836-4727-b590-2901fcb33a46",
+      "canonical_pin": "MH-MUMBAI-EOW-0324-2002",
+      "district": "MUMBAI",
+      "state": "MH",
+      "sections": [
+        "IPC 409",
+        "420",
+        "120B",
+        "MPID Act Sec 3"
+      ],
+      "completeness_score": 52.0,
+      "provenance_verifiability": 75.0,
+      "rules_evaluated": 4,
+      "is_grounded": false,
+      "grounding_confidence": 0.85
+    },
+    {
+      "case_num": 23,
+      "atom_id": "ef87b828-e387-48ac-ab38-8cc667153941",
+      "canonical_pin": "MH-WARDHA-CITY-0573-2002",
+      "district": "WARDHA",
+      "state": "MH",
+      "sections": [
+        "IPC 406",
+        "409",
+        "420",
+        "120B"
+      ],
+      "completeness_score": 52.0,
+      "provenance_verifiability": 75.0,
+      "rules_evaluated": 4,
+      "is_grounded": true,
+      "grounding_confidence": 1.0
+    },
+    {
+      "case_num": 24,
+      "atom_id": "fc781d7a-9c9a-4465-a908-011ba7268d0b",
+      "canonical_pin": "GJ-SURAT-VARACHHA-0390-2023",
+      "district": "SURAT",
+      "state": "GJ",
+      "sections": [
+        "IPC 420",
+        "406"
+      ],
+      "completeness_score": 52.0,
+      "provenance_verifiability": 75.0,
+      "rules_evaluated": 4,
+      "is_grounded": true,
+      "grounding_confidence": 1.0
+    }
+  ]
+}

@@ -752,6 +752,8 @@ def get_extracted_ocr_data(document_id: str) -> dict[str, Any] | None:
             "court": doc.court,
             "file_hash": doc.file_hash,
             "original_url": doc.original_pdf_url or doc.source_url,
+            "pdf_url": doc.original_pdf_url or (f"https://longtailcases.com/uploads/files/Documents-{doc.id.replace('doc-Documents_', '').replace('_pdf', '')}.pdf" if doc.id.startswith("doc-Documents_") else doc.source_url),
+            "original_pdf_url": doc.original_pdf_url or (f"https://longtailcases.com/uploads/files/Documents-{doc.id.replace('doc-Documents_', '').replace('_pdf', '')}.pdf" if doc.id.startswith("doc-Documents_") else doc.source_url),
             "page_count": len(pages_data),
             "ocr_required": doc.ocr_required or False,
             "ocr_pages_count": sum(1 for p in pages_data if p.get("ocr_applied")),

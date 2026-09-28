@@ -1,0 +1,532 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CanonicalLegalAtomV1",
+  "description": "Authoritative 25-Layer Canonical Legal Cognitive Atom Schema for CALIP (Cognitive Atomic Legal Intelligence Platform). Every verified FIR constitutes exactly one Atom with field-level provenance.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "atom_id",
+    "canonical_fir_id",
+    "hydration_status",
+    "confidence_score",
+    "layer_01_canonical_identity",
+    "layer_02_jurisdiction",
+    "layer_05_fir",
+    "layer_07_accused_roster",
+    "layer_08_statutory_charges",
+    "layer_10_procedural_lineage",
+    "layer_23_provenance",
+    "layer_24_analytics"
+  ],
+  "definitions": {
+    "provenance_meta": {
+      "type": "object",
+      "required": ["document_id"],
+      "properties": {
+        "document_id": { "type": "string" },
+        "page": { "type": ["integer", "null"] },
+        "paragraph": { "type": ["integer", "null"] },
+        "line": { "type": ["integer", "null"] },
+        "quote": { "type": ["string", "null"] },
+        "file_hash": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "provenance_field_string": {
+      "type": "object",
+      "required": ["value", "confidence", "extraction_method", "verification_status"],
+      "properties": {
+        "value": { "type": ["string", "null"] },
+        "confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "source": { "$ref": "#/definitions/provenance_meta" },
+        "extraction_method": { "type": "string" },
+        "verification_status": {
+          "type": "string",
+          "enum": ["DISCOVERED", "PARTIAL", "EXTRACTED", "HYDRATED", "REVIEW_REQUIRED", "DISPUTED", "VERIFIED"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "provenance_field_number": {
+      "type": "object",
+      "required": ["value", "confidence", "extraction_method", "verification_status"],
+      "properties": {
+        "value": { "type": ["number", "integer", "null"] },
+        "confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "source": { "$ref": "#/definitions/provenance_meta" },
+        "extraction_method": { "type": "string" },
+        "verification_status": {
+          "type": "string",
+          "enum": ["DISCOVERED", "PARTIAL", "EXTRACTED", "HYDRATED", "REVIEW_REQUIRED", "DISPUTED", "VERIFIED"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "provenance_field_boolean": {
+      "type": "object",
+      "required": ["value", "confidence", "extraction_method", "verification_status"],
+      "properties": {
+        "value": { "type": ["boolean", "null"] },
+        "confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "source": { "$ref": "#/definitions/provenance_meta" },
+        "extraction_method": { "type": "string" },
+        "verification_status": {
+          "type": "string",
+          "enum": ["DISCOVERED", "PARTIAL", "EXTRACTED", "HYDRATED", "REVIEW_REQUIRED", "DISPUTED", "VERIFIED"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "provenance_field_array": {
+      "type": "object",
+      "required": ["value", "confidence", "extraction_method", "verification_status"],
+      "properties": {
+        "value": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "source": { "$ref": "#/definitions/provenance_meta" },
+        "extraction_method": { "type": "string" },
+        "verification_status": {
+          "type": "string",
+          "enum": ["DISCOVERED", "PARTIAL", "EXTRACTED", "HYDRATED", "REVIEW_REQUIRED", "DISPUTED", "VERIFIED"]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "properties": {
+    "schema_version": { "type": "string", "enum": ["1.0.0", "1.0"] },
+    "atom_id": { "type": "string", "format": "uuid" },
+    "canonical_fir_id": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}-[A-Z0-9]+-[A-Z0-9]+-[A-Z0-9]+-\\d{4}$",
+      "description": "Deterministic PIN: STATE-DISTRICT-POLICE_STATION-FIR_NO-YEAR (e.g., MH-PUNE-SHIVAJINAGAR-0123-2023)"
+    },
+    "hydration_status": {
+      "type": "string",
+      "enum": ["DISCOVERED", "PARTIAL", "EXTRACTED", "HYDRATED", "REVIEW_REQUIRED", "DISPUTED", "VERIFIED"]
+    },
+    "confidence_score": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+    "is_verified": { "type": "boolean" },
+    "verified_by": { "type": ["string", "null"] },
+    "verified_at": { "type": ["string", "null"], "format": "date-time" },
+
+    "layer_01_canonical_identity": {
+      "type": "object",
+      "required": ["state", "district", "police_station", "fir_number", "fir_year"],
+      "properties": {
+        "state": { "$ref": "#/definitions/provenance_field_string" },
+        "district": { "$ref": "#/definitions/provenance_field_string" },
+        "police_station": { "$ref": "#/definitions/provenance_field_string" },
+        "fir_number": { "$ref": "#/definitions/provenance_field_string" },
+        "fir_year": { "$ref": "#/definitions/provenance_field_number" },
+        "zero_fir": { "$ref": "#/definitions/provenance_field_boolean" },
+        "original_fir_language": { "$ref": "#/definitions/provenance_field_string" }
+      }
+    },
+
+    "layer_02_jurisdiction": {
+      "type": "object",
+      "required": ["state_code", "primary_court"],
+      "properties": {
+        "state_code": { "$ref": "#/definitions/provenance_field_string" },
+        "primary_court": { "$ref": "#/definitions/provenance_field_string" },
+        "sessions_division": { "$ref": "#/definitions/provenance_field_string" },
+        "high_court": { "$ref": "#/definitions/provenance_field_string" },
+        "police_commissionerate": { "$ref": "#/definitions/provenance_field_string" }
+      }
+    },
+
+    "layer_03_temporal_timeline": {
+      "type": "object",
+      "properties": {
+        "occurrence_date": { "$ref": "#/definitions/provenance_field_string" },
+        "occurrence_time": { "$ref": "#/definitions/provenance_field_string" },
+        "registration_date": { "$ref": "#/definitions/provenance_field_string" },
+        "delay_in_fir_registration": { "$ref": "#/definitions/provenance_field_string" },
+        "chronology": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["event_type", "event_date"],
+            "properties": {
+              "event_type": { "type": "string" },
+              "event_date": { "type": "string" },
+              "description": { "type": "string" },
+              "forum": { "type": "string" },
+              "source": { "$ref": "#/definitions/provenance_meta" }
+            }
+          }
+        }
+      }
+    },
+
+    "layer_04_case_metadata": {
+      "type": "object",
+      "properties": {
+        "docket_title": { "$ref": "#/definitions/provenance_field_string" },
+        "category": { "$ref": "#/definitions/provenance_field_string" },
+        "primary_investigating_agency": { "$ref": "#/definitions/provenance_field_string" },
+        "cnr_numbers": { "$ref": "#/definitions/provenance_field_array" },
+        "legacy_case_ids": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+
+    "layer_05_fir": {
+      "type": "object",
+      "required": ["informant", "sections_registered", "allegation_narrative"],
+      "properties": {
+        "informant": { "$ref": "#/definitions/provenance_field_string" },
+        "complainant": { "$ref": "#/definitions/provenance_field_string" },
+        "place_of_occurrence": { "$ref": "#/definitions/provenance_field_string" },
+        "sections_registered": { "$ref": "#/definitions/provenance_field_array" },
+        "allegation_narrative": { "$ref": "#/definitions/provenance_field_string" },
+        "translated_narrative_en": { "$ref": "#/definitions/provenance_field_string" },
+        "fir_copy_document_id": { "type": ["string", "null"] }
+      }
+    },
+
+    "layer_06_complainant": {
+      "type": "object",
+      "properties": {
+        "name": { "$ref": "#/definitions/provenance_field_string" },
+        "designation": { "$ref": "#/definitions/provenance_field_string" },
+        "organization": { "$ref": "#/definitions/provenance_field_string" },
+        "relationship_to_victim": { "$ref": "#/definitions/provenance_field_string" }
+      }
+    },
+
+    "layer_07_accused_roster": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["accused_code", "name", "custody_status"],
+        "properties": {
+          "accused_id": { "type": "string" },
+          "accused_code": { "type": "string", "example": "A1" },
+          "name": { "$ref": "#/definitions/provenance_field_string" },
+          "aliases": { "type": "array", "items": { "type": "string" } },
+          "custody_status": {
+            "type": "string",
+            "enum": ["IN_CUSTODY", "BAIL_GRANTED", "ABSCONDING", "DISCHARGED", "ACQUITTED", "CONVICTED", "UNKNOWN"]
+          },
+          "custody_days": { "type": "integer" },
+          "bail_status": { "type": "string" }
+        }
+      }
+    },
+
+    "layer_08_statutory_charges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["accused_code", "statute", "section"],
+        "properties": {
+          "charge_id": { "type": "string" },
+          "accused_code": { "type": "string" },
+          "statute": { "type": "string" },
+          "section": { "type": "string" },
+          "overt_act_alleged": { "$ref": "#/definitions/provenance_field_string" },
+          "charge_stage": {
+            "type": "string",
+            "enum": ["FIR_STAGE", "CHARGE_SHEET", "CHARGES_FRAMED", "TRIAL", "CONVICTED", "ACQUITTED"]
+          },
+          "trial_outcome": { "type": "string" }
+        }
+      }
+    },
+
+    "layer_09_offence_ingredients": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["statute", "section", "ingredient_name", "status"],
+        "properties": {
+          "statute": { "type": "string" },
+          "section": { "type": "string" },
+          "ingredient_name": { "type": "string" },
+          "status": { "type": "string", "enum": ["SATISFIED", "POSSIBLE_MISSING_ELEMENT", "DISPUTED", "NOT_ADDRESSED"] },
+          "supporting_evidence_codes": { "type": "array", "items": { "type": "string" } },
+          "rule_explanation": { "type": "string" }
+        }
+      }
+    },
+
+    "layer_10_procedural_lineage": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["tier", "court_name", "case_number"],
+        "properties": {
+          "proceeding_id": { "type": "string" },
+          "tier": {
+            "type": "string",
+            "enum": ["MAGISTRATE", "SESSIONS", "SPECIAL_COURT", "HIGH_COURT", "SUPREME_COURT"]
+          },
+          "court_name": { "type": "string" },
+          "case_number": { "type": "string" },
+          "case_year": { "type": ["integer", "null"] },
+          "cnr": { "type": ["string", "null"] },
+          "judge": { "type": ["string", "null"] },
+          "status": { "type": "string" },
+          "filing_date": { "type": ["string", "null"] },
+          "disposal_date": { "type": ["string", "null"] },
+          "source": { "$ref": "#/definitions/provenance_meta" }
+        }
+      }
+    },
+
+    "layer_11_witnesses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["witness_code", "name", "role"],
+        "properties": {
+          "witness_id": { "type": "string" },
+          "witness_code": { "type": "string", "example": "PW-1" },
+          "name": { "$ref": "#/definitions/provenance_field_string" },
+          "role": { "type": "string", "enum": ["COMPLAINANT", "EYEWITNESS", "PANCH_WITNESS", "EXPERT", "INVESTIGATING_OFFICER", "OFFICIAL", "DEFENCE"] },
+          "statement_summary": { "$ref": "#/definitions/provenance_field_string" },
+          "deposition_summary": { "$ref": "#/definitions/provenance_field_string" },
+          "is_hostile": { "type": "boolean" },
+          "contradiction_notes": { "type": ["string", "null"] }
+        }
+      }
+    },
+
+    "layer_12_evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["evidence_code", "category", "title"],
+        "properties": {
+          "evidence_id": { "type": "string" },
+          "evidence_code": { "type": "string", "example": "E1" },
+          "category": { "type": "string", "enum": ["DOCUMENTARY", "DIGITAL", "FORENSIC", "MATERIAL", "FINANCIAL", "CALL_RECORD"] },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "exhibit_number": { "type": ["string", "null"] },
+          "custodian": { "type": ["string", "null"] },
+          "admissibility_status": { "type": "string", "enum": ["ADMISSIBLE", "CONTESTED", "INADMISSIBLE", "PENDING"] },
+          "source": { "$ref": "#/definitions/provenance_meta" }
+        }
+      }
+    },
+
+    "layer_13_documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["document_id", "title", "document_type"],
+        "properties": {
+          "document_id": { "type": "string" },
+          "title": { "type": "string" },
+          "document_type": { "type": "string" },
+          "page_count": { "type": "integer" },
+          "ocr_status": { "type": "string" },
+          "ocr_confidence": { "type": ["number", "null"] },
+          "file_hash": { "type": ["string", "null"] },
+          "url": { "type": ["string", "null"] }
+        }
+      }
+    },
+
+    "layer_14_applications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["application_type", "status"],
+        "properties": {
+          "application_id": { "type": "string" },
+          "application_type": { "type": "string", "enum": ["REGULAR_BAIL", "ANTICIPATORY_BAIL", "DISCHARGE", "QUASHING", "MODIFICATION", "TRANSFER", "MISCELLANEOUS"] },
+          "applicant": { "type": "string" },
+          "filing_date": { "type": ["string", "null"] },
+          "prayer": { "type": "string" },
+          "status": { "type": "string" },
+          "order_outcome": { "type": ["string", "null"] }
+        }
+      }
+    },
+
+    "layer_15_orders": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["order_date", "court", "order_type"],
+        "properties": {
+          "order_id": { "type": "string" },
+          "order_date": { "type": "string" },
+          "court": { "type": "string" },
+          "bench": { "type": ["string", "null"] },
+          "order_type": { "type": "string" },
+          "summary": { "type": "string" },
+          "operative_directions": { "type": "string" },
+          "source": { "$ref": "#/definitions/provenance_meta" }
+        }
+      }
+    },
+
+    "layer_16_hearing_events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": { "type": "string" },
+          "business": { "type": "string" },
+          "accused_present": { "type": "boolean" },
+          "next_date_ndoh": { "type": ["string", "null"] },
+          "source": { "$ref": "#/definitions/provenance_meta" }
+        }
+      }
+    },
+
+    "layer_17_adjournments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": { "type": "string" },
+          "reason": { "type": "string" },
+          "requested_by": { "type": "string", "enum": ["PROSECUTION", "DEFENCE", "COURT", "WITNESS_ABSENT", "UNKNOWN"] },
+          "costs_imposed": { "type": ["number", "null"] }
+        }
+      }
+    },
+
+    "layer_18_delay": {
+      "type": "object",
+      "properties": {
+        "total_pendency_days": { "type": "integer" },
+        "investigation_duration_days": { "type": ["integer", "null"] },
+        "trial_pendency_days": { "type": ["integer", "null"] },
+        "delay_classification": { "type": "string", "enum": ["CONFIRMED", "PROBABLE", "UNKNOWN"] },
+        "primary_delay_factors": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+
+    "layer_19_allegations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["allegation_text", "status"],
+        "properties": {
+          "allegation_id": { "type": "string" },
+          "allegation_text": { "type": "string" },
+          "status": { "type": "string", "enum": ["ALLEGED", "TESTIFIED", "SUBMITTED", "ESTABLISHED", "DISPUTED", "REJECTED"] },
+          "speaker": { "type": "string" },
+          "source": { "$ref": "#/definitions/provenance_meta" }
+        }
+      }
+    },
+
+    "layer_20_contradictions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["label", "statement_a", "statement_b"],
+        "properties": {
+          "contradiction_id": { "type": "string" },
+          "label": { "type": "string", "enum": ["candidate contradiction", "verified contradiction"] },
+          "statement_a": {
+            "type": "object",
+            "properties": {
+              "speaker": { "type": "string" },
+              "text": { "type": "string" },
+              "source": { "$ref": "#/definitions/provenance_meta" }
+            }
+          },
+          "statement_b": {
+            "type": "object",
+            "properties": {
+              "speaker": { "type": "string" },
+              "text": { "type": "string" },
+              "source": { "$ref": "#/definitions/provenance_meta" }
+            }
+          },
+          "legal_significance": { "type": "string" }
+        }
+      }
+    },
+
+    "layer_21_related_cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["relationship_type", "related_reference"],
+        "properties": {
+          "relationship_type": { "type": "string", "enum": ["CROSS_FIR", "COUNTER_FIR", "COMPANION_CASE", "CO_ARISING", "SAME_TRANSACTION"] },
+          "related_reference": { "type": "string" },
+          "related_atom_id": { "type": ["string", "null"] },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+
+    "layer_22_linked_judgments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["citation", "court", "principle", "verification_status"],
+        "properties": {
+          "citation": { "type": "string" },
+          "court": { "type": "string" },
+          "year": { "type": ["integer", "null"] },
+          "principle": { "type": "string" },
+          "verification_status": { "type": "string", "enum": ["VERIFIED", "AUTHORITY_NOT_VERIFIED"] },
+          "applied_to_issue": { "type": "string" }
+        }
+      }
+    },
+
+    "layer_23_provenance": {
+      "type": "array",
+      "description": "Cryptographic and locational audit trail for every extracted field.",
+      "items": {
+        "type": "object",
+        "required": ["target_table", "target_field", "source_document_id"],
+        "properties": {
+          "target_table": { "type": "string" },
+          "target_id": { "type": "string" },
+          "target_field": { "type": "string" },
+          "source_document_id": { "type": "string" },
+          "page_number": { "type": ["integer", "null"] },
+          "paragraph_number": { "type": ["integer", "null"] },
+          "verbatim_quote": { "type": ["string", "null"] },
+          "confidence_score": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+          "extraction_method": { "type": "string" },
+          "is_human_verified": { "type": "boolean" },
+          "verified_by": { "type": ["string", "null"] },
+          "timestamp": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+
+    "layer_24_analytics": {
+      "type": "object",
+      "required": ["hydration_completeness_percent", "confidence_aggregate"],
+      "properties": {
+        "hydration_completeness_percent": { "type": "number", "minimum": 0.0, "maximum": 100.0 },
+        "confidence_aggregate": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "total_proceedings": { "type": "integer" },
+        "total_accused": { "type": "integer" },
+        "total_charges": { "type": "integer" },
+        "total_evidence_items": { "type": "integer" },
+        "total_documents_attached": { "type": "integer" },
+        "conflict_count": { "type": "integer" }
+      }
+    },
+
+    "layer_25_extended_attributes": {
+      "type": "object",
+      "properties": {
+        "special_statutes": { "type": "array", "items": { "type": "string" } },
+        "financial_quantum_alleged": { "type": ["string", "null"] },
+        "victim_count": { "type": ["integer", "null"] },
+        "section_evolution_notes": { "type": "string" }
+      }
+    }
+  },
+  "additionalProperties": true
+}

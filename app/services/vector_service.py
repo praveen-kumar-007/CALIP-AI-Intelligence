@@ -115,8 +115,13 @@ def generate_embedding(text: str) -> list[float]:
     return _zero_dep_embedding(text)
 
 
-def index_document_chunks(document_id: str, case_id: str | None, pages: list[dict[str, Any]]) -> int:
-    """Chunks pages, computes embeddings, and writes DocumentChunk records into DB."""
+def index_document_chunks(
+    document_id: str,
+    case_id: str | None,
+    pages: list[dict[str, Any]],
+    atom_id: str | None = None,
+) -> int:
+    """Chunks pages, computes embeddings, and writes DocumentChunk records into DB with atom linkage."""
     chunks_meta = chunk_document_pages(pages)
     if not chunks_meta:
         return 0
@@ -134,6 +139,13 @@ def index_document_chunks(document_id: str, case_id: str | None, pages: list[dic
     db = SessionLocal()
     count = 0
     try:
+        # Resolve atom_id from document if not provided
+        resolved_atom_id = atom_id
+        if not resolved_atom_id:
+            doc_rec = db.query(Document).filter_by(id=document_id).first()
+            if doc_rec and doc_rec.atom_id:
+                resolved_atom_id = str(doc_rec.atom_id)
+
         # Delete existing chunks for this document
         db.query(DocumentChunk).filter_by(document_id=document_id).delete()
 
@@ -142,6 +154,7 @@ def index_document_chunks(document_id: str, case_id: str | None, pages: list[dic
                 id=f"{document_id}_chk_{idx}",
                 document_id=document_id,
                 case_id=case_id,
+                atom_id=resolved_atom_id,
                 page_number=meta["page_number"],
                 chunk_index=meta["chunk_index"],
                 chunk_text=meta["chunk_text"],
@@ -174,11 +187,12 @@ def vector_search(
     query: str,
     top_k: int = 5,
     case_id: str | None = None,
+    atom_id: str | None = None,
     court_filter: str | None = None,
 ) -> list[dict[str, Any]]:
     """
-    Computes query embedding and performs cosine similarity search across all document chunks.
-    Utilizes high-speed in-memory embedding matrix caching for sub-10ms responses.
+    Computes query embedding and performs cosine similarity search across document chunks.
+    Supports strict legal atom isolation when atom_id is provided.
     """
     global _VECTOR_CACHE_DATA, _VECTOR_CACHE_MATRIX, _VECTOR_CACHE_TIME
 
@@ -187,8 +201,8 @@ def vector_search(
     db = SessionLocal()
     results: list[dict[str, Any]] = []
     try:
-        # If searching globally without case_id filter, use high-speed in-memory cache
-        if not case_id and _VECTOR_CACHE_DATA is not None and _VECTOR_CACHE_MATRIX is not None and (time.time() - _VECTOR_CACHE_TIME < 600):
+        # If searching globally without atom/case filter, use high-speed in-memory cache
+        if not case_id and not atom_id and _VECTOR_CACHE_DATA is not None and _VECTOR_CACHE_MATRIX is not None and (time.time() - _VECTOR_CACHE_TIME < 600):
             chunk_objects = _VECTOR_CACHE_DATA
             emb_matrix = _VECTOR_CACHE_MATRIX
         else:
@@ -196,12 +210,15 @@ def vector_search(
                 DocumentChunk.id,
                 DocumentChunk.document_id,
                 DocumentChunk.case_id,
+                DocumentChunk.atom_id,
                 DocumentChunk.page_number,
                 DocumentChunk.chunk_text,
                 DocumentChunk.embedding,
             ).filter(DocumentChunk.embedding.isnot(None))
 
-            if case_id:
+            if atom_id:
+                query_set = query_set.filter(DocumentChunk.atom_id == str(atom_id))
+            elif case_id:
                 query_set = query_set.filter(DocumentChunk.case_id == case_id)
 
             rows = query_set.all()
@@ -254,9 +271,13 @@ def vector_search(
             if court_filter and case and court_filter.lower() not in (case.court_name or "").lower():
                 continue
 
+            from app.services.legal_data import resolve_original_pdf_url
+            resolved_pdf = resolve_original_pdf_url(doc_id, doc.original_pdf_url if doc else None) if doc_id else None
+
             results.append({
                 "chunk_id": chk_id,
                 "document_id": doc_id,
+                "title": doc.title if doc else "Document",
                 "document_title": doc.title if doc else "Document",
                 "case_id": case_id_val,
                 "case_title": case.title if case else None,
@@ -265,7 +286,8 @@ def vector_search(
                 "page_number": chk["page_number"],
                 "chunk_text": chk["chunk_text"],
                 "source_url": doc.source_url if doc else None,
-                "pdf_url": doc.original_pdf_url if doc else None,
+                "pdf_url": resolved_pdf,
+                "original_pdf_url": resolved_pdf,
                 "similarity_score": round(score, 4),
             })
     finally:

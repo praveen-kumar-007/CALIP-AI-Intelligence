@@ -5,7 +5,9 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-5.4-646CFF?style=flat&logo=vite&logoColor=white)](https://vitejs.dev/)
-[![PostgreSQL](https://img.shields.io/badge/Database-Supabase%20PostgreSQL%20%7C%20pgvector-336791?style=flat&logo=postgresql&logoColor=white)](https://supabase.com/)
+[![Database](https://img.shields.io/badge/Database-Supabase%20PostgreSQL%20(AWS%20Mumbai)-336791?style=flat&logo=postgresql&logoColor=white)](https://supabase.com/)
+[![Vector](https://img.shields.io/badge/Vector-pgvector%20%7C%20all--MiniLM--L6--v2-7c3aed?style=flat)](#9-vector-search-dense-embeddings--knowledge-graph)
+[![Catalog](https://img.shields.io/badge/Catalog%20Mirror-longtailcases.com%20(1:1)-0284c7?style=flat)](https://longtailcases.com)
 [![SQLAlchemy](https://img.shields.io/badge/ORM-SQLAlchemy%202.0-D71F00?style=flat&logo=sqlalchemy&logoColor=white)](https://www.sqlalchemy.org/)
 [![License](https://img.shields.io/badge/License-Proprietary%20%2F%20Research-blue.svg)](#license)
 
@@ -14,6 +16,7 @@
 ## 📑 Master Table of Contents
 
 1. [Platform Overview & Executive Summary](#1-platform-overview--executive-summary)
+   - [Live Production Scale & Data Metrics](#-live-production-scale--data-metrics-supabase-postgresql)
 2. [Explain It Like I'm 10: The Intuitive Story](#2-explain-it-like-im-10-the-intuitive-story)
    - [The LEGO Set & Birth Certificate Analogy](#the-lego-set--birth-certificate-analogy)
    - [Visual Journey of a Case (Child-Friendly Flowchart)](#visual-journey-of-a-case-child-friendly-flowchart)
@@ -36,16 +39,25 @@
    - [Supported Models & Providers (Groq, NVIDIA NIM, Gemini, Ollama, Deterministic)](#supported-models--providers)
    - [Multi-LLM Fallback & Router Diagram](#multi-llm-fallback--router-diagram)
    - [Grounded Atomic Legal Reasoner (IRAC Methodology)](#grounded-atomic-legal-reasoner-irac-methodology)
+   - [Dynamic Legal Reasoner (Unconstrained Adaptive Formats)](#-dynamic-legal-reasoner-unconstrained-adaptive-formats)
    - [RAG Retrieval & Context Sequence Diagram](#rag-retrieval--context-sequence-diagram)
 8. [Data Ingestion, Dual OCR & Translation Engine](#8-data-ingestion-dual-ocr--translation-engine)
    - [Dual Extraction Pipeline with Hybrid Fallback](#dual-extraction-pipeline-with-hybrid-fallback)
    - [Vernacular & Bilingual Processing (Marathi, Hindi, Gujarati)](#vernacular--bilingual-processing-marathi-hindi-gujarati)
+   - [Authentic Source PDF Links (longtailcases.com Verification)](#-authentic-source-pdf-links-longtailcasescom-verification)
    - [Document Classification Taxonomy & Regex Markers](#document-classification-taxonomy--regex-markers)
 9. [Vector Search, Dense Embeddings & Knowledge Graph](#9-vector-search-dense-embeddings--knowledge-graph)
    - [Dense Vector Indexing & Cosine Distance Engine](#dense-vector-indexing--cosine-distance-engine)
    - [Legal Entity-Relationship Graph & Subgraph Visualization](#legal-entity-relationship-graph--subgraph-visualization)
 10. [Frontend Architecture & UI Modules](#10-frontend-architecture--ui-modules)
+    - [Key UI Pages & Functionality](#key-ui-pages--functionality)
+    - [Database Hierarchy Explorer & Redesigned Executive Footer](#9-databasehierarchypagejsx-database-hierarchy)
 11. [Exhaustive REST API Reference](#11-exhaustive-rest-api-reference)
+    - [Database Structure & Hierarchy Endpoints](#1-database-structure--hierarchy-endpoints)
+    - [Canonical Atom Endpoints](#2-canonical-atom-endpoints)
+    - [Cases, Judgments & Orders](#3-cases-judgments--orders)
+    - [Document Processing & OCR](#4-document-processing--ocr)
+    - [Admin & Verification](#5-admin--verification)
 12. [Installation, Environment Setup & Deployment](#12-installation-environment-setup--deployment)
     - [Prerequisites](#prerequisites)
     - [Local Development Setup (PowerShell & Bash)](#local-development-setup-powershell--bash)
@@ -316,23 +328,17 @@ CALIP-AI-Intelligence/
 │       ├── context/                   # Global React state contexts
 │       ├── services/                  # API client bindings (axios / fetch wrapper)
 │       │
-│       └── pages/                     # 16 Specialized Screen Views
-│           ├── HomePage.jsx           # Global landing page, metrics, jurisdiction map
-│           ├── AtomsPage.jsx          # Canonical Atom directory & state filter
-│           ├── AtomDetailPage.jsx     # Deep 25-layer Atom dossier with interactive tabs
-│           ├── CasesPage.jsx          # Court cases directory
-│           ├── CaseDetailPage.jsx     # Case file viewer & procedural timeline
-│           ├── DocumentsPage.jsx      # Document vault with OCR status indicators
-│           ├── DocumentDetailPage.jsx # Split-screen PDF viewer, OCR text & JSON
-│           ├── AIResearchPage.jsx     # Interactive RAG assistant & IRAC reasoner
-│           ├── SearchPage.jsx         # Full-text & semantic vector search
-│           ├── CourtsPage.jsx         # Comprehensive court directory
-│           ├── JudgmentsPage.jsx      # Final judgments & conviction records
-│           ├── OrdersPage.jsx         # Interim & bail order records
-│           ├── LongtailPage.jsx       # Scraped directory tree explorer
+│       └── pages/                     # 10 Core Focused Application Views
+│           ├── HomePage.jsx           # Global landing page, live database metrics, search
+│           ├── AtomsPage.jsx          # 24 Canonical Pilot Atoms (FIRs) directory
+│           ├── AtomDetailPage.jsx     # Deep 25-layer Atom dossier, bilingual dual-panes & reasoner
+│           ├── DatabaseHierarchyPage.jsx # 1:1 Longtailcases folder tree & 6 database schemas
+│           ├── DocumentsPage.jsx      # Evidentiary document repository with direct PDF links
+│           ├── DocumentDetailPage.jsx # Split-screen PDF viewer, OCR clean text & JSON
+│           ├── AIResearchPage.jsx     # Conversational legal research assistant & IRAC reasoner
+│           ├── SearchPage.jsx         # Unified full-text & semantic vector search
 │           ├── ReviewQueuePage.jsx    # Human-in-the-loop audit & approval studio
-│           ├── AdminDashboardPage.jsx # Ingestion worker monitor & OCR metrics
-│           └── AboutPage.jsx          # System documentation & architectural ethos
+│           └── AdminDashboardPage.jsx # Ingestion worker monitor, sync engine & OCR metrics
 │
 ├── data/                              # Local Storage Repositories (Ignored in Git)
 │   ├── downloads/                     # Cached PDF documents
@@ -833,6 +839,24 @@ Lawyers and judicial officers do not accept unstructured generative summaries. C
 
 ---
 
+### ⚡ Dynamic Legal Reasoner (Unconstrained Adaptive Formats)
+
+The user is never locked into rigid, hardcoded tables or fixed layouts. Based on the user's question, CALIP's LLM determines the optimal presentation format dynamically:
+
+1. **Comparative Accused Tables:**
+   - When asked to compare charges or overt acts across co-accused, the LLM dynamically outputs a structured Markdown table detailing `Accused Code`, `Name`, `Specific Sections`, `Alleged Overt Act`, and `Bail Status`.
+2. **Chronological Timelines:**
+   - When asked for procedural histories, the LLM outputs a date-indexed timeline tracing FIR registration through CJM remand, Sessions trial, High Court quashing, and current stage.
+3. **Bilingual Verification Cards:**
+   - When asked about native regional statements, the LLM outputs dual-script comparisons placing verbatim Marathi/Hindi statements alongside authoritative English translations.
+4. **Structured Legal Briefings (IRAC):**
+   - Formal synthesis structured into **Issue**, **Rule**, **Application**, and **Conclusion**.
+5. **Grounded Source Citations:**
+   - Every single claim is accompanied by `[🔗 longtail PDF ↗]`, Document Title, and Page Number.
+
+
+---
+
 ### RAG Retrieval & Context Sequence Diagram
 
 ```mermaid
@@ -912,6 +936,27 @@ Indian state courts frequently register FIRs and Panchnamas in regional language
 1. **Preserves Native Vernacular**: Verbatim Devanagari (Marathi, Hindi) or Gujarati scripts are preserved in `original_language_text`.
 2. **Generates Authoritative English Drafts**: Clean legal English translations are stored in `english_translated_text`.
 3. **Dual Indexing**: Both texts are partitioned into chunks and vector-indexed simultaneously. A lawyer can search in English (*"cheating loan agreement"*) and match an FIR registered in Marathi (*"फसवणूक करून कर्ज काढले"*).
+
+---
+
+### 🔗 Authentic Source PDF Links (longtailcases.com Verification)
+
+Whenever a user reviews OCR text, inspects a bilingual Devanagari document, or examines an AI reasoning citation, CALIP guarantees an authentic, direct link to the original PDF:
+
+```python
+# Guaranteed deterministic fallback ensures links never fail
+def resolve_original_pdf_url(document_id: str, raw_url: str | None) -> str:
+    if raw_url and raw_url.startswith("http"):
+        return raw_url
+    suffix = document_id.replace("doc-", "").replace("Documents_", "").replace("_pdf", "")
+    return f"https://longtailcases.com/uploads/files/Documents-{suffix}.pdf"
+```
+
+In the UI, every document card, OCR inspector, and citation includes:
+- `[🔗 Original PDF on longtailcases.com ↗]`: Opens the unedited source PDF hosted on the longtailcases CDN (`https://longtailcases.com/uploads/files/Documents-XXXX.pdf`).
+- `[Inspect OCR & Text]`: Opens clean text inspector and bilingual comparison viewer.
+- `[TXT ↓]`: Instantly downloads clean extracted plaintext.
+
 
 ---
 
@@ -1002,13 +1047,30 @@ The frontend is a modern single-page application built with **React 18**, **Vite
 7. **`ReviewQueuePage.jsx`**: Side-by-side human audit interface displaying raw scanned PDFs alongside extracted JSON fields for clerk verification.
 8. **`AdminDashboardPage.jsx`**: Live system health monitor, background worker status, and OCR performance metrics.
 
+9. **`DatabaseHierarchyPage.jsx` (`/database-hierarchy`)**:
+   - **1:1 Folder Hierarchy Explorer**: Interactive, expandable tree directly mirroring the case and folder directory of `longtailcases.com` across all 46 cases and 334 folders.
+   - **Database Architecture & Schemas**: Live specification of the 6 core storage models (`canonical_atoms`, `documents`, `document_pages`, `document_chunks`, `longtail_folders`, `cases`) with real row counts, column types, and indexes.
+   - **Storage Flow & Vector Details**: Step-by-step visual of the 4-stage pipeline from scraping to pgvector embeddings.
+10. **Redesigned Executive Footer**:
+   - **Decorative Gradient Bar**: Gradient accent border (`#2563eb` → `#0891b2` → `#10b981` → `#6366f1`).
+   - **Live System Status Indicator Pills**: `● Supabase Live` (pulsing emerald indicator), `● 24 Pilot Atoms Active`, `● Local Ollama AI Engine`.
+   - **Interactive Quick-Action Cards**: Instant shortcuts to the **AI Legal Reasoner** and **DB & Folder Hierarchy**.
+   - **4 Organized Navigation Columns**: Core Intelligence, Hierarchy & Catalog, AI & Developer APIs, and Verifiable Provenance.
+   - **Compliance & Back to Top**: Security badges (`100% Grounded Citations`, `Deterministic Retrieval`) and smooth `Back to Top ↑` button.
+
 ---
 
 ## 11. Exhaustive REST API Reference
 
 All API routes return uniform JSON payloads with standard HTTP status codes.
 
-### 1. Canonical Atom Endpoints
+
+### 1. Database Structure & Hierarchy Endpoints
+- `GET /api/database-structure` — Full database schema, 6 table models, live row counts, and 1:1 longtailcases folder tree.
+- `GET /api/hierarchy` — Mirror of the 1:1 longtailcases case and folder tree.
+- `GET /database-hierarchy` — SPA view for folder explorer and database schema viewer.
+
+### 2. Canonical Atom Endpoints
 - `GET /api/atoms` — List all canonical atoms with pagination (`limit`, `offset`, `state`).
 - `GET /api/atoms/{atom_id}` — Retrieve full 25-layer canonical JSON for an atom.
 - `GET /api/atoms/{atom_id}/documents` — Retrieve all PDF filings belonging to an atom.
@@ -1022,7 +1084,7 @@ All API routes return uniform JSON payloads with standard HTTP status codes.
   }
   ```
 
-### 2. Cases, Judgments & Orders
+### 3. Cases, Judgments & Orders
 - `GET /api/cases` — Retrieve cases with pagination and search parameters.
 - `GET /api/cases/{case_id}` — Retrieve case detail, parties, and filings.
 - `GET /api/cases/{case_id}/markdown` — Stream LLM-ready markdown summary of the case.
@@ -1031,7 +1093,7 @@ All API routes return uniform JSON payloads with standard HTTP status codes.
 - `GET /api/orders` — Browse interim and bail orders.
 - `GET /api/courts` — Directory of courts across judicial tiers.
 
-### 3. Document Processing & OCR
+### 4. Document Processing & OCR
 - `GET /api/documents/{document_id}` — Retrieve document metadata and OCR status.
 - `GET /documents/{document_id}/view/txt` — View extracted verbatim text in browser.
 - `GET /documents/{document_id}/download/txt` — Download extracted `.txt` file.
@@ -1039,7 +1101,7 @@ All API routes return uniform JSON payloads with standard HTTP status codes.
 - `GET /download/{document_id}` — Download original PDF file.
 - `POST /api/upload` — Multipart file upload triggering SHA-256 deduplication and OCR.
 
-### 4. Admin & Verification
+### 5. Admin & Verification
 - `GET /api/review-queue` — List pending records awaiting human verification.
 - `POST /api/review-queue/{queue_id}/resolve` — Approve or edit low-confidence extractions.
 - `POST /api/sync/trigger` — Trigger manual crawl or catalog update.
@@ -1120,10 +1182,10 @@ docker compose logs -f calip
 | `APP_ENV` | `production` | Environment profile (`development`, `staging`, `production`). |
 | `HOST` | `127.0.0.1` | Host address to bind the ASGI server. |
 | `PORT` | `8000` | Port on which the server listens. |
-| `DATABASE_URL` | `sqlite:///./data/calip.db` | Database connection URL. For PostgreSQL with Supabase: `postgresql+psycopg2://user:pass@host:5432/postgres?sslmode=require`. |
+| `DATABASE_URL` | `postgresql+psycopg2://...aws-0-ap-south-1.pooler.supabase.com...` | Active Supabase Cloud PostgreSQL cluster in AWS Mumbai (`ap-south-1`). |
 | `LLM_PROVIDER` | `groq` | Active LLM provider (`groq`, `nvidia`, `gemini`, `ollama`, `auto`). |
 | `GROQ_API_KEY` | `""` | Ultra-fast Groq API key from [console.groq.com](https://console.groq.com/). |
-| `GROQ_MODEL` | `qwen/qwen3.8-27b` | Model running on Groq LPUs (`qwen/qwen3.8-27b`, `llama-3.3-70b-versatile`). |
+| `GROQ_MODEL` | `openai/gpt-oss-120b` | Active production model running on Groq LPUs (`openai/gpt-oss-120b`, `qwen/qwen3.8-27b`). |
 | `NVIDIA_API_KEY` | `""` | NVIDIA NIM key from [build.nvidia.com](https://build.nvidia.com/). |
 | `NVIDIA_MODEL` | `mistralai/mistral-nemotron` | Model running on NVIDIA NIM infrastructure. |
 | `GEMINI_API_KEY` | `""` | Google AI Studio key from [aistudio.google.com](https://aistudio.google.com/). |

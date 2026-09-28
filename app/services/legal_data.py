@@ -198,6 +198,15 @@ def get_case_by_id(case_id: str) -> dict[str, Any] | None:
         db.close()
 
 
+def resolve_original_pdf_url(doc_id: str, original_pdf_url: str | None) -> str | None:
+    if original_pdf_url and original_pdf_url.startswith("http"):
+        return original_pdf_url
+    if doc_id and doc_id.startswith("doc-Documents_"):
+        suffix = doc_id.replace("doc-Documents_", "").replace("_pdf", "")
+        return f"https://longtailcases.com/uploads/files/Documents-{suffix}.pdf"
+    return original_pdf_url
+
+
 def get_all_documents(limit: int = 50, offset: int = 0, query: str | None = None) -> list[dict[str, Any]]:
     ensure_seed_data()
     db = SessionLocal()
@@ -213,6 +222,7 @@ def get_all_documents(limit: int = 50, offset: int = 0, query: str | None = None
         for d in docs:
             has_txt = bool(d.extracted_text)
             has_ocr = bool(d.extracted_text) or bool(d.pages)
+            pdf_url = resolve_original_pdf_url(d.id, d.original_pdf_url)
             result.append({
                 "id": d.id,
                 "case_id": d.case_id,
@@ -223,11 +233,13 @@ def get_all_documents(limit: int = 50, offset: int = 0, query: str | None = None
                 "court": d.court,
                 "document_date": d.document_date,
                 "source_url": d.source_url,
-                "pdf_url": d.original_pdf_url,
+                "pdf_url": pdf_url,
+                "original_pdf_url": pdf_url,
                 "page_count": d.page_count,
                 "file_hash": d.file_hash,
                 "ocr_status": d.ocr_status,
                 "ocr_confidence": d.ocr_confidence,
+                "extraction_method": d.extraction_method or "pymupdf_text",
                 "processing_status": d.processing_status,
                 "has_txt": has_txt,
                 "has_ocr": has_ocr,
@@ -249,6 +261,7 @@ def get_document_by_id(document_id: str) -> dict[str, Any] | None:
         has_txt = bool(d.extracted_text)
         has_ocr = bool(d.extracted_text) or bool(d.pages)
         linkages = get_document_linkages(d.id)
+        pdf_url = resolve_original_pdf_url(d.id, d.original_pdf_url)
 
         return {
             "id": d.id,
@@ -258,7 +271,8 @@ def get_document_by_id(document_id: str) -> dict[str, Any] | None:
             "court": d.court,
             "document_date": d.document_date,
             "source_url": d.source_url,
-            "pdf_url": d.original_pdf_url,
+            "pdf_url": pdf_url,
+            "original_pdf_url": pdf_url,
             "page_count": d.page_count,
             "file_hash": d.file_hash,
             "ocr_status": d.ocr_status,
@@ -308,15 +322,15 @@ def get_all_judgments(limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
             }
             for j in judgments
         ]
-        # Also query documents categorized as judgments or in lt-49 (Important Judgements)
+        # Also query documents categorized as judgments from database
         if len(results) < limit:
             docs = (
                 db.query(Document)
                 .filter(
-                    (Document.case_id == "lt-49")
-                    | (Document.document_type.ilike("%judgment%"))
+                    (Document.document_type.ilike("%judgment%"))
                     | (Document.title.ilike("%judgment%"))
                     | (Document.title.ilike("%supreme court%"))
+                    | (Document.title.ilike("%high court%"))
                 )
                 .offset(offset)
                 .limit(limit - len(results))
@@ -481,9 +495,10 @@ def get_all_courts() -> list[dict[str, Any]]:
 def get_platform_statistics() -> dict[str, Any]:
     db = SessionLocal()
     try:
-        from app.db.models import DocumentChunk, LegalEntity, DocumentPage
+        from app.db.models import DocumentChunk, LegalEntity, DocumentPage, Atom
         return {
             "cases_count": db.query(Case).count(),
+            "atoms_count": db.query(Atom).count(),
             "documents_count": db.query(Document).count(),
             "courts_count": db.query(Court).count(),
             "folders_count": db.query(LongtailFolder).count(),
