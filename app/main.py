@@ -174,9 +174,9 @@ def admin_review_queue_page():
     return serve_react_app()
 
 
-@app.get("/database-hierarchy", response_class=HTMLResponse)
-@app.get("/db-structure", response_class=HTMLResponse)
-@app.get("/longtail", response_class=HTMLResponse)
+@app.get("/database-hierarchy", response_class=HTMLResponse, include_in_schema=False)
+@app.get("/db-structure", response_class=HTMLResponse, include_in_schema=False)
+@app.get("/longtail", response_class=HTMLResponse, include_in_schema=False)
 def longtail_hierarchy_page():
     return serve_react_app()
 
@@ -192,7 +192,8 @@ def document_detail_page(document_id: str):
 
 
 
-@app.get("/documents/{document_id}/download/txt")
+@app.get("/documents/{document_id}/download/txt", include_in_schema=False)
+@app.get("/api/documents/{document_id}/download/txt")
 def download_document_extracted_text(document_id: str):
     doc = get_document_by_id(document_id)
     if not doc:
@@ -231,7 +232,8 @@ def view_document_extracted_text(document_id: str):
     return PlainTextResponse(content=text_content, media_type="text/plain; charset=utf-8")
 
 
-@app.get("/documents/{document_id}/download/json")
+@app.get("/documents/{document_id}/download/json", include_in_schema=False)
+@app.get("/api/documents/{document_id}/download/json")
 def download_document_rag_json(document_id: str):
     ocr_data = get_extracted_ocr_data(document_id)
     if not ocr_data:
@@ -589,7 +591,7 @@ async def sitemap_orders():
 # 3. PUBLIC REST API ENDPOINTS
 # ==========================================
 
-@app.get("/api")
+@app.get("/api", include_in_schema=False)
 @app.get("/api/stats")
 async def api_documentation():
     stats = get_platform_statistics()
@@ -711,7 +713,7 @@ async def api_documents_list(
 
 
 @app.get("/api/database-structure")
-@app.get("/api/hierarchy")
+@app.get("/api/hierarchy", include_in_schema=False)
 async def api_database_structure_endpoint():
     from app.services.hierarchy_service import get_database_structure_and_hierarchy
     data = get_database_structure_and_hierarchy()
@@ -726,8 +728,10 @@ async def api_document_detail(document_id: str):
     return JSONResponse(doc)
 
 
-@app.api_route("/api/documents/{document_id}/raw", methods=["GET", "HEAD"])
-@app.api_route("/api/documents/{document_id}/file", methods=["GET", "HEAD"])
+@app.get("/api/documents/{document_id}/raw", operation_id="get_api_document_raw")
+@app.head("/api/documents/{document_id}/raw", include_in_schema=False)
+@app.get("/api/documents/{document_id}/file", include_in_schema=False)
+@app.head("/api/documents/{document_id}/file", include_in_schema=False)
 async def api_document_raw_file(document_id: str):
     from app.services.legal_data import resolve_original_pdf_url
 
@@ -769,31 +773,6 @@ async def api_document_raw_file(document_id: str):
         return RedirectResponse(fallback_url, status_code=302)
 
     raise HTTPException(status_code=404, detail="Physical PDF file not found on server.")
-
-
-@app.get("/documents/{document_id}/download/txt")
-@app.get("/api/documents/{document_id}/download/txt")
-async def api_download_document_txt(document_id: str):
-    doc = get_document_by_id(document_id)
-    if not doc:
-        raise HTTPException(status_code=404, detail="Document not found.")
-    txt = doc.get("extracted_text") or "\n\n".join(p.get("text", "") for p in doc.get("pages", []))
-    headers = {"Content-Disposition": f'attachment; filename="{document_id}.txt"'}
-    return PlainTextResponse(txt, headers=headers)
-
-
-@app.get("/documents/{document_id}/download/json")
-@app.get("/api/documents/{document_id}/download/json")
-async def api_download_document_json(document_id: str):
-    doc = get_document_by_id(document_id)
-    if not doc:
-        raise HTTPException(status_code=404, detail="Document not found.")
-    headers = {"Content-Disposition": f'attachment; filename="{document_id}_rag.json"'}
-    return Response(
-        content=json.dumps(doc, indent=2, default=str),
-        media_type="application/json",
-        headers=headers,
-    )
 
 
 @app.get("/api/judgments")
@@ -866,7 +845,7 @@ async def api_atoms_list(limit: int = 50, offset: int = 0, state: str | None = Q
 
 
 @app.get("/api/atoms/{atom_id}")
-@app.get("/api/atoms/canonical/{atom_id}")
+@app.get("/api/atoms/canonical/{atom_id}", include_in_schema=False)
 async def api_atom_detail(atom_id: str):
     """Returns canonical 25-layer JSON representation for a Legal Cognitive Atom."""
     canon_json = get_canonical_atom_json(atom_id)
@@ -1112,6 +1091,15 @@ async def api_alex_process_document(
             if doc:
                 title = doc.title or ""
                 target_path = getattr(doc, "local_pdf_path", None) or (str(find_local_pdf_for_document(doc.id)) if find_local_pdf_for_document(doc.id) else None)
+                if not target_path or not os.path.exists(target_path):
+                    from app.services.legal_data import resolve_original_pdf_url
+                    from app.services.pdf_ingest import download_pdf_file
+                    remote_url = resolve_original_pdf_url(doc.id, doc.original_pdf_url)
+                    if remote_url:
+                        try:
+                            target_path = download_pdf_file(remote_url, doc.id)
+                        except Exception as dl_err:
+                            print(f"[ALEX] Error downloading remote PDF: {dl_err}")
 
         if not target_path or not os.path.exists(target_path):
             raise HTTPException(status_code=400, detail=f"No accessible file found for extraction at: {target_path}")
@@ -1757,7 +1745,7 @@ CALIP Document Ref: {doc.get('id')} | Case: {doc.get('case_id')} | Hash: {doc.ge
 
 
 
-@app.get("/health")
+@app.get("/health", include_in_schema=False)
 @app.get("/api/health")
 async def health_check():
     try:
