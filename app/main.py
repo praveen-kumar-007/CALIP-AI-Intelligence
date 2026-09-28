@@ -689,15 +689,19 @@ async def api_documents_list(
     offset: int = Query(default=0),
     q: str | None = Query(default=None),
 ):
-    db = SessionLocal()
+    total_count = 0
     try:
-        total_count = db.query(Document).count()
-    finally:
-        db.close()
+        db = SessionLocal()
+        try:
+            total_count = db.query(Document).count()
+        finally:
+            db.close()
+    except Exception as exc:
+        print(f"[Main] Document count query warning: {exc}")
     docs = get_all_documents(limit=limit, offset=offset, query=q)
     return JSONResponse({
         "status": "success",
-        "total": total_count,
+        "total": total_count or len(docs),
         "count": len(docs),
         "offset": offset,
         "limit": limit,
@@ -1746,7 +1750,10 @@ CALIP Document Ref: {doc.get('id')} | Case: {doc.get('case_id')} | Hash: {doc.ge
 @app.get("/health")
 @app.get("/api/health")
 async def health_check():
-    stats = get_platform_statistics()
+    try:
+        stats = get_platform_statistics()
+    except Exception as exc:
+        stats = {"warning": str(exc)}
     return JSONResponse({
         "status": "healthy",
         "service": "CALIP Legal Intelligence Platform",

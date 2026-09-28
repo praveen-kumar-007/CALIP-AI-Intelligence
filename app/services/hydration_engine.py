@@ -573,45 +573,49 @@ STATE_CODE_MAP = {
 
 def get_all_atoms(limit: int = 50, offset: int = 0, state: str | None = None) -> list[dict[str, Any]]:
     """Lists all canonical Legal Cognitive Atoms directly from PostgreSQL."""
-    db = SessionLocal()
     try:
-        from sqlalchemy import or_
+        db = SessionLocal()
+        try:
+            from sqlalchemy import or_
 
-        q = db.query(Atom)
-        if state:
-            clean_s = state.strip().lower()
-            code = STATE_CODE_MAP.get(clean_s, clean_s.upper())
-            q = q.filter(
-                or_(
-                    Atom.state == code,
-                    Atom.state.ilike(f"%{clean_s}%"),
-                    Atom.canonical_fir_id.ilike(f"{code}-%"),
+            q = db.query(Atom)
+            if state:
+                clean_s = state.strip().lower()
+                code = STATE_CODE_MAP.get(clean_s, clean_s.upper())
+                q = q.filter(
+                    or_(
+                        Atom.state == code,
+                        Atom.state.ilike(f"%{clean_s}%"),
+                        Atom.canonical_fir_id.ilike(f"{code}-%"),
+                    )
                 )
-            )
-        atoms = q.offset(offset).limit(limit).all()
+            atoms = q.offset(offset).limit(limit).all()
 
-        return [
-            {
-                "id": str(a.id),
-                "canonical_fir_id": a.canonical_fir_id,
-                "state": a.state,
-                "district": a.district,
-                "police_station": a.police_station,
-                "fir_number": a.fir_number,
-                "fir_year": a.fir_year,
-                "hydration_status": a.hydration_status,
-                "confidence_score": a.confidence_score,
-                "is_verified": a.is_verified,
-                "sections": a.sections_registered or "IPC",
-                "original_language": a.original_language or "English",
-                "original_language_summary": a.original_language_summary or "",
-                "english_translated_summary": a.english_translated_summary or a.summary or "",
-                "summary": a.summary or "",
-                "doc_count": len(a.documents),
-                "accused_count": len(a.accused),
-                "proceedings_count": len(a.proceedings),
-            }
-            for a in atoms
-        ]
-    finally:
-        db.close()
+            return [
+                {
+                    "id": str(a.id),
+                    "canonical_fir_id": a.canonical_fir_id,
+                    "state": a.state,
+                    "district": a.district,
+                    "police_station": a.police_station,
+                    "fir_number": a.fir_number,
+                    "fir_year": a.fir_year,
+                    "hydration_status": a.hydration_status,
+                    "confidence_score": a.confidence_score,
+                    "is_verified": a.is_verified,
+                    "sections": a.sections_registered or "IPC",
+                    "original_language": a.original_language or "English",
+                    "original_language_summary": a.original_language_summary or "",
+                    "english_translated_summary": a.english_translated_summary or a.summary or "",
+                    "summary": a.summary or "",
+                    "doc_count": len(a.documents),
+                    "accused_count": len(a.accused),
+                    "proceedings_count": len(a.proceedings),
+                }
+                for a in atoms
+            ]
+        finally:
+            db.close()
+    except Exception as exc:
+        print(f"[HydrationEngine] get_all_atoms query warning: {exc}")
+        return []
