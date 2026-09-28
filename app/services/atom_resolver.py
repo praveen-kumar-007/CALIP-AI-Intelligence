@@ -9,17 +9,39 @@ from app.db.models import Atom, AtomProceeding, AtomReviewQueue, Document
 
 def get_atom_by_id_or_canonical(db, identifier: str) -> Atom | None:
     """
-    Safely fetches an Atom by UUID id or canonical_fir_id without PostgreSQL type casting errors.
-    Prevents psycopg2.errors.InvalidTextRepresentation when canonical string is queried against UUID column.
+    Safely fetches an Atom by UUID/string id or canonical_fir_id without PostgreSQL type casting errors.
+    Prevents psycopg2.errors.InvalidTextRepresentation when canonical string is queried against UUID column,
+    and supports both string and native UUID columns across SQLite and PostgreSQL.
     """
     if not identifier:
         return None
     raw_str = str(identifier).strip()
     try:
         val_uuid = uuid.UUID(raw_str)
-        return db.query(Atom).filter((Atom.id == val_uuid) | (Atom.canonical_fir_id == raw_str)).first()
-    except (ValueError, AttributeError):
-        return db.query(Atom).filter(Atom.canonical_fir_id == raw_str).first()
+        res = db.query(Atom).filter((Atom.id == str(val_uuid)) | (Atom.canonical_fir_id == raw_str)).first()
+        if res:
+            return res
+    except (ValueError, AttributeError, Exception):
+        pass
+
+    try:
+        res = db.query(Atom).filter(Atom.canonical_fir_id == raw_str).first()
+        if res:
+            return res
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
+    try:
+        return db.query(Atom).filter(Atom.id == raw_str).first()
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        return None
 
 
 # Jurisdiction and State Mapping Tables

@@ -726,40 +726,49 @@ async def api_document_detail(document_id: str):
     return JSONResponse(doc)
 
 
-@app.get("/api/documents/{document_id}/raw")
-@app.get("/api/documents/{document_id}/file")
+@app.api_route("/api/documents/{document_id}/raw", methods=["GET", "HEAD"])
+@app.api_route("/api/documents/{document_id}/file", methods=["GET", "HEAD"])
 async def api_document_raw_file(document_id: str):
-    db = SessionLocal()
+    from app.services.legal_data import resolve_original_pdf_url
+
+    # 1. Check local cached file
+    local_cand = find_local_pdf_for_document(document_id)
+    if local_cand and os.path.exists(local_cand):
+        return FileResponse(
+            str(local_cand),
+            media_type="application/pdf",
+            filename=f"{document_id}.pdf",
+        )
+
+    # 2. Check DB record
     try:
-        doc = db.query(Document).filter_by(id=document_id).first()
-        if not doc:
-            raise HTTPException(status_code=404, detail="Document not found.")
-        
-        # Check direct local file path
-        if doc.file_path and os.path.exists(doc.file_path):
-            return FileResponse(
-                doc.file_path,
-                media_type="application/pdf",
-                filename=f"{doc.id}.pdf",
-            )
-        
-        # Check download cache directory
-        local_cand = find_local_pdf_for_document(doc.id)
-        if local_cand and os.path.exists(local_cand):
-            return FileResponse(
-                local_cand,
-                media_type="application/pdf",
-                filename=f"{doc.id}.pdf",
-            )
-        
-        if doc.original_pdf_url:
-            return RedirectResponse(doc.original_pdf_url)
-        elif doc.source_url and doc.source_url.lower().endswith(".pdf"):
-            return RedirectResponse(doc.source_url)
-            
-        raise HTTPException(status_code=404, detail="Physical PDF file not found on server.")
-    finally:
-        db.close()
+        db = SessionLocal()
+        try:
+            doc = db.query(Document).filter_by(id=document_id).first()
+            if doc:
+                local_path = getattr(doc, "local_pdf_path", None)
+                if local_path and os.path.exists(local_path):
+                    return FileResponse(
+                        local_path,
+                        media_type="application/pdf",
+                        filename=f"{doc.id}.pdf",
+                    )
+                resolved = resolve_original_pdf_url(doc.id, doc.original_pdf_url)
+                if resolved:
+                    return RedirectResponse(resolved, status_code=302)
+                if doc.source_url and doc.source_url.lower().endswith(".pdf"):
+                    return RedirectResponse(doc.source_url, status_code=302)
+        finally:
+            db.close()
+    except Exception as exc:
+        print(f"[Main] Error querying doc in raw file endpoint: {exc}")
+
+    # 3. Guaranteed fallback from document_id directly (e.g. doc-Documents_1768383942_pdf)
+    fallback_url = resolve_original_pdf_url(document_id, None)
+    if fallback_url:
+        return RedirectResponse(fallback_url, status_code=302)
+
+    raise HTTPException(status_code=404, detail="Physical PDF file not found on server.")
 
 
 @app.get("/documents/{document_id}/download/txt")
@@ -970,7 +979,7 @@ async def api_review_queue_approve(item_id: str, payload: ReviewActionRequest = 
         item.resolution_notes = payload.resolution_notes or "Approved by human reviewer."
         item.resolved_at = datetime.datetime.utcnow()
         if item.atom_id:
-            atom = db.query(Atom).filter_by(id=item.atom_id).first()
+            atom = get_atom_by_id_or_canonical(db, item.atom_id)
             if atom:
                 atom.is_verified = True
         db.commit()
@@ -1102,7 +1111,7 @@ async def api_alex_process_document(
             doc = db.query(Document).filter_by(id=document_id).first()
             if doc:
                 title = doc.title or ""
-                target_path = doc.file_path or find_local_pdf_for_document(doc.id)
+                target_path = getattr(doc, "local_pdf_path", None) or (str(find_local_pdf_for_document(doc.id)) if find_local_pdf_for_document(doc.id) else None)
 
         if not target_path or not os.path.exists(target_path):
             raise HTTPException(status_code=400, detail=f"No accessible file found for extraction at: {target_path}")

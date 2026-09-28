@@ -496,7 +496,7 @@ export function DocumentDetailPage() {
                 </div>
               </div>
               <iframe
-                src={`/api/documents/${doc.id}/raw`}
+                src={originalPdfUrl || `/api/documents/${doc.id}/raw`}
                 title="Original Legal PDF Document"
                 style={{ width: '100%', height: '720px', border: '1px solid #1e293b', borderRadius: '8px', background: '#020617' }}
               />
