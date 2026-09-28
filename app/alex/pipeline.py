@@ -134,7 +134,6 @@ class AlexPipeline:
             # Step 6: Link to Atom
             if not resolved_atom_id:
                 link_res = resolve_document_to_atom(
-                    db=db,
                     document_id=document_id,
                     text=layout.full_text,
                     title=title,
@@ -169,7 +168,13 @@ class AlexPipeline:
 
         # Step 7: Index Chunks into Vector DB with atom_id isolation
         try:
-            index_document_chunks(document_id, layout.full_text, atom_id=resolved_atom_id)
+            pages_payload = [{"page_number": p.page_number, "text": p.full_text} for p in layout.pages]
+            index_document_chunks(
+                document_id=document_id,
+                case_id=None,
+                pages=pages_payload,
+                atom_id=resolved_atom_id,
+            )
         except Exception as e:
             print(f"[ALEX Pipeline] Vector indexing warning: {e}")
 
