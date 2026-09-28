@@ -115,7 +115,7 @@ def generate_canonical_fir_id(
     return f"{s_code}-{d_code}-{ps_code}-{clean_no}-{y_str}"
 
 
-def extract_fir_coordinates(text: str, title: str = "") -> dict[str, Any]:
+def extract_fir_coordinates(text: str, title: str = "", db: Any = None) -> dict[str, Any]:
     """
     Extracts State, District, Police Station, FIR Number, and Year from text and title dynamically.
     """
