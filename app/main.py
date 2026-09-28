@@ -1462,9 +1462,10 @@ async def api_document_reextract(document_id: str):
                 )
             return JSONResponse({"status": "success", "result": res})
 
-        if doc.original_pdf_url:
+        pdf_url = resolve_original_pdf_url(doc.id, doc.original_pdf_url)
+        if pdf_url:
             res = process_and_ingest_pdf(
-                pdf_url=doc.original_pdf_url,
+                pdf_url=pdf_url,
                 title=doc.title,
                 document_id=doc.id,
                 case_id=doc.case_id,
