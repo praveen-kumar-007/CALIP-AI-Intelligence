@@ -73,6 +73,18 @@ from app.services.ai_gateway import (
     render_ai_atoms_list,
     render_ai_atom,
 )
+from app.services.mcp_server import (
+    handle_mcp_jsonrpc_request,
+    render_mcp_discovery_page,
+)
+from app.services.bundle_service import (
+    render_bundle_index,
+    render_overview_bundle,
+    render_atoms_bundle,
+    render_court_dates_bundle,
+    render_case_bundle,
+    render_document_bundle,
+)
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -298,6 +310,111 @@ async def public_ai_ask_endpoint(
     return PlainTextResponse(md_output, media_type="text/markdown; charset=utf-8")
 
 
+# ==========================================
+# MODEL CONTEXT PROTOCOL (MCP) REMOTE SERVER
+# Accessible by Claude Custom Connectors, ChatGPT, etc.
+# ==========================================
+
+@app.api_route("/mcp", methods=["GET", "POST", "OPTIONS"])
+@app.api_route("/api/mcp", methods=["GET", "POST", "OPTIONS"])
+async def mcp_endpoint(request: Request):
+    """
+    Standard MCP Streamable HTTP / SSE / JSON-RPC 2.0 endpoint.
+    Allows Claude Custom Connectors (Settings -> Connectors -> Add Connector URL)
+    to query tools: search_documents, get_case, list_atoms, get_page, ask_legal_question.
+    """
+    if request.method == "OPTIONS":
+        return Response(
+            status_code=204,
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+                "Access-Control-Allow-Headers": "*",
+            },
+        )
+
+    if request.method == "POST":
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        res = await handle_mcp_jsonrpc_request(body)
+        return JSONResponse(
+            content=res,
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+                "Access-Control-Allow-Headers": "*",
+            },
+        )
+
+    # GET request
+    accept = (request.headers.get("accept") or "").lower()
+    if "text/event-stream" in accept:
+        from fastapi.responses import StreamingResponse
+
+        async def event_generator():
+            yield "event: endpoint\ndata: /mcp\n\n"
+
+        return StreamingResponse(
+            event_generator(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "Access-Control-Allow-Origin": "*",
+            },
+        )
+
+    return PlainTextResponse(
+        render_mcp_discovery_page(),
+        media_type="text/markdown; charset=utf-8",
+        headers={"Access-Control-Allow-Origin": "*"},
+    )
+
+
+# ==========================================
+# MODULAR RESEARCH BUNDLES (< 20,000 WORDS)
+# Tailored for Claude, ChatGPT, and Gemini web browsing
+# ==========================================
+
+@app.get("/bundle", response_class=PlainTextResponse)
+def get_bundle_index():
+    return PlainTextResponse(render_bundle_index(), media_type="text/markdown; charset=utf-8")
+
+
+@app.get("/bundle/overview", response_class=PlainTextResponse)
+def get_overview_bundle():
+    return PlainTextResponse(render_overview_bundle(), media_type="text/markdown; charset=utf-8")
+
+
+@app.get("/bundle/atoms", response_class=PlainTextResponse)
+def get_atoms_bundle():
+    return PlainTextResponse(render_atoms_bundle(), media_type="text/markdown; charset=utf-8")
+
+
+@app.get("/bundle/court-dates", response_class=PlainTextResponse)
+def get_court_dates_bundle():
+    return PlainTextResponse(render_court_dates_bundle(), media_type="text/markdown; charset=utf-8")
+
+
+@app.get("/bundle/cases/{case_id}", response_class=PlainTextResponse)
+def get_case_bundle(case_id: str):
+    res = render_case_bundle(case_id)
+    if not res:
+        raise HTTPException(status_code=404, detail=f"Case '{case_id}' bundle not found.")
+    return PlainTextResponse(res, media_type="text/markdown; charset=utf-8")
+
+
+@app.get("/bundle/documents/{document_id}", response_class=PlainTextResponse)
+def get_document_bundle(document_id: str):
+    res = render_document_bundle(document_id)
+    if not res:
+        raise HTTPException(status_code=404, detail=f"Document '{document_id}' bundle not found.")
+    return PlainTextResponse(res, media_type="text/markdown; charset=utf-8")
+
+
+
 
 @app.get("/documents/{document_id}/download/txt", include_in_schema=False)
 @app.get("/api/documents/{document_id}/download/txt")
@@ -455,6 +572,10 @@ Allow: /api/
 Allow: /api/open/
 Allow: /llms.txt
 Allow: /llms-full.txt
+Allow: /mcp
+Allow: /api/mcp
+Allow: /bundle
+Allow: /bundle/
 Allow: /download/
 Disallow: /admin/
 Disallow: /private/

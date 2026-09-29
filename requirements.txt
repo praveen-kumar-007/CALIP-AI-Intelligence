@@ -16,6 +16,7 @@ numpy>=2.1.0
 httpx>=0.27.2
 openai>=1.40.0
 pytest>=8.3.2
+mcp>=1.0.0
 
 # Note for Vercel Serverless:
 # Heavy ML libraries (>250MB uncompressed) like torch are omitted below so Vercel builds successfully.
