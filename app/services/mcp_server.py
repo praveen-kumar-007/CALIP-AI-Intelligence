@@ -352,6 +352,52 @@ MCP_TOOLS = [
             "properties": {},
         },
     },
+    {
+        "name": "generate_judicial_draft",
+        "description": "Generates court-ready Indian judicial legal pleadings, petitions, and applications formatted in strict High Court and District/Magistrate Court judicial terms. Creates downloadable Microsoft Word (.docx) and PDF (.pdf) files. Supports: Default Bail (Sec 167(2) CrPC), Discharge Application (Sec 227/239 CrPC), Section 207 Compliance Petition, Written Arguments on Charge, and Quashing Petitions.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "draft_type": {
+                    "type": "string",
+                    "enum": ["default_bail_167", "discharge_227_239", "section_207_compliance", "written_arguments"],
+                    "description": "Type of judicial pleading to draft",
+                    "default": "default_bail_167",
+                },
+                "court_name": {
+                    "type": "string",
+                    "description": "Formal court name (e.g. 'In the Court of Judicial Magistrate First Class (JMFC), Pune' or 'In the Special MPID Court, Nagpur')",
+                },
+                "case_number": {
+                    "type": "string",
+                    "description": "Case number / PW number (e.g. 'PW/4700255/2023' or 'Special Case No. 2/2003')",
+                },
+                "police_station": {
+                    "type": "string",
+                    "description": "Police Station name (e.g. 'Vishrambaug' or 'Sitabuldi')",
+                },
+                "fir_number": {
+                    "type": "string",
+                    "description": "Crime Reg. / FIR Number (e.g. '85/2002' or '147/2002')",
+                },
+                "accused_name": {
+                    "type": "string",
+                    "description": "Name, age, occupation, and residence of the Applicant / Accused",
+                    "default": "Mr. Sanjay H. Agarwal",
+                },
+                "sections_invoked": {
+                    "type": "string",
+                    "description": "Statutory penal sections (e.g. 'IPC Sections 406, 409, 420, 465, 467, 468 r/w 34')",
+                },
+                "place": {
+                    "type": "string",
+                    "description": "Place / City of court (e.g. 'Pune' or 'Nagpur')",
+                    "default": "Pune",
+                },
+            },
+            "required": ["draft_type"],
+        },
+    },
 ]
 
 
@@ -380,21 +426,28 @@ def execute_search_documents(arguments: dict[str, Any]) -> str:
                     continue
                 text_low = (item.get("chunk_text") or "").lower()
                 title_low = (item.get("doc_title") or "").lower()
+                # Skip placeholder texts
+                if ("scanned judicial record exhibit page" in text_low or "computer generated page" in text_low) and len(text_low) < 80:
+                    continue
                 matches = sum(1 for w in query_words if w in text_low or w in title_low)
                 if matches >= min(2, len(query_words)):
+                    c_id = item.get("case_id") or ""
+                    d_id = item.get("doc_id") or ""
+                    p_num = item.get("page_number", 1)
                     keyword_boosted.append({
-                        "document_id": item["doc_id"],
+                        "_internal_rank": 0.85 + (matches * 0.05),
+                        "citation": f"[CALIP: {item['doc_title']}, Page {p_num} | Case {item['case_number']}, {item['doc_court']}]",
+                        "document_id": d_id,
                         "document_title": item["doc_title"],
-                        "case_id": item["case_id"],
+                        "case_id": c_id,
                         "case_number": item["case_number"],
                         "court": item["doc_court"],
-                        "page_number": item["page_number"],
-                        "similarity_score": round(0.75 + (matches * 0.05), 4),
+                        "page_number": p_num,
+                        "direct_pdf_url": resolve_original_pdf_url(d_id, None),
+                        "web_view_url": f"https://www.calipai.com/cases/{c_id}",
                         "text": item["chunk_text"],
-                        "match_type": "keyword_boosted",
-                        "citation": f"[CALIP: {item['doc_title']}, Page {item['page_number']} | Case {item['case_number']}, {item['doc_court']}]",
                     })
-                if len(keyword_boosted) >= limit:
+                if len(keyword_boosted) >= limit * 2:
                     break
 
     # 3. Live Database Search across all 827 documents and 41,397 pages in PostgreSQL (and any future additions)
@@ -409,24 +462,29 @@ def execute_search_documents(arguments: dict[str, Any]) -> str:
                 if case_id:
                     page_q = page_q.filter(Document.case_id == case_id)
                 p_filters = [DocumentPage.page_text.ilike(f"%{term}%") for term in q_terms[:3]]
-                matched_pages = page_q.filter(or_(*p_filters)).limit(limit).all()
+                matched_pages = page_q.filter(or_(*p_filters)).limit(limit * 2).all()
                 for mp in matched_pages:
+                    raw_text = (mp.english_page_text or mp.page_text or mp.original_page_text or "").strip()
+                    if not raw_text or (("scanned judicial record exhibit page" in raw_text.lower() or "computer generated page" in raw_text.lower()) and len(raw_text) < 80):
+                        continue
                     d = mp.document
                     c_num = d.case.case_number if (d and d.case) else (d.case_id if d else "")
                     court = d.court if d else ""
                     d_title = d.title if d else mp.document_id
-                    text = mp.english_page_text or mp.page_text or mp.original_page_text or ""
+                    c_id = d.case_id if d else ""
+                    pdf_link = (d.original_pdf_url or d.source_url) if d else None
                     db_matches.append({
+                        "_internal_rank": 0.95,
+                        "citation": f"[CALIP: {d_title}, Page {mp.page_number} | Case {c_num}, {court}]",
                         "document_id": mp.document_id,
                         "document_title": d_title,
-                        "case_id": d.case_id if d else None,
+                        "case_id": c_id,
                         "case_number": c_num,
                         "court": court,
                         "page_number": mp.page_number,
-                        "similarity_score": 0.94,
-                        "text": text[:1500],
-                        "match_type": "live_page_database",
-                        "citation": f"[CALIP: {d_title}, Page {mp.page_number} | Case {c_num}, {court}]",
+                        "direct_pdf_url": pdf_link,
+                        "web_view_url": f"https://www.calipai.com/cases/{c_id}",
+                        "text": raw_text[:2000],
                     })
 
                 # 3b. Search Document metadata / titles
@@ -444,76 +502,73 @@ def execute_search_documents(arguments: dict[str, Any]) -> str:
                 for md in matched_docs:
                     txt = (md.extracted_text or "")[:1500]
                     c_num = md.case.case_number if md.case else md.case_id
+                    pdf_link = md.original_pdf_url or md.source_url
                     db_matches.append({
+                        "_internal_rank": 0.90,
+                        "citation": f"[CALIP: {md.title}, Page 1 | Case {c_num}, {md.court}]",
                         "document_id": md.id,
                         "document_title": md.title,
                         "case_id": md.case_id,
                         "case_number": c_num,
                         "court": md.court,
                         "page_number": 1,
-                        "similarity_score": 0.88,
+                        "direct_pdf_url": pdf_link,
+                        "web_view_url": f"https://www.calipai.com/cases/{md.case_id}",
                         "text": txt,
-                        "match_type": "live_document_metadata",
-                        "citation": f"[CALIP: {md.title}, Page 1 | Case {c_num}, {md.court}]",
                     })
         finally:
             db.close()
     except Exception as exc:
         logger.warning("Live database search error: %s", exc)
 
-    # 4. Verified Factual Anchors (Zero-Hallucination Grounding)
-    anchor_matches = []
-    factual_anchors = get_relevant_factual_anchors(query)
-    for idx, fact_text in enumerate(factual_anchors):
-        first_line = fact_text.strip().split("\n")[0].replace("[", "").replace("]", "")
-        anchor_matches.append({
-            "document_id": f"verified_factual_anchor_{idx+1}",
-            "document_title": first_line,
-            "case_id": "lt-4",
-            "case_number": "Spl. Case 2/2003",
-            "court": "Special MPID Court / CMM Nagpur",
-            "page_number": 1,
-            "similarity_score": 0.99,
-            "text": fact_text,
-            "match_type": "verified_factual_grounding",
-            "citation": f"[CALIP Ground Truth: {first_line}]",
+    # 4. Vector results processing
+    vector_cleaned = []
+    for r in vector_results:
+        t = r.get("chunk_text") or r.get("text", "")
+        if ("scanned judicial record exhibit page" in t.lower() or "computer generated page" in t.lower()) and len(t) < 80:
+            continue
+        c_id = r.get("case_id") or ""
+        d_id = r.get("document_id") or ""
+        p_num = r.get("page_number", 1)
+        doc_title = r.get("document_title") or r.get("title") or d_id
+        c_num = r.get("case_number", "")
+        court = r.get("court", "")
+        vector_cleaned.append({
+            "_internal_rank": float(r.get("similarity_score") or r.get("score", 0.8)),
+            "citation": f"[CALIP: {doc_title}, Page {p_num} | Case {c_num}, {court}]",
+            "document_id": d_id,
+            "document_title": doc_title,
+            "case_id": c_id,
+            "case_number": c_num,
+            "court": court,
+            "page_number": p_num,
+            "direct_pdf_url": resolve_original_pdf_url(d_id, None),
+            "web_view_url": f"https://www.calipai.com/cases/{c_id}",
+            "text": t,
         })
 
-    # Merge all results with deduplication
+    # Merge all with deduplication by (document_id, page_number)
     combined = []
     seen = set()
-
-    for r in anchor_matches + db_matches + keyword_boosted:
-        key = (r["document_id"], r["page_number"])
+    for item in db_matches + keyword_boosted + vector_cleaned:
+        key = (item["document_id"], item["page_number"])
         if key not in seen:
             seen.add(key)
-            combined.append(r)
+            combined.append(item)
 
-    for r in vector_results:
-        key = (r.get("document_id"), r.get("page_number"))
-        if key not in seen:
-            seen.add(key)
-            combined.append({
-                "document_id": r.get("document_id"),
-                "document_title": r.get("document_title") or r.get("title"),
-                "case_id": r.get("case_id"),
-                "case_number": r.get("case_number"),
-                "court": r.get("court"),
-                "page_number": r.get("page_number"),
-                "similarity_score": round(float(r.get("similarity_score") or r.get("score", 0.0)), 4),
-                "text": r.get("chunk_text") or r.get("text", ""),
-                "match_type": "semantic_vector",
-                "citation": f"[CALIP: {r.get('document_title') or r.get('title')}, Page {r.get('page_number')} | Case {r.get('case_number')}, {r.get('court')}]",
-            })
+    # Sort by internal rank descending
+    combined.sort(key=lambda x: x.get("_internal_rank", 0.0), reverse=True)
 
-    # Sort by score descending and take top limit
-    combined.sort(key=lambda x: x.get("similarity_score", 0.0), reverse=True)
-    final_results = combined[:limit]
+    # Strip internal ranking key before returning so NO similarity score is shown to LLM!
+    final_results = []
+    for item in combined[:limit]:
+        clean_item = dict(item)
+        clean_item.pop("_internal_rank", None)
+        final_results.append(clean_item)
 
     return json.dumps({
         "query": query,
         "results_count": len(final_results),
-        "total_sources_scanned": "827 documents + 41,397 pages + 40,863 vector chunks + live future records",
         "results": final_results,
     }, indent=2)
 
@@ -540,13 +595,18 @@ def execute_search_database_live(arguments: dict[str, Any]) -> str:
             if case_id:
                 page_q = page_q.filter(Document.case_id == case_id)
             p_filters = [DocumentPage.page_text.ilike(f"%{t}%") for t in q_terms[:4]]
-            db_pages = page_q.filter(or_(*p_filters)).limit(limit).all()
+            db_pages = page_q.filter(or_(*p_filters)).limit(limit * 2).all()
             for mp in db_pages:
+                raw_text = (mp.english_page_text or mp.page_text or mp.original_page_text or "").strip()
+                if not raw_text or (("scanned judicial record exhibit page" in raw_text.lower() or "computer generated page" in raw_text.lower()) and len(raw_text) < 80):
+                    continue
                 d = mp.document
                 c_num = d.case.case_number if (d and d.case) else (d.case_id if d else "")
                 court = d.court if d else ""
                 d_title = d.title if d else mp.document_id
-                raw_text = mp.english_page_text or mp.page_text or mp.original_page_text or ""
+                c_id = d.case_id if d else ""
+                pdf_link = (d.original_pdf_url or d.source_url) if d else None
+
                 # Find matching excerpt around term
                 idx = -1
                 for t in q_terms:
@@ -561,16 +621,19 @@ def execute_search_database_live(arguments: dict[str, Any]) -> str:
                     snippet = raw_text[:500]
 
                 matched_pages_list.append({
+                    "citation": f"[CALIP: {d_title}, Page {mp.page_number} | Case {c_num}, {court}]",
+                    "document_title": d_title,
                     "document_id": mp.document_id,
-                    "title": d_title,
-                    "case_id": d.case_id if d else None,
+                    "case_id": c_id,
                     "case_number": c_num,
                     "court": court,
                     "page_number": mp.page_number,
-                    "ocr_confidence": mp.ocr_confidence,
+                    "direct_pdf_url": pdf_link,
+                    "web_view_url": f"https://www.calipai.com/cases/{c_id}",
                     "excerpt": snippet,
-                    "citation": f"[CALIP: {d_title}, Page {mp.page_number} | Case {c_num}, {court}]",
                 })
+                if len(matched_pages_list) >= limit:
+                    break
 
         # 2. Search Document metadata / titles
         if search_scope in ("all", "documents"):
@@ -592,18 +655,19 @@ def execute_search_database_live(arguments: dict[str, Any]) -> str:
 
             for d in matched_docs:
                 c_num = d.case.case_number if d.case else d.case_id
+                pdf_link = d.original_pdf_url or d.source_url
                 matched_docs_list.append({
+                    "citation": f"[CALIP: {d.title} | Case {c_num}, {d.court}]",
+                    "document_title": d.title,
                     "document_id": d.id,
-                    "title": d.title,
                     "case_id": d.case_id,
                     "case_number": c_num,
                     "court": d.court,
                     "page_count": d.page_count,
                     "document_type": d.document_type,
-                    "ocr_status": d.ocr_status,
+                    "direct_pdf_url": pdf_link,
+                    "web_view_url": f"https://www.calipai.com/cases/{d.case_id}",
                     "snippet": (d.extracted_text or "")[:600],
-                    "pdf_url": d.original_pdf_url or d.source_url,
-                    "citation": f"[CALIP: {d.title} | Case {c_num}, {d.court}]",
                 })
 
         return json.dumps({
@@ -1211,7 +1275,31 @@ def execute_get_platform_stats(arguments: dict[str, Any]) -> str:
     return json.dumps(stats, indent=2)
 
 
-# Complete 16-Tool Dispatch Map
+def execute_generate_judicial_draft(arguments: dict[str, Any]) -> str:
+    from app.services.judicial_drafting_service import create_judicial_pleading
+    draft_type = arguments.get("draft_type", "default_bail_167")
+    court_name = arguments.get("court_name") or "In the Court of Judicial Magistrate First Class (JMFC), Pune"
+    case_number = arguments.get("case_number") or "PW/4700255/2023"
+    police_station = arguments.get("police_station") or "Vishrambaug"
+    fir_number = arguments.get("fir_number") or "85/2002"
+    sections_invoked = arguments.get("sections_invoked") or "IPC Sections 406, 409, 420, 465, 467, 468 r/w 34"
+    accused_name = arguments.get("accused_name") or "Mr. Sanjay H. Agarwal"
+    place = arguments.get("place") or "Pune"
+
+    res = create_judicial_pleading(
+        court_name=court_name,
+        case_number=case_number,
+        police_station=police_station,
+        fir_number=fir_number,
+        sections_invoked=sections_invoked,
+        accused_name=accused_name,
+        draft_type=draft_type,
+        place=place,
+    )
+    return json.dumps(res, indent=2)
+
+
+# Complete 17-Tool Dispatch Map
 TOOL_DISPATCH = {
     "search_documents": execute_search_documents,
     "search_database_live": execute_search_database_live,
@@ -1229,6 +1317,7 @@ TOOL_DISPATCH = {
     "get_hearing_timeline": execute_get_hearing_timeline,
     "get_page": execute_get_page,
     "get_platform_stats": execute_get_platform_stats,
+    "generate_judicial_draft": execute_generate_judicial_draft,
 }
 
 

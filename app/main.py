@@ -204,6 +204,17 @@ def favicon():
     return Response(status_code=204)
 
 
+@app.get("/api/drafts/{filename}")
+@app.get("/drafts/{filename}")
+def download_judicial_draft_file(filename: str):
+    from app.services.judicial_drafting_service import DRAFTS_DIR
+    file_path = DRAFTS_DIR / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Judicial draft file not found")
+    media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document" if filename.endswith(".docx") else "application/pdf"
+    return FileResponse(str(file_path), media_type=media_type, filename=filename)
+
+
 # ==========================================
 # 1. REACT SPA FRONTEND PAGE ROUTES & AI GATEWAY
 # ==========================================

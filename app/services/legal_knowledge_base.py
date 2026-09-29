@@ -57,21 +57,44 @@ FORENSIC_KNOWLEDGE_ENTRIES = [
             "s g trivedi",
             "s. g. trivedi",
             "subhash trivedi",
-            "discharge",
-            "discharge order",
-            "227",
-            "section 227",
-            "mens rea",
-            "lack of evidence",
+            "trivedi discharge",
             "amravati discharge",
         ],
         "content": """
 [VERIFIED JUDICIAL RECORD: S. G. Trivedi Discharge Order]
 - **Accused Profile:** Subhash G. Trivedi (S. G. Trivedi), Chief Executive Officer / Senior Manager.
-- **Judicial Forum:** Court of Session / Special Court (Amravati & Nagpur dockets).
+- **Judicial Forum:** Court of Session / Special Court (Amravati & Nagpur dockets, Special Case 2/2003).
 - **Statutory Provision:** Section 227 of the Code of Criminal Procedure, 1973 (CrPC) - Discharge of Accused.
 - **Core Judicial Finding:** The Court ruled that administrative or ministerial acts executed by bank officials in implementation of board resolutions, without dishonest intention or personal pecuniary benefit, do not satisfy the statutory elements of Section 409 or 420 of the Indian Penal Code.
 - **Discharge Grounds:** Complete absence of prima facie evidence indicating criminal conspiracy (Section 120-B IPC) or mens rea (dishonest intention). Accused was unconditionally discharged prior to framing of formal charges.
+""",
+    },
+    {
+        "id": "pune_vishrambaug_order",
+        "keywords": [
+            "vishrambag",
+            "vishrambaug",
+            "pune 255/23",
+            "pw/4700255/2023",
+            "255/23",
+            "cr 85/2002",
+            "85/2002",
+            "dadabhau kale",
+            "suvarnayug",
+            "jmfc pune",
+            "pune magistrate",
+        ],
+        "content": """
+[VERIFIED JUDICIAL RECORD: Pune Vishrambaug Case & JMFC Default Bail Order (19.11.2002)]
+- **Court & Case Details:** In the Court of Judicial Magistrate First Class (JMFC), Pune / 47th Court of Additional Chief Judicial Magistrate (ACJM), Pune. CNR Number: MHMM110023242023, Case No. PW/4700255/2023 (formerly Case 255/23).
+- **Police Station & FIR:** Vishrambaug Police Station, Crime Reg. No. 85/2002 (registered u/s 406, 409, 420, 465, 467, 468 r/w 34 IPC).
+- **Complainant:** Dadabhau Vithoba Kale, Chief Auditor of Government Department, on behalf of Suvarnayug Sahakari Bank Ltd. (alleging default of Rs. 5 Crore 65 Lakhs regarding physical delivery of securities by Home Trade Ltd.).
+- **Accused:** Sanjay H. Agarwal (represented by Advocate Jaideep V. Thakkar).
+- **Arrest & Custody:** Arrested on 21/08/2002, produced on 22/08/2002, PCR till 26/08/2002, then remanded to Magisterial Custody.
+- **Magistrate's Order & Reasons (Date 19.11.2002, JMFC Pune):** Under Section 167(2)(a)(i) CrPC, the police authorities were statutorily obligated to file the charge-sheet within 90 days. The police failed to file the charge-sheet within 90 days. The JMFC ruled that an indefeasible right to statutory default bail had accrued in favour of the accused and granted bail:
+  "ORDER: As the charge-sheet is not filed within 90 days, the accused be released on P. R. Bond of Rs. 15,00,000/- (Rs. Fifteen Lakhs) and two solvent sureties of the amount of Rs. 7,50,000/- each. The accused should not leave India without prior permission of this Court and he should not tamper with the evidence of prosecution. Pune. Dt. 19.11.2002. - Asstt. J.M.F.C. Court No. 3, Pune."
+- **Sessions Court Modification (Cri. Misc. Appln. 1112/2002, Sessions Court Pune):** In an application under Section 440(1) CrPC to reduce onerous surety conditions, the Sessions Court noted that the accused was facing trial across multiple courts, and cited the Supreme Court rulings in Moti Ram v. State of M.P. (AIR 1978 SC 1594) and Keshab Narayan Banerjee v. State of Bihar (AIR 1985 SC 1566) that bail bond amounts must be reasonable and not excessive.
+- **Record Status on Discharge:** The Pune Vishrambaug case file in CALIP contains the complete Section 167(2) default bail order of 19.11.2002, charge sheet registers, and daily status roznama entries from 2024 to 2026; no Section 227/239 discharge order exists in this docket.
 """,
     },
     {
