@@ -1,7 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import logoHorizontal from '../../assets/logo-horizontal.png';
-import logoDefault from '../../assets/logo.png';
 import {
   Sparkles,
   Database,
@@ -33,16 +31,8 @@ export function Footer() {
         {/* Top Section: Brand + Value Proposition + Live Sync Badge */}
         <div className="footer-top-grid">
           <div className="footer-brand-column">
-            <Link to="/" className="footer-brand-link" onClick={scrollToTop}>
-              <img
-                src={logoHorizontal}
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = logoDefault;
-                }}
-                alt="CALIP - Cognitive Atomic Legal Intelligence Platform"
-                className="footer-brand-logo"
-              />
+            <Link to="/" className="footer-brand-text" onClick={scrollToTop}>
+              calip
             </Link>
             <p className="footer-brand-desc">
               <strong>Cognitive Atomic Legal Intelligence Platform</strong> &mdash; A next-generation judicial

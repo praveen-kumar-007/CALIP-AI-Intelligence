@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
-import calipLogo from '../assets/logo.png';
-import logoEmblem from '../assets/logo-emblem.png';
 import { Sparkles, Languages, ShieldCheck, Database, Layers, ArrowRight } from 'lucide-react';
 
 export function HomePage() {
@@ -66,21 +64,7 @@ export function HomePage() {
       {/* Hero Section */}
       <section className="hero-section">
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
-          <img
-            src={calipLogo}
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = logoEmblem;
-            }}
-            alt="CALIP - Cognitive Atomic Legal Intelligence Platform"
-            style={{
-              maxWidth: '280px',
-              width: '100%',
-              height: 'auto',
-              objectFit: 'contain',
-              filter: 'drop-shadow(0 6px 20px rgba(0,0,0,0.15))',
-            }}
-          />
+          <span className="hero-brand-plain">calip</span>
         </div>
         <div className="hero-pill">
           <Sparkles size={14} />

@@ -158,18 +158,19 @@ a:hover {
   display: flex;
   align-items: center;
   text-decoration: none;
+  font-family: inherit;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-pure);
+  letter-spacing: -0.02em;
 }
 
-.brand-logo-img {
-  height: 44px;
-  width: auto;
-  max-height: 48px;
-  object-fit: contain;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.brand-logo:hover .brand-logo-img {
-  transform: scale(1.02);
+.hero-brand-plain {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: var(--text-pure);
+  letter-spacing: -0.02em;
+  display: inline-block;
 }
 
 .brand-text {
@@ -1046,10 +1047,13 @@ a:hover {
   gap: 0.85rem;
 }
 
-.footer-brand-logo {
-  height: 42px;
-  width: auto;
-  object-fit: contain;
+.footer-brand-text {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-pure);
+  text-decoration: none;
+  display: inline-block;
+  letter-spacing: -0.02em;
 }
 
 .footer-brand-desc {
@@ -1565,10 +1569,6 @@ a:hover {
   .navbar {
     padding: 0.5rem 1rem;
   }
-  .brand-logo-img {
-    height: 40px;
-    max-width: 180px;
-  }
   .main-content {
     padding: 1.5rem 1rem;
   }
@@ -1719,10 +1719,6 @@ a:hover {
   }
   .navbar {
     padding: 0.45rem 0.75rem;
-  }
-  .brand-logo-img {
-    height: 34px;
-    max-width: 135px;
   }
   .pulse-text {
     display: none;
