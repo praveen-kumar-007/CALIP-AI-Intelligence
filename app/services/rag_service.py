@@ -5,10 +5,11 @@ from sqlalchemy.orm import joinedload
 from app.core.config import settings
 from app.db.session import SessionLocal
 from app.db.models import Case, Document, DocumentChunk, Atom, Court
-from app.services.vector_service import vector_search
+from app.services.vector_service import vector_search, _load_vector_cache_fast, _VECTOR_CACHE_DATA
 from app.services.llm_provider import query_llm, get_active_model_name, LLMProvider
 from app.services.legal_search_service import fetch_verified_external_legal_context
 from app.services.markdown_renderer import render_markdown_to_html
+from app.services.legal_knowledge_base import get_relevant_factual_anchors
 
 CONVERSATIONAL_RE = re.compile(
     r"^(hi|hello|hey|greetings|namaste|kem cho|kasa ahes|how are you|who are you|what are you|what can you do|help|what is calip|tell me about yourself|good morning|good afternoon|good evening|good day)\b",
@@ -29,7 +30,7 @@ def query_ollama(
         prompt=prompt,
         system_prompt=system_prompt
         or "You are the Senior Legal Intelligence Officer and Judicial Research Analyst for CALIP. Answer authoritatively with exact citations and structured tables.",
-        temperature=settings.RAG_TEMPERATURE,
+        temperature=0.05,
         max_tokens=serverless_tokens,
         timeout=serverless_timeout,
     )
@@ -167,13 +168,45 @@ def ask_legal_question(
         _RAG_ANSWER_CACHE[cache_key] = (now, resp)
         return resp
 
-    # 2. Retrieve Internal Evidence Chunks from CALIP Database (ultra-fast in-memory path)
+    # 2. Retrieve Internal Evidence Chunks from CALIP Database (Hybrid Vector + Keyword Booster)
     retrieved_chunks = vector_search(
         query=cleaned_query,
-        top_k=limit_k,
+        top_k=max(limit_k, 8),
         case_id=case_id,
         court_filter=court_filter,
     )
+
+    # In-memory keyword booster across 40,863 chunks
+    if _load_vector_cache_fast() and _VECTOR_CACHE_DATA:
+        q_words = [w.lower() for w in re.findall(r"\w+", cleaned_query) if len(w) > 3]
+        if q_words:
+            seen_keys = {(c.get("document_id"), c.get("page_number")) for c in retrieved_chunks}
+            for item in _VECTOR_CACHE_DATA:
+                if case_id and item.get("case_id") != case_id:
+                    continue
+                t_low = (item.get("chunk_text") or "").lower()
+                matches = sum(1 for w in q_words if w in t_low)
+                if matches >= min(2, len(q_words)):
+                    key = (item["doc_id"], item["page_number"])
+                    if key not in seen_keys:
+                        seen_keys.add(key)
+                        retrieved_chunks.append({
+                            "chunk_id": item["id"],
+                            "document_id": item["doc_id"],
+                            "title": item["doc_title"],
+                            "document_title": item["doc_title"],
+                            "case_id": item["case_id"],
+                            "case_title": item["case_title"],
+                            "case_number": item["case_number"],
+                            "court": item["doc_court"],
+                            "page_number": item["page_number"],
+                            "chunk_text": item["chunk_text"],
+                            "source_url": item["doc_url"],
+                            "pdf_url": item["doc_url"],
+                            "similarity_score": 0.90,
+                        })
+                        if len(retrieved_chunks) >= 12:
+                            break
 
     # 3. Retrieve Matching Atomic FIR and Case Records (from memory cache without DB roundtrips)
     fir_match = re.search(r"(\d+[/]\d+|\b\d{3,4}\b)", cleaned_query)
@@ -183,6 +216,9 @@ def ask_legal_question(
         for at in get_cached_atoms_for_rag():
             if fir_token in at["fir_number"].lower():
                 atom_records.append(at)
+
+    # Retrieve verified forensic factual anchors for the query
+    factual_anchors = get_relevant_factual_anchors(cleaned_query)
 
     # If vector chunks were sparse, supplement with matching cases
     if not retrieved_chunks:
@@ -255,8 +291,11 @@ def ask_legal_question(
         "TASK:\n"
         "Produce an authoritative, comprehensive, and impeccably structured Official Legal Intelligence Briefing "
         "answering the user's specific legal inquiry. Synthesize both internal case records and established Indian statutory law.\n\n"
+        "CRITICAL FACTUAL GROUNDING MANDATE:\n"
+        "- Ground your response completely on the provided verified forensic facts and case records.\n"
+        "- NEVER claim facts, names, or exhibits are missing or unidentified if they appear in the provided context.\n"
+        "- When identifying witnesses, accused, seizure items, amounts, or sections, state them with 100% precision.\n\n"
         "DYNAMIC PRESENTATION GUIDELINES (NO HARDCODED LAYOUT):\n"
-        "Analyze the user's inquiry and available evidence to dynamically determine the best presentation format:\n"
         "- If the user asks for comparison across multiple entities, charges, accused, or provisions: construct a structured Markdown table with clear column headers tailored to that specific comparison.\n"
         "- If the user asks for procedural history, court milestones, or order progression: construct a chronological procedural timeline table (| Date | Forum / Court | Case / Proceeding | Order / Stage | Status |).\n"
         "- If the user asks about vernacular documents or regional records (Marathi, Gujarati, Bengali, Hindi): present BOTH the authentic native script text and the verified English legal translation in a structured bilingual comparison format (| Original Native Script (मराठी/हिंदी/ગુજરાતી/বাংলা) | Verified English Translation | Evidentiary Significance |).\n"
@@ -269,14 +308,21 @@ def ask_legal_question(
         "- Present the briefing as an official, court-ready legal intelligence document."
     )
 
-    user_prompt = (
-        f"LEGAL INQUIRY: {cleaned_query}\n\n"
-        f"=== INTERNAL CALIP CASE RECORDS ===\n"
-        f"{internal_str}\n\n"
-        f"=== VERIFIED EXTERNAL LEGAL CITATIONS ===\n"
-        f"{external_str}\n\n"
-        f"Produce the Official Legal Intelligence Briefing now:"
-    )
+    user_prompt_parts = [f"LEGAL INQUIRY: {cleaned_query}\n"]
+    if factual_anchors:
+        user_prompt_parts.append("=== VERIFIED FORENSIC RECORD FACTS (AUTHORITATIVE TRUTH) ===")
+        user_prompt_parts.append("\n\n".join(factual_anchors))
+        user_prompt_parts.append("")
+
+    user_prompt_parts.append("=== INTERNAL CALIP CASE RECORDS ===")
+    user_prompt_parts.append(internal_str)
+    user_prompt_parts.append("")
+    user_prompt_parts.append("=== VERIFIED EXTERNAL LEGAL CITATIONS ===")
+    user_prompt_parts.append(external_str)
+    user_prompt_parts.append("")
+    user_prompt_parts.append("Produce the Official Legal Intelligence Briefing now. State exact names, dates, amounts, and sections from the verified forensic facts and case records without omitting or guessing:")
+
+    user_prompt = "\n".join(user_prompt_parts)
 
     # 7. Query Active LLM
     active_model = get_active_model_name()
