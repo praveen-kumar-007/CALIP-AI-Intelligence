@@ -140,7 +140,12 @@ class LLMProvider:
                 data = res.json()
                 choices = data.get("choices", [])
                 if choices:
-                    return choices[0]["message"]["content"].strip()
+                    msg = choices[0].get("message", {})
+                    content = (msg.get("content") or "").strip()
+                    if not content and msg.get("reasoning"):
+                        content = msg.get("reasoning").strip()
+                    if content:
+                        return content
             else:
                 logger.warning(f"Groq API error {res.status_code}: {res.text}")
         except Exception as exc:

@@ -23,13 +23,15 @@ def query_ollama(
     timeout: int = settings.RAG_TIMEOUT_SECONDS,
 ) -> str | None:
     """Invokes production LLM (Groq, NVIDIA NIM, Gemini, or local Ollama)."""
+    serverless_timeout = min(timeout, 8) if settings.IS_SERVERLESS else timeout
+    serverless_tokens = 1500 if settings.IS_SERVERLESS else 3000
     return query_llm(
         prompt=prompt,
         system_prompt=system_prompt
         or "You are the Senior Legal Intelligence Officer and Judicial Research Analyst for CALIP. Answer authoritatively with exact citations and structured tables.",
         temperature=settings.RAG_TEMPERATURE,
-        max_tokens=3000,
-        timeout=timeout,
+        max_tokens=serverless_tokens,
+        timeout=serverless_timeout,
     )
 
 

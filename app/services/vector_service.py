@@ -25,7 +25,7 @@ MODEL_NAME = settings.EMBEDDING_MODEL_NAME
 
 def get_embedding_model():
     global _MODEL
-    if not HAS_SENTENCE_TRANSFORMERS:
+    if not HAS_SENTENCE_TRANSFORMERS or settings.IS_SERVERLESS:
         return None
     if _MODEL is None:
         try:
@@ -314,12 +314,20 @@ def vector_search(
             DocumentChunk.embedding,
         ).filter(DocumentChunk.embedding.isnot(None))
 
+        from sqlalchemy import or_
+
+        stop_words = {"what", "where", "which", "there", "about", "cases", "court", "legal", "from", "with", "have", "been", "this", "that", "the", "and", "tell", "show"}
+        keywords = [w for w in re.findall(r"\w+", query.lower()) if len(w) > 2 and w not in stop_words]
+
         if atom_id:
             query_set = query_set.filter(DocumentChunk.atom_id == str(atom_id))
         elif case_id:
             query_set = query_set.filter(DocumentChunk.case_id == case_id)
+        elif keywords:
+            kw_filters = [DocumentChunk.chunk_text.ilike(f"%{kw}%") for kw in keywords[:4]]
+            query_set = query_set.filter(or_(*kw_filters))
 
-        rows = query_set.all()
+        rows = query_set.limit(100).all()
         if not rows:
             return []
 
@@ -350,19 +358,26 @@ def vector_search(
         similarities = np.dot(emb_matrix, query_emb)
         top_indices = np.argsort(similarities)[::-1][:top_k]
 
-        for idx in top_indices:
+        top_candidates = [chunk_objects[i] for i in top_indices]
+        doc_ids = {chk["document_id"] for chk in top_candidates if chk["document_id"]}
+        case_ids = {chk["case_id"] for chk in top_candidates if chk["case_id"]}
+
+        docs_map = {d.id: d for d in db.query(Document).filter(Document.id.in_(doc_ids)).all()} if doc_ids else {}
+        cases_map = {c.id: c for c in db.query(Case).filter(Case.id.in_(case_ids)).all()} if case_ids else {}
+
+        from app.services.legal_data import resolve_original_pdf_url
+
+        for chk, idx in zip(top_candidates, top_indices):
             score = float(similarities[idx])
-            chk = chunk_objects[idx]
             chk_id = chk["id"]
             doc_id = chk["document_id"]
             case_id_val = chk["case_id"]
-            doc = db.query(Document).filter_by(id=doc_id).first()
-            case = db.query(Case).filter_by(id=case_id_val).first() if case_id_val else None
+            doc = docs_map.get(doc_id)
+            case = cases_map.get(case_id_val)
 
             if court_filter and case and court_filter.lower() not in (case.court_name or "").lower():
                 continue
 
-            from app.services.legal_data import resolve_original_pdf_url
             resolved_pdf = resolve_original_pdf_url(doc_id, doc.original_pdf_url if doc else None) if doc_id else None
 
             results.append({
