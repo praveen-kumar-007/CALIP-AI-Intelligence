@@ -71,8 +71,7 @@ export function HomePage() {
           24 Canonical Pilot Atoms from longtailcases.com &bull; Cognitive Atomic Legal Intelligence Platform
         </div>
         <h1 className="hero-title">
-          Cognitive Atomic Legal Intelligence Platform <br />
-          <span className="text-gradient">Every FIR Bounded &bull; Bilingual &bull; Grounded</span>
+          Cognitive Atomic Legal Intelligence Platform
         </h1>
         <p className="hero-subtitle">
           Dedicated exclusively to the 24 Pilot FIR Atoms. Seamless vernacular preservation (Marathi, Gujarati, Bengali, Hindi) alongside authoritative English legal translations, dynamic adaptive briefings, and 100% verifiable citations.
