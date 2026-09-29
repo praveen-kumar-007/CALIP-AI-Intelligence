@@ -70,7 +70,10 @@ export function HomePage() {
           Cognitive Atomic Legal Intelligence Platform
         </h1>
         <p className="hero-subtitle">
-          Dedicated exclusively to the 24 Pilot FIR Atoms. Seamless vernacular preservation (Marathi, Gujarati, Bengali, Hindi) alongside authoritative English legal translations, dynamic adaptive briefings, and 100% verifiable citations.
+          <strong style={{ display: 'block', fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-pure)', marginBottom: '0.45rem' }}>
+            The Legal Domain Behemoth &mdash; Boutique, Vertical, Deep
+          </strong>
+          A behemoth in depth, not in breadth: the most complete intelligence ever built for one legal domain at a time &mdash; starting with Indian criminal litigation.
         </p>
 
         {/* Universal Search Bar */}
