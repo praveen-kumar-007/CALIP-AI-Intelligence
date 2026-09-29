@@ -1276,27 +1276,31 @@ def execute_get_platform_stats(arguments: dict[str, Any]) -> str:
 
 
 def execute_generate_judicial_draft(arguments: dict[str, Any]) -> str:
-    from app.services.judicial_drafting_service import create_judicial_pleading
-    draft_type = arguments.get("draft_type", "default_bail_167")
-    court_name = arguments.get("court_name") or "In the Court of Judicial Magistrate First Class (JMFC), Pune"
-    case_number = arguments.get("case_number") or "PW/4700255/2023"
-    police_station = arguments.get("police_station") or "Vishrambaug"
-    fir_number = arguments.get("fir_number") or "85/2002"
-    sections_invoked = arguments.get("sections_invoked") or "IPC Sections 406, 409, 420, 465, 467, 468 r/w 34"
-    accused_name = arguments.get("accused_name") or "Mr. Sanjay H. Agarwal"
-    place = arguments.get("place") or "Pune"
+    try:
+        from app.services.judicial_drafting_service import create_judicial_pleading
+        draft_type = arguments.get("draft_type", "default_bail_167")
+        court_name = arguments.get("court_name") or "In the Court of Judicial Magistrate First Class (JMFC), Pune"
+        case_number = arguments.get("case_number") or "PW/4700255/2023"
+        police_station = arguments.get("police_station") or "Vishrambaug"
+        fir_number = arguments.get("fir_number") or "85/2002"
+        sections_invoked = arguments.get("sections_invoked") or "IPC Sections 406, 409, 420, 465, 467, 468 r/w 34"
+        accused_name = arguments.get("accused_name") or "Mr. Sanjay H. Agarwal"
+        place = arguments.get("place") or "Pune"
 
-    res = create_judicial_pleading(
-        court_name=court_name,
-        case_number=case_number,
-        police_station=police_station,
-        fir_number=fir_number,
-        sections_invoked=sections_invoked,
-        accused_name=accused_name,
-        draft_type=draft_type,
-        place=place,
-    )
-    return json.dumps(res, indent=2)
+        res = create_judicial_pleading(
+            court_name=court_name,
+            case_number=case_number,
+            police_station=police_station,
+            fir_number=fir_number,
+            sections_invoked=sections_invoked,
+            accused_name=accused_name,
+            draft_type=draft_type,
+            place=place,
+        )
+        return json.dumps(res, indent=2)
+    except Exception as exc:
+        logger.error("Judicial draft creation error: %s", exc)
+        return json.dumps({"error": f"Failed to generate judicial draft: {str(exc)}"})
 
 
 # Complete 17-Tool Dispatch Map

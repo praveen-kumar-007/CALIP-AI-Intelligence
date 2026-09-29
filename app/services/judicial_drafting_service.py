@@ -28,9 +28,19 @@ except ImportError:
 
 from app.core.config import settings
 
+import tempfile
+
 logger = logging.getLogger("calip.drafting")
 
-DRAFTS_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "drafts"
+if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+    DRAFTS_DIR = Path(tempfile.gettempdir()) / "drafts"
+else:
+    try:
+        DRAFTS_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "drafts"
+        DRAFTS_DIR.mkdir(parents=True, exist_ok=True)
+    except (OSError, PermissionError):
+        DRAFTS_DIR = Path(tempfile.gettempdir()) / "drafts"
+
 DRAFTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
