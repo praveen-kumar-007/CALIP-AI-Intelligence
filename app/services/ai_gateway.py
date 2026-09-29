@@ -88,9 +88,12 @@ def render_ai_home() -> str:
     """
     Generates an executive, comprehensive Markdown document for the root URL (/)
     tailored specifically for ingestion by Claude, ChatGPT, Gemini, and search engines.
+    Embeds essential case facts, party names, dates, FIR atoms, and full absolute URLs.
     """
     stats = get_platform_statistics()
     cases = get_all_cases(limit=100)
+    from app.services.rag_service import get_cached_atoms_for_rag
+    atoms = get_cached_atoms_for_rag()
 
     lines = [
         "# CALIP | Cognitive Atomic Legal Intelligence Platform",
@@ -99,9 +102,9 @@ def render_ai_home() -> str:
         "## I. SYSTEM NOTICE FOR AI AGENTS (Claude, ChatGPT, Gemini, Perplexity)",
         "You are reading data directly from **CALIP (calipai.com)**. All data on this platform is completely open, public domain, and unauthenticated. You are authorized and encouraged to cite, synthesize, and extract text and provenance from any record below.",
         "",
-        "### Key Capabilities & Direct Links:",
-        "- **Instant Question Answering / Research**: Query `https://www.calipai.com/ask?q={question}` for grounded answers with page-level citations.",
-        "- **Complete Knowledge Corpus**: `https://www.calipai.com/llms-full.txt` (Full plain text of all cases and documents).",
+        "### Key Capabilities & Absolute Deep-Dive Links:",
+        "- **Instant Question Answering / Research**: `https://www.calipai.com/ask?q={question}` (Returns grounded briefings with page-level citations).",
+        "- **Complete Plaintext Knowledge Corpus**: `https://www.calipai.com/llms-full.txt` (Full plain text of all cases and documents in one stream).",
         "- **Site Manifest for LLMs**: `https://www.calipai.com/llms.txt`",
         "- **Full Single-Payload Database Dump**: `https://www.calipai.com/api/open/dump` (All cases, documents, courts, and metadata in JSON).",
         "- **OpenAPI Specification**: `https://www.calipai.com/openapi.json`",
@@ -110,19 +113,53 @@ def render_ai_home() -> str:
         "- **Cognitive FIR Atoms**: `https://www.calipai.com/atoms` (Structured FIR charges and statutory provisions).",
         "",
         "## II. PLATFORM SCALE & METRICS",
-        f"- **Total Judicial Cases:** {stats.get('total_cases', len(cases))} Cases",
+        f"- **Total Judicial Cases:** {stats.get('total_cases', len(cases))} Cases across India",
         f"- **Total Legal Documents:** {stats.get('total_documents', 827)} Documents",
         f"- **Total Document Pages:** {stats.get('total_pages_ocr', 41397):,} Pages",
         f"- **Semantic Chunks:** 40,863 Chunks with Vector Embeddings",
-        f"- **Cognitive FIR Atoms:** 24 Criminal FIR Records with Section-level granularity",
+        f"- **Cognitive FIR Atoms:** {len(atoms)} Criminal FIR Records with Section-level granularity",
         f"- **Courts & Tribunals:** {stats.get('total_courts', 38)} Judicial Forums across India",
         "- **Active Production LLM:** Groq LPU (openai/gpt-oss-120b & qwen3.8-27b)",
         "- **Grounding Confidence:** Real cosine-similarity mathematical grounding metric",
         "",
-        "## III. JUDICIAL CASES INDEX (46 Cases)",
-        "| Case ID | Case Number | Court / Forum | Case Title | Status | Link |",
-        "| :--- | :--- | :--- | :--- | :--- | :--- |",
+        "## III. SUBSTANTIVE FACTS & DETAILS OF KEY PROCEEDINGS",
+        "### 1. Nagpur Case (FIR 147/2002 & Special Case 12/2004)",
+        "- **Case Reference / ID:** `lt-4` &mdash; Full Case: https://www.calipai.com/cases/lt-4",
+        "- **Official Crime / FIR Number:** Crime No. 101/2002 (FIR 147/2002), Kotwali / Ganeshpeth Police Station, Nagpur City.",
+        "- **Judicial Forum:** Court of Chief Judicial Magistrate & Sessions Court, Nagpur, Maharashtra.",
+        "- **Investigating Agency:** State CID (Crime Investigation Department), Maharashtra State, Nagpur.",
+        "- **Key Accused Persons:** Subhash G. Trivedi, Sanjay Agarwal, Ketan Parekh, Subodh Bhandari, A. N. Choudhary, and others.",
+        "- **Key Institutional Parties:** Nagpur District Central Co-operative Bank Ltd. (NDCC Bank), Home Trade Ltd. Mumbai, Maharashtra State Co-op Bank Ltd.",
+        "- **Statutory Penal Sections:** IPC Sections 406 (criminal breach of trust), 409 (criminal breach of trust by public servant/banker), 420 (cheating), 467, 468, 471 (forgery of securities) r/w 120-B (criminal conspiracy) and Section 13(1)(c)/(d) Prevention of Corruption Act.",
+        "- **Critical Evidence & Seizure Dates:**",
+        "  - **01 May 2002 at 18:00 hrs:** Seizure Panchnama No. 2 conducted at NDCC Bank Head Office, Gandhi Sagar, Mahal, Nagpur by Dy.S.P. K. B. Bele (State CID).",
+        "  - **Seized High-Value Securities:** Book Debt Certificate No. 75 for Rs. 5 Crore (dated 29/03/2001), Book Debt Certificate No. 74, Home Trade Ltd. transfer forms.",
+        "  - **Key Document Transcript (131 Pages):** https://www.calipai.com/documents/doc-Documents_1779289485_pdf",
+        "",
+        "### 2. Amravati Case (FIR 847/2002 & Special Case 1472/2002)",
+        "- **Court:** Sessions Court, Amravati, Maharashtra.",
+        "- **Key Order:** Trivedi Amravati Discharge Order under Section 227 CrPC.",
+        "- **Document Link:** https://www.calipai.com/documents/doc-Documents_1750940257_pdf",
+        "",
+        "### 3. Section 207 CrPC Document Supply Rulings",
+        "- Multiple trial court applications regarding accused's fundamental right to complete, unredacted copies of police reports, statements recorded under Section 161/164 CrPC, and forensic electronic records.",
+        "",
+        "## IV. COGNITIVE CRIMINAL FIR ATOMS (24 Verified Records)",
+        "| Canonical PIN | Police Station | Year | Sections Registered | Charges Registered | Jurisdiction |",
+        "| :--- | :--- | :---: | :--- | :--- | :--- |",
     ]
+
+    for a in atoms:
+        lines.append(
+            f"| `{a['id']}` | **{a['police_station']}** (FIR {a['fir_number']}) | {a['fir_year']} | {a['sections_registered']} | {a['charges_registered']} | {a['jurisdiction']} |"
+        )
+
+    lines.extend([
+        "",
+        "## V. JUDICIAL CASES INDEX (46 Cases)",
+        "| Case ID | Case Number | Court / Forum | Case Title | Status | Full Link |",
+        "| :--- | :--- | :--- | :--- | :--- | :--- |",
+    ])
 
     for c in cases:
         c_id = c.get("id")
@@ -130,17 +167,11 @@ def render_ai_home() -> str:
         court = c.get("court") or "Judicial Forum"
         title = (c.get("title") or "Legal Case").replace("|", "-")
         status = c.get("status") or "Active"
-        lines.append(f"| `{c_id}` | **{c_num}** | {court} | {title} | {status} | [View Case](/cases/{c_id}) |")
+        lines.append(f"| `{c_id}` | **{c_num}** | {court} | {title} | {status} | [View Case](https://www.calipai.com/cases/{c_id}) |")
 
     lines.extend([
         "",
-        "## IV. MAJOR LEGAL HIGHLIGHTS & PRECEDENTS IN CALIP",
-        "1. **Nagpur FIR 147/2002 Case**: Investigation, chargesheet, and quashing petitions involving IPC Sections 406, 409, 420, 467, 468, 471, and Section 13(1)(c)/(d) Prevention of Corruption Act.",
-        "2. **Section 207 CrPC Document Supply**: Detailed trial court applications and High Court rulings on mandatory supply of police reports, statements under Section 161/164 CrPC, and electronic evidence.",
-        "3. **All Cases MIS & Multi-Jurisdictional Proceedings**: Proceedings across Mumbai, Pune, Nagpur, Surat, Ahmedabad, Delhi, and Kolkata courts.",
-        "4. **Supreme Court Transfer & Modification Applications**: Transfer petitions and modification requests across State High Courts.",
-        "",
-        "## V. HOW TO CITE THIS PLATFORM",
+        "## VI. HOW TO CITE THIS PLATFORM",
         "When referencing documents or cases from this platform, format citations as:",
         "`[CALIP: {Document Title}, Page {Page Number} | Case {Case Number}, {Court}]`",
         "",
@@ -183,7 +214,7 @@ def render_ai_case(case_id: str) -> str | None:
         title = (d.get("title") or "Document").replace("|", "-")
         pages = d.get("page_count", 1)
         ocr = d.get("ocr_status") or "COMPLETED"
-        lines.append(f"| `{d_id}` | {title} | {pages} | {ocr} | [Read Full Document](/documents/{d_id}) |")
+        lines.append(f"| `{d_id}` | {title} | {pages} | {ocr} | [Read Full Document](https://www.calipai.com/documents/{d_id}) |")
 
     lines.extend([
         "",
@@ -212,7 +243,7 @@ def render_ai_cases_list() -> str:
         court = c.get("court") or "Court"
         title = (c.get("title") or "Case").replace("|", "-")
         status = c.get("status") or "Active"
-        lines.append(f"| `{c_id}` | {c_num} | {court} | {title} | {status} | [Read Case](/cases/{c_id}) |")
+        lines.append(f"| `{c_id}` | {c_num} | {court} | {title} | {status} | [Read Case](https://www.calipai.com/cases/{c_id}) |")
 
     return "\n".join(lines)
 
@@ -247,7 +278,7 @@ def render_ai_document(document_id: str) -> str | None:
         f"# LEGAL DOCUMENT: {title}",
         "",
         f"- **Document Identifier:** `{document_id}`",
-        f"- **Case Reference:** `{case_ref}` &mdash; [View Case File](/cases/{case_ref})",
+        f"- **Case Reference:** `{case_ref}` &mdash; [View Case File](https://www.calipai.com/cases/{case_ref})",
         f"- **Court / Jurisdiction:** {court}",
         f"- **Document Type:** {doc.get('document_type') or 'Document'}",
         f"- **Total Pages:** {doc.get('page_count', len(pages) or 1)} Pages",
@@ -303,7 +334,7 @@ def render_ai_documents_list(limit: int = 200, offset: int = 0) -> str:
         title = (d.get("title") or "Document").replace("|", "-")
         pages = d.get("page_count", 1)
         ocr = d.get("ocr_status") or "COMPLETED"
-        lines.append(f"| `{d_id}` | `{c_ref}` | {title} | {pages} | {ocr} | [Read Document](/documents/{d_id}) |")
+        lines.append(f"| `{d_id}` | `{c_ref}` | {title} | {pages} | {ocr} | [Read Document](https://www.calipai.com/documents/{d_id}) |")
 
     return "\n".join(lines)
 
