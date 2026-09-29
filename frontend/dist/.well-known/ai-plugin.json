@@ -1,0 +1,17 @@
+{
+  "schema_version": "v1",
+  "name_for_model": "calip_legal_intelligence",
+  "name_for_human": "CALIP Legal Intelligence",
+  "description_for_model": "Access 46 cases, 827 legal documents, 41,397 pages, 24 FIR atoms, and downloadable PDF reports on calipai.com.",
+  "description_for_human": "CALIP Indian Legal Intelligence Platform",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://www.calipai.com/openapi.json"
+  },
+  "logo_url": "https://www.calipai.com/favicon.png",
+  "contact_email": "support@calipai.com",
+  "legal_info_url": "https://www.calipai.com"
+}

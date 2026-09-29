@@ -1,0 +1,16 @@
+{
+  "short_name": "CALIP",
+  "name": "CALIP - Cognitive Atomic Legal Intelligence Platform",
+  "description": "Open source-grounded legal case and document repository structuring 46 judicial cases, 827 verified documents, 41,397 pages, and 40,863 vector chunks.",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#f8fafc",
+  "theme_color": "#1d4ed8",
+  "display": "standalone"
+}

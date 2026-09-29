@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
-import { Languages, ShieldCheck, Database, Layers, ArrowRight } from 'lucide-react';
+import { Sparkles, Languages, ShieldCheck, Database, Layers, ArrowRight } from 'lucide-react';
 
 export function HomePage() {
   const [stats, setStats] = useState({

@@ -184,16 +184,72 @@ REACT_DIST_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 REACT_INDEX_HTML = REACT_DIST_DIR / "index.html"
 REACT_ASSETS_DIR = REACT_DIST_DIR / "assets"
 
+@app.get("/assets/{asset_name}")
+def serve_asset_with_fallback(asset_name: str):
+    """Serves frontend JS/CSS assets with automatic fallback for stale browser cache requests."""
+    file_path = REACT_ASSETS_DIR / asset_name
+    if file_path.exists():
+        media_type = "text/css" if asset_name.endswith(".css") else ("application/javascript" if asset_name.endswith(".js") else None)
+        return FileResponse(str(file_path), media_type=media_type)
+    # Stale cache fallback for previously hashed CSS/JS
+    if asset_name.endswith(".css"):
+        css_files = sorted(REACT_ASSETS_DIR.glob("*.css"))
+        if css_files:
+            return FileResponse(str(css_files[0]), media_type="text/css")
+    if asset_name.endswith(".js"):
+        js_files = sorted(REACT_ASSETS_DIR.glob("*.js"))
+        if js_files:
+            return FileResponse(str(js_files[0]), media_type="application/javascript")
+    raise HTTPException(status_code=404, detail="Asset not found")
+
 if REACT_ASSETS_DIR.exists():
     app.mount("/assets", StaticFiles(directory=str(REACT_ASSETS_DIR)), name="react_assets")
 
 def serve_react_app():
     if REACT_INDEX_HTML.exists():
-        return FileResponse(str(REACT_INDEX_HTML), media_type="text/html")
+        return FileResponse(
+            str(REACT_INDEX_HTML),
+            media_type="text/html",
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
     raise HTTPException(
         status_code=503,
         detail="Frontend React build not found. Run 'npm run build' in frontend directory.",
     )
+
+
+@app.get("/manifest.json", include_in_schema=False)
+def get_pwa_manifest():
+    manifest_path = Path(__file__).resolve().parent.parent / "frontend" / "public" / "manifest.json"
+    if manifest_path.exists():
+        return FileResponse(str(manifest_path), media_type="application/manifest+json")
+    return {
+        "short_name": "CALIP",
+        "name": "CALIP - Cognitive Atomic Legal Intelligence Platform",
+        "display": "standalone",
+        "start_url": "/",
+        "background_color": "#f8fafc",
+        "theme_color": "#1d4ed8"
+    }
+
+
+@app.get("/.well-known/ai-plugin.json", include_in_schema=False)
+def get_ai_plugin_spec():
+    plugin_path = Path(__file__).resolve().parent.parent / "frontend" / "public" / ".well-known" / "ai-plugin.json"
+    if plugin_path.exists():
+        return FileResponse(str(plugin_path), media_type="application/json")
+    return {
+        "schema_version": "v1",
+        "name_for_model": "calip_legal_intelligence",
+        "name_for_human": "CALIP Legal Intelligence",
+        "description_for_model": "Access 46 cases, 827 legal documents, 41,397 pages, 24 FIR atoms on calipai.com",
+        "description_for_human": "CALIP Indian Legal Intelligence Platform",
+        "auth": {"type": "none"},
+        "api": {"type": "openapi", "url": "https://www.calipai.com/openapi.json"},
+        "logo_url": "https://www.calipai.com/favicon.png",
+        "contact_email": "support@calipai.com",
+        "legal_info_url": "https://www.calipai.com"
+    }
 
 
 @app.get("/favicon.ico", include_in_schema=False)
@@ -201,6 +257,14 @@ def favicon():
     fav_path = settings.STATIC_DIR / "favicon.ico"
     if fav_path.exists():
         return FileResponse(str(fav_path), media_type="image/x-icon")
+    return Response(status_code=204)
+
+
+@app.get("/favicon.png", include_in_schema=False)
+def favicon_png():
+    fav_path = settings.STATIC_DIR / "favicon.png"
+    if fav_path.exists():
+        return FileResponse(str(fav_path), media_type="image/png")
     return Response(status_code=204)
 
 
