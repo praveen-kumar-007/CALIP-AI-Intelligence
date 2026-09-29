@@ -16,8 +16,8 @@ export function Navbar() {
     <header className="navbar">
       <div className="nav-container">
         <div className="nav-brand-group">
-          <Link to="/" className="brand-logo" title="calip">
-            calip
+          <Link to="/" className="brand-logo" title="CALIP">
+            CALIP
           </Link>
           <div className="pulse-indicator" title="Auto-Sync Engine active & monitoring upstream longtailcases.com">
             <span className="pulse-dot"></span>
@@ -101,7 +101,7 @@ export function Navbar() {
       <div id="mobile-drawer" className={`mobile-drawer ${mobileMenuOpen ? 'open' : ''}`}>
         <div className="mobile-drawer-inner">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', paddingBottom: '0.85rem', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-            <Link to="/" className="brand-logo" onClick={closeMenu}>calip</Link>
+            <Link to="/" className="brand-logo" onClick={closeMenu}>CALIP</Link>
             <div className="pulse-indicator">
               <span className="pulse-dot"></span>
               <span className="pulse-text">Live Sync</span>

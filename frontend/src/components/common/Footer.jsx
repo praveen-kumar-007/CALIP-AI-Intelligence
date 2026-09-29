@@ -32,7 +32,7 @@ export function Footer() {
         <div className="footer-top-grid">
           <div className="footer-brand-column">
             <Link to="/" className="footer-brand-text" onClick={scrollToTop}>
-              calip
+              CALIP
             </Link>
             <p className="footer-brand-desc">
               <strong>Cognitive Atomic Legal Intelligence Platform</strong> &mdash; A next-generation judicial

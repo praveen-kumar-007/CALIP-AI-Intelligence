@@ -64,7 +64,7 @@ export function HomePage() {
       {/* Hero Section */}
       <section className="hero-section">
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
-          <span className="hero-brand-plain">calip</span>
+          <span className="hero-brand-plain">CALIP</span>
         </div>
         <div className="hero-pill">
           <Sparkles size={14} />
