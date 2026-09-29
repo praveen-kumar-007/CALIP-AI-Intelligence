@@ -24,7 +24,7 @@ from typing import Any
 import httpx
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse, PlainTextResponse, StreamingResponse
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 
 try:
     import pymupdf as fitz
@@ -74,8 +74,8 @@ MCP_TOOLS = [
                 },
                 "limit": {
                     "type": "integer",
-                    "description": "Maximum number of results to return (default: 5, max: 20)",
-                    "default": 5,
+                    "description": "Maximum number of results to return (default: 10, max: 50)",
+                    "default": 10,
                 },
                 "case_id": {
                     "type": "string",
@@ -87,17 +87,17 @@ MCP_TOOLS = [
     },
     {
         "name": "search_database_live",
-        "description": "Direct live SQL search across all 827 documents and 41,397 pages in PostgreSQL. Guaranteed to discover 100% of all present and future documents and pages even if not yet indexed in vector files. Returns matching documents, matching page numbers, and exact highlighted text excerpts.",
+        "description": "Direct live SQL search across all 827 documents and 41,397 pages in PostgreSQL. Guaranteed to discover 100% of all present and future documents and pages even if not yet indexed in vector files. Returns matching documents, matching page numbers, highlighted excerpts, relevance ranking, and pagination support.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "Search keyword, phrase, or legal document title",
+                    "description": "Search keyword, phrase, or legal document title (e.g. 'discharge order 420', 'Section 167(2) default bail')",
                 },
                 "case_id": {
                     "type": "string",
-                    "description": "Optional case ID filter (e.g. 'lt-4')",
+                    "description": "Optional case ID filter (e.g. 'lt-4', 'lt-31')",
                 },
                 "search_scope": {
                     "type": "string",
@@ -107,8 +107,13 @@ MCP_TOOLS = [
                 },
                 "limit": {
                     "type": "integer",
-                    "description": "Maximum results to return (default: 8, max: 25)",
-                    "default": 8,
+                    "description": "Maximum results to return per page (default: 10, max: 100)",
+                    "default": 10,
+                },
+                "offset": {
+                    "type": "integer",
+                    "description": "Pagination offset to retrieve subsequent batches of results (default: 0)",
+                    "default": 0,
                 },
             },
             "required": ["query"],
@@ -433,7 +438,7 @@ def execute_search_documents(arguments: dict[str, Any]) -> str:
     if not query:
         return json.dumps({"error": "Query cannot be empty"})
 
-    limit = min(int(arguments.get("limit", 5)), 20)
+    limit = min(max(int(arguments.get("limit", 10)), 1), 50)
     case_id = arguments.get("case_id")
 
     # 1. Semantic vector search
@@ -597,11 +602,12 @@ def execute_search_documents(arguments: dict[str, Any]) -> str:
 
 
 def execute_search_database_live(arguments: dict[str, Any]) -> str:
-    """Performs live SQL query across Document and DocumentPage tables."""
+    """Performs live SQL query across Document and DocumentPage tables with multi-term relevance ranking and pagination."""
     query = arguments.get("query", "").strip()
     case_id = arguments.get("case_id")
     search_scope = arguments.get("search_scope", "all")
-    limit = min(int(arguments.get("limit", 8)), 25)
+    limit = min(max(int(arguments.get("limit", 10)), 1), 100)
+    offset = max(int(arguments.get("offset", 0)), 0)
 
     if not query:
         return json.dumps({"error": "Query cannot be empty"})
@@ -611,18 +617,59 @@ def execute_search_database_live(arguments: dict[str, Any]) -> str:
         q_terms = [w for w in re.findall(r"\w+", query.lower()) if len(w) > 2]
         matched_pages_list = []
         matched_docs_list = []
+        total_matched_pages = 0
 
         # 1. Search DocumentPage directly for exact page content (41,397 pages + future)
         if search_scope in ("all", "pages") and q_terms:
             page_q = db.query(DocumentPage).join(Document, DocumentPage.document_id == Document.id)
             if case_id:
                 page_q = page_q.filter(Document.case_id == case_id)
-            p_filters = [DocumentPage.page_text.ilike(f"%{t}%") for t in q_terms[:4]]
-            db_pages = page_q.filter(or_(*p_filters)).limit(limit * 2).all()
+
+            # High-value discriminating terms vs ubiquitous terms in Indian legal dockets
+            common_court_words = {"order", "court", "case", "page", "dated", "matter", "before", "present", "passed"}
+            discriminating_terms = [t for t in q_terms if t not in common_court_words]
+            target_terms = discriminating_terms if discriminating_terms else q_terms
+
+            p_filters = [DocumentPage.page_text.ilike(f"%{t}%") for t in target_terms[:4]]
+            
+            # Fetch a candidate pool to rank
+            candidate_pool_limit = max(150, (offset + limit) * 3)
+            db_pages = page_q.filter(or_(*p_filters)).limit(candidate_pool_limit).all()
+
+            scored_pages = []
             for mp in db_pages:
                 raw_text = (mp.english_page_text or mp.page_text or mp.original_page_text or "").strip()
                 if not raw_text or (("scanned judicial record exhibit page" in raw_text.lower() or "computer generated page" in raw_text.lower()) and len(raw_text) < 80):
                     continue
+                lower_text = raw_text.lower()
+
+                # Relevance scoring:
+                # - Exact full query match: +20
+                # - Each discriminating term: +10
+                # - Other query terms: +3
+                score = 0
+                if query.lower() in lower_text:
+                    score += 20
+
+                matched_term_count = 0
+                for t in q_terms:
+                    if t in lower_text:
+                        matched_term_count += 1
+                        score += 10 if t in discriminating_terms else 3
+
+                # Bonus if all terms matched
+                if matched_term_count == len(q_terms):
+                    score += 15
+
+                scored_pages.append((score, mp, raw_text))
+
+            # Sort descending by relevance score
+            scored_pages.sort(key=lambda x: x[0], reverse=True)
+            total_matched_pages = len(scored_pages)
+
+            paged_candidates = scored_pages[offset : offset + limit]
+
+            for score, mp, raw_text in paged_candidates:
                 d = mp.document
                 c_num = d.case.case_number if (d and d.case) else (d.case_id if d else "")
                 court = d.court if d else ""
@@ -630,18 +677,19 @@ def execute_search_database_live(arguments: dict[str, Any]) -> str:
                 c_id = d.case_id if d else ""
                 pdf_link = (d.original_pdf_url or d.source_url) if d else None
 
-                # Find matching excerpt around term
-                idx = -1
-                for t in q_terms:
+                # Find matching excerpt around highest value term
+                best_idx = -1
+                for t in (discriminating_terms if discriminating_terms else q_terms):
                     idx = raw_text.lower().find(t)
                     if idx != -1:
+                        best_idx = idx
                         break
-                if idx != -1:
-                    start_idx = max(0, idx - 100)
-                    end_idx = min(len(raw_text), idx + 400)
-                    snippet = ("..." if start_idx > 0 else "") + raw_text[start_idx:end_idx].strip() + ("..." if end_idx < len(raw_text) else "")
-                else:
-                    snippet = raw_text[:500]
+                if best_idx == -1:
+                    best_idx = 0
+
+                start_idx = max(0, best_idx - 100)
+                end_idx = min(len(raw_text), best_idx + 400)
+                snippet = ("..." if start_idx > 0 else "") + raw_text[start_idx:end_idx].strip() + ("..." if end_idx < len(raw_text) else "")
 
                 matched_pages_list.append({
                     "citation": f"[CALIP: {d_title}, Page {mp.page_number} | Case {c_num}, {court}]",
@@ -651,14 +699,14 @@ def execute_search_database_live(arguments: dict[str, Any]) -> str:
                     "case_number": c_num,
                     "court": court,
                     "page_number": mp.page_number,
+                    "relevance_score": score,
                     "direct_pdf_url": pdf_link,
                     "web_view_url": f"https://www.calipai.com/cases/{c_id}",
                     "excerpt": snippet,
                 })
-                if len(matched_pages_list) >= limit:
-                    break
 
         # 2. Search Document metadata / titles
+        total_matched_docs = 0
         if search_scope in ("all", "documents"):
             doc_q = db.query(Document)
             if case_id:
@@ -672,11 +720,14 @@ def execute_search_database_live(arguments: dict[str, Any]) -> str:
                     )
                     for t in q_terms[:4]
                 ]
-                matched_docs = doc_q.filter(or_(*filters)).limit(limit).all()
+                all_matched_docs = doc_q.filter(or_(*filters)).all()
             else:
-                matched_docs = doc_q.limit(limit).all()
+                all_matched_docs = doc_q.all()
 
-            for d in matched_docs:
+            total_matched_docs = len(all_matched_docs)
+            paged_docs = all_matched_docs[offset : offset + limit]
+
+            for d in paged_docs:
                 c_num = d.case.case_number if d.case else d.case_id
                 pdf_link = d.original_pdf_url or d.source_url
                 matched_docs_list.append({
@@ -693,16 +744,27 @@ def execute_search_database_live(arguments: dict[str, Any]) -> str:
                     "snippet": (d.extracted_text or "")[:600],
                 })
 
+        has_more = (offset + len(matched_pages_list) < total_matched_pages) or (offset + len(matched_docs_list) < total_matched_docs)
+        next_offset = (offset + limit) if has_more else None
+
         return json.dumps({
             "query": query,
             "search_scope": search_scope,
-            "pages_matched_count": len(matched_pages_list),
-            "documents_matched_count": len(matched_docs_list),
+            "limit": limit,
+            "offset": offset,
+            "has_more": has_more,
+            "next_offset": next_offset,
+            "total_matched_pages": total_matched_pages,
+            "total_matched_documents": total_matched_docs,
+            "pages_returned": len(matched_pages_list),
+            "documents_returned": len(matched_docs_list),
+            "pagination_hint": f"To view next batch, set offset={next_offset}" if has_more else "All matching results retrieved.",
             "matched_pages": matched_pages_list,
             "matched_documents": matched_docs_list,
         }, indent=2)
     finally:
         db.close()
+
 
 
 def execute_list_all_documents(arguments: dict[str, Any]) -> str:
