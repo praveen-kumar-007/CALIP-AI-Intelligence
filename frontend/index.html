@@ -9,10 +9,59 @@
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <link rel="alternate" type="text/markdown" href="/llms-full.txt" title="Full Plaintext Markdown Knowledge Corpus" />
+    <link rel="alternate" type="application/json" href="/api/open/dump" title="Full Database JSON Dump" />
+    <link rel="manifest" href="/.well-known/ai-plugin.json" />
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LegalService",
+      "name": "CALIP - Cognitive Atomic Legal Intelligence Platform",
+      "url": "https://www.calipai.com",
+      "description": "Open source-grounded legal case and document repository structuring 46 judicial cases, 827 verified documents, 41,397 pages, and 40,863 vector chunks.",
+      "hasPart": [
+        {
+          "@type": "Dataset",
+          "name": "CALIP Verified Legal Corpus",
+          "description": "827 legal documents, 41,397 OCR pages, 24 FIR atoms, and 40,863 semantic chunks with cryptographic SHA-256 provenance.",
+          "distribution": [
+            {"@type": "DataDownload", "encodingFormat": "text/markdown", "contentUrl": "https://www.calipai.com/llms-full.txt"},
+            {"@type": "DataDownload", "encodingFormat": "application/json", "contentUrl": "https://www.calipai.com/api/open/dump"},
+            {"@type": "DataDownload", "encodingFormat": "text/plain", "contentUrl": "https://www.calipai.com/llms.txt"}
+          ]
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <header>
+        <h1>CALIP | Cognitive Atomic Legal Intelligence Platform</h1>
+        <p>Open, unauthenticated legal research and document intelligence platform indexing 46 judicial cases, 827 verified documents, 41,397 pages, 40,863 vector chunks, and 24 atomic FIR records.</p>
+      </header>
+      <main>
+        <section>
+          <h2>Direct AI & Crawler Access</h2>
+          <ul>
+            <li><a href="/llms-full.txt">Full Knowledge Corpus in Markdown (/llms-full.txt)</a></li>
+            <li><a href="/llms.txt">LLM Site Manifest (/llms.txt)</a></li>
+            <li><a href="/api/open/dump">Full Database Dump in JSON (/api/open/dump)</a></li>
+            <li><a href="/cases">All 46 Legal Cases (/cases)</a></li>
+            <li><a href="/documents">All 827 Verified Documents (/documents)</a></li>
+            <li><a href="/atoms">Cognitive FIR Atoms & Charges (/atoms)</a></li>
+            <li><a href="/api/stats">Platform Statistics & Health (/api/stats)</a></li>
+            <li><a href="/openapi.json">OpenAPI Specification (/openapi.json)</a></li>
+          </ul>
+        </section>
+        <section>
+          <h2>Interactive AI Question Answering</h2>
+          <p>Autonomous AI agents can query the grounded RAG pipeline directly via HTTP GET: <code>https://www.calipai.com/ask?q=Your+Legal+Question</code></p>
+        </section>
+      </main>
+    </noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

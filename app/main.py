@@ -63,6 +63,16 @@ from app.services.summary_service import (
     find_local_pdf_for_document,
     batch_extract_and_summarize_all,
 )
+from app.services.ai_gateway import (
+    is_ai_crawler_or_text_client,
+    render_ai_home,
+    render_ai_case,
+    render_ai_cases_list,
+    render_ai_document,
+    render_ai_documents_list,
+    render_ai_atoms_list,
+    render_ai_atom,
+)
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -183,31 +193,47 @@ def favicon():
 
 
 # ==========================================
-# 1. REACT SPA FRONTEND PAGE ROUTES
+# 1. REACT SPA FRONTEND PAGE ROUTES & AI GATEWAY
 # ==========================================
 
 @app.get("/", response_class=HTMLResponse)
-def home_page():
+def home_page(request: Request):
+    if is_ai_crawler_or_text_client(request):
+        return PlainTextResponse(render_ai_home(), media_type="text/markdown; charset=utf-8")
     return serve_react_app()
 
 
 @app.get("/cases", response_class=HTMLResponse)
-def cases_page():
+def cases_page(request: Request):
+    if is_ai_crawler_or_text_client(request):
+        return PlainTextResponse(render_ai_cases_list(), media_type="text/markdown; charset=utf-8")
     return serve_react_app()
 
 
 @app.get("/cases/{case_id}", response_class=HTMLResponse)
-def case_detail_page(case_id: str):
+def case_detail_page(case_id: str, request: Request):
+    if is_ai_crawler_or_text_client(request):
+        md = render_ai_case(case_id)
+        if not md:
+            raise HTTPException(status_code=404, detail="Case record not found.")
+        return PlainTextResponse(md, media_type="text/markdown; charset=utf-8")
     return serve_react_app()
 
 
 @app.get("/atoms", response_class=HTMLResponse)
-def atoms_dashboard_page():
+def atoms_dashboard_page(request: Request):
+    if is_ai_crawler_or_text_client(request):
+        return PlainTextResponse(render_ai_atoms_list(), media_type="text/markdown; charset=utf-8")
     return serve_react_app()
 
 
 @app.get("/atoms/{atom_id}", response_class=HTMLResponse)
-def atom_detail_page(atom_id: str):
+def atom_detail_page(atom_id: str, request: Request):
+    if is_ai_crawler_or_text_client(request):
+        md = render_ai_atom(atom_id)
+        if not md:
+            raise HTTPException(status_code=404, detail="Atom record not found.")
+        return PlainTextResponse(md, media_type="text/markdown; charset=utf-8")
     return serve_react_app()
 
 
@@ -224,13 +250,52 @@ def longtail_hierarchy_page():
 
 
 @app.get("/documents", response_class=HTMLResponse)
-def documents_page():
+def documents_page(request: Request):
+    if is_ai_crawler_or_text_client(request):
+        return PlainTextResponse(render_ai_documents_list(), media_type="text/markdown; charset=utf-8")
     return serve_react_app()
 
 
 @app.get("/documents/{document_id}", response_class=HTMLResponse)
-def document_detail_page(document_id: str):
+def document_detail_page(document_id: str, request: Request):
+    if is_ai_crawler_or_text_client(request):
+        md = render_ai_document(document_id)
+        if not md:
+            raise HTTPException(status_code=404, detail="Document record not found.")
+        return PlainTextResponse(md, media_type="text/markdown; charset=utf-8")
     return serve_react_app()
+
+
+@app.get("/ask")
+@app.get("/query")
+async def public_ai_ask_endpoint(
+    request: Request,
+    q: str = Query(..., description="Legal question or query"),
+    format: str | None = Query(None, description="Output format: md, text, or json"),
+):
+    """
+    Direct public AI Research & Q&A endpoint.
+    Callable by Claude, ChatGPT, Gemini, Perplexity, or any external script.
+    """
+    ans = ask_legal_question(query=q)
+    fmt = (format or "").lower()
+    if fmt == "json" or "application/json" in request.headers.get("accept", ""):
+        return JSONResponse(ans)
+
+    md_output = (
+        f"# CALIP Legal Intelligence Briefing\n\n"
+        f"**Query:** {q}\n"
+        f"**Active Model:** {ans.get('model')}\n"
+        f"**Grounding Confidence:** {ans.get('confidence_percent', 90)}%\n\n"
+        f"---\n\n"
+        f"{ans.get('answer', '')}\n\n"
+        f"---\n\n"
+        f"### Verified Source Documents ({len(ans.get('sources', []))}):"
+    )
+    for idx, s in enumerate(ans.get("sources", [])):
+        md_output += f"\n- **Source {idx+1}:** [{s.get('document_title') or s.get('title') or 'Document'}](/documents/{s.get('document_id')}) (Page {s.get('page_number', 1)}) | Case: {s.get('case_title') or s.get('case_number') or 'Record'}"
+
+    return PlainTextResponse(md_output, media_type="text/markdown; charset=utf-8")
 
 
 
@@ -422,6 +487,18 @@ Allow: /
 User-agent: Googlebot
 Allow: /
 
+User-agent: Gemini
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: DeepSeekBot
+Allow: /
+
 User-agent: Applebot-Extended
 Allow: /
 
@@ -434,11 +511,11 @@ Allow: /
 User-agent: cohere-ai
 Allow: /
 
+User-agent: Bytespider
+Allow: /
+
+Sitemap: https://www.calipai.com/sitemap.xml
 Sitemap: https://longtailcases.com/sitemap.xml
-Sitemap: https://longtailcases.com/sitemap-cases.xml
-Sitemap: https://longtailcases.com/sitemap-documents.xml
-Sitemap: https://longtailcases.com/sitemap-judgments.xml
-Sitemap: https://longtailcases.com/sitemap-orders.xml
 """
     return PlainTextResponse(content=content)
 
