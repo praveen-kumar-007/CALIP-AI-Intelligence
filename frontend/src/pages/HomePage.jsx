@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
-import { Sparkles, Languages, ShieldCheck, Database, Layers, ArrowRight } from 'lucide-react';
+import { Languages, ShieldCheck, Database, Layers, ArrowRight } from 'lucide-react';
 
 export function HomePage() {
   const [stats, setStats] = useState({
@@ -65,10 +65,6 @@ export function HomePage() {
       <section className="hero-section">
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
           <span className="hero-brand-plain">CALIP</span>
-        </div>
-        <div className="hero-pill">
-          <Sparkles size={14} />
-          24 Canonical Pilot Atoms from longtailcases.com &bull; Cognitive Atomic Legal Intelligence Platform
         </div>
         <h1 className="hero-title">
           Cognitive Atomic Legal Intelligence Platform
