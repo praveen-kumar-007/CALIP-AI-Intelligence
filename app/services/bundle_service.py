@@ -129,7 +129,13 @@ def render_overview_bundle() -> str:
 
 def render_atoms_bundle() -> str:
     """Comprehensive FIR Atoms Digest (~5,500 words)."""
-    raw_atoms = get_all_atoms()
+    from app.services.rag_service import get_cached_atoms_for_rag
+    raw_atoms = get_cached_atoms_for_rag()
+    if not raw_atoms:
+        try:
+            raw_atoms = get_all_atoms()
+        except Exception:
+            raw_atoms = []
 
     lines = [
         "# CALIP Intelligence Dossier: Complete FIR Atoms Digest (24 Verified Records)",

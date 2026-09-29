@@ -200,7 +200,14 @@ def execute_get_case(arguments: dict[str, Any]) -> str:
 
 
 def execute_list_atoms(arguments: dict[str, Any]) -> str:
-    raw_atoms = get_all_atoms()
+    from app.services.rag_service import get_cached_atoms_for_rag
+    raw_atoms = get_cached_atoms_for_rag()
+    if not raw_atoms:
+        try:
+            raw_atoms = get_all_atoms()
+        except Exception:
+            raw_atoms = []
+
     atoms = []
     for a in raw_atoms:
         atoms.append({
@@ -211,8 +218,8 @@ def execute_list_atoms(arguments: dict[str, Any]) -> str:
             "jurisdiction": a.get("jurisdiction"),
             "sections_registered": a.get("sections_registered"),
             "charges_registered": a.get("charges_registered"),
-            "investigating_agency": a.get("investigating_agency"),
-            "status": a.get("status"),
+            "investigating_agency": a.get("investigating_agency", "State Police"),
+            "status": a.get("status", "Active"),
             "canonical_url": f"https://www.calipai.com/atoms/{a.get('id')}",
         })
 
