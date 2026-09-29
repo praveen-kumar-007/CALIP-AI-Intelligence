@@ -223,15 +223,15 @@ export function Footer() {
               </div>
               <div className="provenance-item">
                 <span className="prov-label">Vector Store:</span>
-                <span className="prov-value">pgvector 384-dim Dense</span>
+                <span className="prov-value">In-Memory Matrix + pgvector (384-dim)</span>
               </div>
               <div className="provenance-item">
                 <span className="prov-label">OCR Engines:</span>
-                <span className="prov-value">PyMuPDF Text + Tesseract</span>
+                <span className="prov-value">Windows Native HD OCR (200 DPI)</span>
               </div>
               <div className="provenance-item">
-                <span className="prov-label">Local Model:</span>
-                <span className="prov-value">Ollama qwen3:8b (Offline)</span>
+                <span className="prov-label">Production LLM:</span>
+                <span className="prov-value">Groq Cloud AI (openai/gpt-oss-120b)</span>
               </div>
             </div>
           </div>

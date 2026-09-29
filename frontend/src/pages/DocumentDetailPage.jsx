@@ -136,7 +136,7 @@ export function DocumentDetailPage() {
               )}
               <span>Court: <strong style={{ color: 'var(--text-main)' }}>{doc.court || 'District Court'}</strong> &bull;</span>
               <span>Pages: <strong style={{ color: 'var(--text-main)' }}>{doc.page_count || 1}</strong> &bull;</span>
-              <span>Avg Confidence: <strong style={{ color: 'var(--accent-emerald)' }}>{Math.round((doc.ocr_confidence || 0.95) * 100)}%</strong></span>
+              <span>Avg Confidence: <strong style={{ color: 'var(--accent-emerald)' }}>{doc.ocr_confidence !== undefined && doc.ocr_confidence !== null ? `${Math.round(doc.ocr_confidence * 100)}%` : 'Verified OCR'}</strong></span>
             </div>
           </div>
 

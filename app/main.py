@@ -638,10 +638,19 @@ async def sitemap_orders():
 async def api_documentation():
     stats = get_platform_statistics()
     jurisdictions = get_jurisdiction_summary()
+    active_prov = LLMProvider.get_active_provider()
+    active_mod = get_active_model_name()
+    display_mod = f"{active_prov.upper()} ({active_mod})" if active_prov != "extractive" else "Deterministic Legal Engine"
+
     return JSONResponse({
         "status": "success",
         "platform": "CALIP Legal Intelligence Platform",
         "version": "1.0.0",
+        "active_model": display_mod,
+        "llm_provider": active_prov,
+        "model_name": active_mod,
+        "ocr_engine": "Windows Native High-Definition OCR (200 DPI)",
+        "embedding_model": settings.EMBEDDING_MODEL_NAME,
         "stats": stats,
         "jurisdictions": jurisdictions,
         "description": "Public read-only REST API exposing cases, documents, judgments, orders, courts, search, and RAG answer engine. Completely unauthenticated and open for all AI agents and web crawlers.",

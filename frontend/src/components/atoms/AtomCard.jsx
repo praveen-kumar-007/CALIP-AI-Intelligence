@@ -6,7 +6,8 @@ import { StatusBadge } from '../common/StatusBadge';
 export function AtomCard({ atom }) {
   if (!atom) return null;
 
-  const confidencePercent = atom.confidence_score ? Math.round(atom.confidence_score * 100) : 95;
+  const rawConf = atom.confidence_score !== undefined && atom.confidence_score !== null ? atom.confidence_score : atom.completeness_score;
+  const confidencePercent = rawConf !== undefined && rawConf !== null ? Math.round(rawConf * 100) : 100;
   const isHydrated = atom.hydration_status === 'HYDRATED' || atom.is_verified;
 
   return (

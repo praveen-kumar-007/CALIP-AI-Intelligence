@@ -224,7 +224,7 @@ export function AtomDetailPage() {
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 16px' }}>
             <span style={{ color: '#64748b', display: 'block', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '4px' }}>VERIFICATION CONFIDENCE</span>
             <span style={{ color: '#059669', fontWeight: 800, fontSize: '0.95rem' }}>
-              {atom.confidence_score ? `${(atom.confidence_score * 100).toFixed(0)}% Verified` : '96% High'}
+              {atom.confidence_score !== undefined && atom.confidence_score !== null ? `${(atom.confidence_score * 100).toFixed(0)}% Verified` : 'Pending Verification'}
             </span>
           </div>
         </div>

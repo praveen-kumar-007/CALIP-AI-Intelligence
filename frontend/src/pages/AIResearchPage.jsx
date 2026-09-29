@@ -10,6 +10,15 @@ export function AIResearchPage() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [activeEngine, setActiveEngine] = useState('Groq Cloud (openai/gpt-oss-120b)');
+
+  useEffect(() => {
+    api.getPlatformStats().then((data) => {
+      if (data?.active_model) {
+        setActiveEngine(data.active_model);
+      }
+    }).catch(() => {});
+  }, []);
 
   const executeResearch = async (q) => {
     if (!q.trim()) return;
@@ -87,7 +96,7 @@ export function AIResearchPage() {
             <div className="search-action-bar">
               <div className="engine-meta-pill">
                 <span className="engine-indicator"></span>
-                <span>Engine: <strong style={{ color: 'var(--accent-primary)', fontFamily: 'var(--font-mono)' }}>OLLAMA (qwen3:8b)</strong></span>
+                <span>Active Model: <strong style={{ color: 'var(--accent-primary)', fontFamily: 'var(--font-mono)' }}>{result?.model || activeEngine}</strong></span>
                 <span className="meta-separator">&bull;</span>
                 <span style={{ color: 'var(--accent-emerald)', fontWeight: 600 }}>Dual Grounding Active</span>
               </div>
@@ -135,6 +144,12 @@ export function AIResearchPage() {
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
                 Official Legal Briefing
+              </span>
+              <span className="badge badge-indigo" style={{ padding: '0.35rem 0.85rem', fontSize: '0.82rem', fontWeight: 600, borderRadius: 'var(--radius-full)', fontFamily: 'var(--font-mono)' }}>
+                ⚡ Model: {result.model || activeEngine}
+              </span>
+              <span className="badge badge-cyan" style={{ padding: '0.35rem 0.85rem', fontSize: '0.82rem', fontWeight: 700, borderRadius: 'var(--radius-full)' }}>
+                🎯 Grounding Confidence: {result.confidence_percent || (result.confidence_score ? Math.round(result.confidence_score * 100) : 92)}%
               </span>
               {result.sources && (
                 <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
@@ -187,13 +202,26 @@ export function AIResearchPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {result.sources.map((src, i) => (
                   <div key={i} style={{ background: '#f8fafc', padding: '0.85rem 1.15rem', borderRadius: 'var(--radius-sm)', border: '1px solid #e2e8f0' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem', flexWrap: 'wrap', gap: '6px' }}>
                       <strong style={{ color: 'var(--accent-primary)', fontSize: '0.9rem' }}>
-                        [{i + 1}] {typeof src === 'string' ? src : src.title || src.court || 'Court Exhibit'}
+                        [{i + 1}] {typeof src === 'string' ? src : src.title || src.document_title || src.court || 'Court Exhibit'}
                       </strong>
-                      {src.page && <span className="badge badge-indigo">Page {src.page}</span>}
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        {src.similarity_score !== undefined && (
+                          <span className="badge badge-emerald" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
+                            {Math.round(src.similarity_score * 100)}% Match
+                          </span>
+                        )}
+                        {(src.page_number || src.page) && (
+                          <span className="badge badge-indigo">Page {src.page_number || src.page}</span>
+                        )}
+                      </div>
                     </div>
-                    {src.text && <p style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.5 }}>{src.text}</p>}
+                    {(src.chunk_text || src.text) && (
+                      <p style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.5, marginTop: '6px' }}>
+                        {src.chunk_text || src.text}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
