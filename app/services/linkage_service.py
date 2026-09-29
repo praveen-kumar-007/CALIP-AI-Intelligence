@@ -66,6 +66,9 @@ def extract_case_identifiers(title_or_text: str) -> dict[str, str | None]:
     }
 
 
+_CASE_LINKAGE_CACHE: dict[str, dict[str, Any]] = {}
+
+
 def get_case_linkages(case_id: str) -> dict[str, Any]:
     """
     Analyzes a case and returns:
@@ -75,6 +78,9 @@ def get_case_linkages(case_id: str) -> dict[str, Any]:
     4. Cross-referenced documents across other cases
     5. Entity relationships from Knowledge Graph
     """
+    if case_id in _CASE_LINKAGE_CACHE:
+        return _CASE_LINKAGE_CACHE[case_id]
+
     db = SessionLocal()
     try:
         case = db.query(Case).filter_by(id=case_id).first()
@@ -103,9 +109,9 @@ def get_case_linkages(case_id: str) -> dict[str, Any]:
             doc_lower = (doc.title or "").lower()
             folder_title = doc.folder.title.lower() if doc.folder else ""
 
-            # Check database for text and OCR
+            # Check database for text and OCR without slow page queries
             has_txt = bool(doc.extracted_text)
-            has_ocr = bool(doc.extracted_text) or bool(doc.pages)
+            has_ocr = bool(doc.extracted_text) or (doc.ocr_status == "COMPLETED") or bool(doc.page_count and doc.page_count > 0)
 
             doc_entry = {
                 "id": doc.id,
@@ -131,7 +137,6 @@ def get_case_linkages(case_id: str) -> dict[str, Any]:
 
         # 2. Find Connected / Companion Cases
         connected_cases = []
-        # Match cases that share the same police station / jurisdiction or case year
         ps_name = c_info["police_station"]
         if ps_name:
             companion_query = db.query(Case).filter(
@@ -150,17 +155,13 @@ def get_case_linkages(case_id: str) -> dict[str, Any]:
                     "doc_count": len(comp.documents),
                 })
 
-        # 3. Find Cross-Referenced Documents in Other Cases
-        # Look for documents in other cases that mention this case's number or FIR number
+        # 3. Find Cross-Referenced Documents in Other Cases (fast title-indexed lookup)
         cross_referenced_docs = []
         if case.case_number and len(case.case_number) > 3 and case.case_number != "MIS/SUMMARY":
             pattern_term = f"%{case.case_number}%"
             matched_docs = db.query(Document).filter(
                 Document.case_id != case.id,
-                or_(
-                    Document.title.ilike(pattern_term),
-                    Document.extracted_text.ilike(pattern_term),
-                )
+                Document.title.ilike(pattern_term),
             ).limit(10).all()
 
             for md in matched_docs:

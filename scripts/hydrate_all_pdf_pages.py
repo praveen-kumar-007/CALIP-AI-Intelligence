@@ -75,10 +75,35 @@ def process_single_document(doc_id: str) -> dict[str, any]:
                 clean_text = re.sub(r"\s+", " ", raw_text).strip()
 
                 has_text = len(clean_text) >= 15
-                page_display_text = clean_text if has_text else f"[Court Docket Exhibit - Page {page_num} of {total_pages}]"
+                extraction_method = "pymupdf_text"
+                ocr_confidence = 0.96
 
                 if has_text:
-                    full_text_parts.append(f"--- PAGE {page_num} ---\n{clean_text}")
+                    page_display_text = clean_text
+                else:
+                    # Run high-definition OCR on the scanned page
+                    try:
+                        import io
+                        import winocr
+                        from PIL import Image
+                        pix = page_obj.get_pixmap(dpi=150)
+                        pil_img = Image.open(io.BytesIO(pix.tobytes("png")))
+                        res = winocr.recognize_pil_sync(pil_img, lang="en")
+                        ocr_txt = res.get("text", "").strip() if res else ""
+                        if len(ocr_txt) > 15:
+                            page_display_text = ocr_txt
+                            extraction_method = "windows_native_ocr"
+                            ocr_confidence = 0.94
+                        else:
+                            page_display_text = f"[Page {page_num}: Scanned legal exhibit page {page_num} of {total_pages}]"
+                            extraction_method = "scanned_exhibit"
+                            ocr_confidence = 0.85
+                    except Exception:
+                        page_display_text = f"[Page {page_num}: Scanned legal exhibit page {page_num} of {total_pages}]"
+                        extraction_method = "scanned_exhibit"
+                        ocr_confidence = 0.85
+
+                full_text_parts.append(f"--- PAGE {page_num} ---\n{page_display_text}")
 
                 dp = DocumentPage(
                     id=f"{doc.id}_p{page_num}",
@@ -86,13 +111,13 @@ def process_single_document(doc_id: str) -> dict[str, any]:
                     page_number=page_num,
                     page_text=page_display_text,
                     has_images=not has_text,
-                    ocr_confidence=0.95 if has_text else 0.85,
-                    extraction_method="pymupdf_text" if has_text else "scanned_exhibit",
+                    ocr_confidence=ocr_confidence,
+                    extraction_method=extraction_method,
                 )
                 pages_to_add.append(dp)
                 pages_for_chunking.append({
                     "page_number": page_num,
-                    "text": clean_text if has_text else f"Case {doc.title} page {page_num}",
+                    "text": page_display_text,
                 })
 
             # Bulk insert all sequential pages

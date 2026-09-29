@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import base64
 import datetime
 import hashlib
+import io
 import json
 import math
 import os
@@ -11,6 +13,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 from typing import Any, Callable
+
+import requests
 
 try:
     import pymupdf as fitz  # PyMuPDF
@@ -30,6 +34,8 @@ from app.core.config import settings
 # Dedicated storage directory for separated OCR & RAG text artifacts
 OCR_STORAGE_DIR = settings.OCR_STORAGE_DIR
 OCR_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+LOCAL_OCR_DIR = settings.PROJECT_ROOT / "data" / "ocr_extracted"
+LOCAL_OCR_DIR.mkdir(parents=True, exist_ok=True)
 
 # Pluggable custom OCR handler registry
 _CUSTOM_OCR_HANDLER: Callable[[str, int], dict[str, Any]] | None = None
@@ -168,33 +174,20 @@ def preprocess_image_for_ocr(image_path: str) -> str:
         return image_path
 
 
+from app.services.text_cleaner import sanitize_legal_text_for_rag_and_training
+
+
 def clean_legal_text(raw_text: str) -> str:
     """
     Performs high-level text normalization for legal documents:
+    - Strips markdown noise (**, __, ***, ###, backticks) and weird scanner glyphs
     - Repairs broken hyphenations at line wraps (e.g., 'crimi-\nnal' -> 'criminal')
     - Cleans redundant whitespaces while preserving structural paragraph breaks
-    - Preserves statutory and court citation markers (Section, Sec., Art., Cr.P.C., etc.)
-    - Removes isolated OCR noise artifacts and replacement characters
+    - Preserves statutory and court citation markers (Section, Sec., Art., CrPC, IPC, etc.)
+    - Removes isolated OCR noise artifacts, control bytes, and replacement characters
+    - Returns clean, meaningful text ready for vector DB RAG, training, and LLM reasoning
     """
-    if not raw_text:
-        return ""
-
-    # Fix broken hyphenated line endings
-    text = re.sub(r"(\w+)-\s*\n\s*(\w+)", r"\1\2", raw_text)
-
-    # Normalize carriage returns
-    text = text.replace("\r\n", "\n").replace("\r", "\n")
-
-    # Remove non-printable / control characters and replacement chars (except newline, tab)
-    text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f\ufffd]", "", text)
-
-    # Compact multiple spaces
-    text = re.sub(r"[ \t]+", " ", text)
-
-    # Clean redundant blank lines (more than 2 consecutive newlines)
-    text = re.sub(r"\n\s*\n\s*\n+", "\n\n", text)
-
-    return text.strip()
+    return sanitize_legal_text_for_rag_and_training(raw_text)
 
 
 def detect_layout_blocks(text: str, page_number: int) -> list[dict[str, Any]]:
@@ -370,20 +363,104 @@ def run_ocr_on_image(image_path: str, page_number: int = 1) -> dict[str, Any]:
 
     # 5. Fallback: extract image dimensions and basic text summary
     return {
-        "text": f"[Scanned page {page_number}: Document image preprocessed and deskewed. Text extraction pending user OCR run.]",
+        "text": f"[Scanned page {page_number}: Document image preprocessed. Text extraction pending OCR run.]",
         "confidence": 0.50,
         "method": "image_preprocessed_fallback",
         "page_number": page_number,
     }
 
 
-def extract_text_and_ocr_pdf(pdf_source: str | bytes | Path, min_chars_per_page: int = 20, dpi: int = 150, max_ocr_pages: int = 35) -> dict[str, Any]:
+def is_placeholder_text(text: str) -> bool:
+    """Checks whether the text is a dummy stub or placeholder."""
+    if not text:
+        return True
+    lowered = text.strip().lower()
+    return (
+        "court docket exhibit" in lowered
+        or "scanned legal record page" in lowered
+        or "text extraction pending" in lowered
+        or (len(lowered) < 35 and "exhibit" in lowered and "page" in lowered)
+    )
+
+
+def extract_high_def_multimodal_ocr(
+    img_bytes: bytes,
+    page_number: int,
+    doc_context: str = "",
+) -> dict[str, Any] | None:
     """
-    Advanced PDF Extraction & OCR Pipeline:
+    High-Definition Multimodal Vision OCR using Google Gemini models.
+    Extracts verbatim text, 7-column execution tables, case numbers, parties,
+    dates, monetary figures, arbitration awards, and judicial stamps with high legal fidelity.
+    """
+    api_key = getattr(settings, "GEMINI_API_KEY", "") or os.getenv("GEMINI_API_KEY", "")
+    if not api_key:
+        return None
+
+    b64_img = base64.b64encode(img_bytes).decode("utf-8")
+    candidate_models = ["gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-flash-latest", "gemini-3.8-flash"]
+
+    prompt = (
+        "You are an authoritative legal document OCR engine specialized in Indian court records, docket exhibits, "
+        "arbitration awards, orders, and charge sheets.\n"
+        "Perform an exact, verbatim text and table extraction of this court document page.\n"
+        "Rules:\n"
+        "1. Capture every heading, case title, suit/arbitration number, court name, bench, and party names verbatim.\n"
+        "2. If there are tables or columns (e.g. 7-column execution applications, dates, claim amounts, decree details), format them accurately as Markdown tables.\n"
+        "3. Accurately transcribe all monetary values (e.g. Rs. 16,89,04,938.96), interest rates, dates, and order clauses.\n"
+        "4. Include all judicial stamps, seal transcripts, and signatures noted in text.\n"
+        "5. Do NOT summarize or hallucinate. Return only the extracted text and markdown structure without conversational meta-commentary."
+    )
+
+    payload = {
+        "contents": [{
+            "parts": [
+                {"text": prompt},
+                {"inline_data": {"mime_type": "image/png", "data": b64_img}}
+            ]
+        }],
+        "generationConfig": {
+            "temperature": 0.05,
+            "maxOutputTokens": 3000
+        }
+    }
+
+    for model_name in candidate_models:
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+            res = requests.post(url, json=payload, timeout=22)
+            if res.status_code == 200:
+                data = res.json()
+                parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+                if parts and "text" in parts[0]:
+                    cleaned = clean_legal_text(parts[0]["text"])
+                    if len(cleaned) > 20:
+                        return {
+                            "text": cleaned,
+                            "confidence": 0.98,
+                            "method": f"high_def_model_{model_name}",
+                            "page_number": page_number,
+                        }
+        except Exception:
+            continue
+    return None
+
+
+def extract_text_and_ocr_pdf(
+    pdf_source: str | bytes | Path,
+    min_chars_per_page: int = 20,
+    dpi: int = 200,
+    max_ocr_pages: int = 500,
+    use_high_def_vision: bool = True,
+) -> dict[str, Any]:
+    """
+    Advanced PDF Extraction & High-Definition OCR Pipeline:
     1. Reads PDF page-by-page using PyMuPDF (supports local path, remote URL, or raw bytes).
     2. Extracts native text + layout blocks if present across ALL pages.
-    3. If page has insufficient selectable text (< min_chars_per_page),
-       renders high-DPI image and triggers ultra-fast native Windows OCR (winocr) in-memory.
+    3. If page has insufficient selectable text or is scanned,
+       renders high-DPI image and triggers dual-engine OCR:
+       - Ultra-fast native Windows OCR (winocr) in-memory
+       - Google Gemini High-Definition Vision for verbatim tables, stamps, awards, and monetary amounts
     4. Cleans and normalizes legal text.
     5. Returns unified page records with layout blocks and confidence scores.
     """
@@ -404,13 +481,14 @@ def extract_text_and_ocr_pdf(pdf_source: str | bytes | Path, min_chars_per_page:
     overall_confidence_sum = 0.0
 
     try:
-        for page_idx in range(len(doc)):
+        total_doc_pages = len(doc)
+        for page_idx in range(total_doc_pages):
             page_num = page_idx + 1
             page = doc[page_idx]
             raw_text = page.get_text("text").strip()
             cleaned_text = clean_legal_text(raw_text)
 
-            if len(cleaned_text) >= min_chars_per_page:
+            if len(cleaned_text) >= min_chars_per_page and not is_placeholder_text(cleaned_text):
                 # Text PDF page
                 layout_blocks = detect_layout_blocks(cleaned_text, page_num)
                 word_count = len(cleaned_text.split())
@@ -433,33 +511,45 @@ def extract_text_and_ocr_pdf(pdf_source: str | bytes | Path, min_chars_per_page:
                 # Scanned or image-only page -> render pixmap and run OCR
                 ocr_pages_count += 1
                 pix = page.get_pixmap(dpi=dpi)
+                img_bytes = pix.tobytes("png")
                 text = ""
                 conf = 0.94
                 method = "windows_native_ocr"
 
-                # 1. Direct in-memory Windows OCR (winocr)
+                # 1. Fast in-memory Windows OCR (winocr)
                 try:
                     import winocr
-                    import io
-                    pil_img = Image.open(io.BytesIO(pix.tobytes("png")))
+                    pil_img = Image.open(io.BytesIO(img_bytes))
                     win_res = winocr.recognize_pil_sync(pil_img, lang="en")
                     if win_res and win_res.get("text"):
                         text = win_res["text"].strip()
-                except Exception as w_err:
+                except Exception:
                     text = ""
 
-                # 2. Fallback to image file OCR pipeline if winocr yielded sparse text
+                # 2. Try High Definition Multimodal Vision Model (Gemini)
+                # Prioritized for pages with table structures, award details, or low winocr text
+                if use_high_def_vision and (ocr_pages_count <= 20 or len(text) < 50 or "award" in text.lower() or "court" in text.lower()):
+                    try:
+                        hd_res = extract_high_def_multimodal_ocr(img_bytes, page_number=page_num)
+                        if hd_res and len(hd_res.get("text", "")) > 30:
+                            text = hd_res["text"]
+                            conf = hd_res.get("confidence", 0.98)
+                            method = hd_res.get("method", "high_def_model")
+                    except Exception:
+                        pass
+
+                # 3. Fallback to image file OCR pipeline if winocr yielded sparse text
                 if not text or len(text) < 15:
                     tmp_img_path = None
                     try:
                         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_file:
                             tmp_img_path = tmp_file.name
-                            tmp_file.write(pix.tobytes("png"))
+                            tmp_file.write(img_bytes)
                         ocr_res = run_ocr_on_image(tmp_img_path, page_number=page_num)
                         alt_text = ocr_res.get("text", "")
                         if len(alt_text) > len(text):
                             text = alt_text
-                            conf = ocr_res.get("confidence", 0.75)
+                            conf = ocr_res.get("confidence", 0.85)
                             method = ocr_res.get("method", "ocr_fallback")
                     except Exception as ocr_err:
                         print(f"[OCR] Error in page {page_num} OCR fallback: {ocr_err}")
@@ -472,7 +562,7 @@ def extract_text_and_ocr_pdf(pdf_source: str | bytes | Path, min_chars_per_page:
 
                 cleaned = clean_legal_text(text)
                 if not cleaned:
-                    cleaned = f"[Page {page_num}: Scanned judicial record exhibit]"
+                    cleaned = f"[Page {page_num}: Scanned judicial record exhibit without legible typography]"
                     conf = 0.80
                     method = "scanned_exhibit"
 
@@ -494,12 +584,12 @@ def extract_text_and_ocr_pdf(pdf_source: str | bytes | Path, min_chars_per_page:
                 total_words += word_count
                 overall_confidence_sum += conf
             else:
-                # Scanned page beyond max_ocr_pages limit: register fast layout placeholder
-                text = f"[Page {page_num}: Scanned legal record page. Verified and archived in repository catalog.]"
+                # Scanned page beyond max_ocr_pages limit
+                text = f"[Page {page_num}: Scanned judicial record page {page_num} of {total_doc_pages}.]"
                 pages_data.append({
                     "page_number": page_num,
                     "text": text,
-                    "confidence": 0.90,
+                    "confidence": 0.85,
                     "method": "scanned_page_indexed",
                     "ocr_applied": False,
                     "word_count": len(text.split()),
@@ -508,7 +598,7 @@ def extract_text_and_ocr_pdf(pdf_source: str | bytes | Path, min_chars_per_page:
                 })
                 total_chars += len(text)
                 total_words += len(text.split())
-                overall_confidence_sum += 0.90
+                overall_confidence_sum += 0.85
     finally:
         doc.close()
 
@@ -670,13 +760,13 @@ def store_extracted_ocr_separately(
         txt_path.write_text(full_text, encoding="utf-8")
         rag_chunks_path.write_text(json.dumps(rag_chunks, indent=2, ensure_ascii=False), encoding="utf-8")
         llm_context_blocks = [
-            f"# LEGAL RECORD: {title}",
-            f"**Case Reference:** {case_id or 'Unassigned'}",
-            f"**Court:** {court or 'Judicial Forum'}",
-            f"**Document ID:** {document_id}",
-            f"**Cryptographic Hash (SHA-256):** {file_hash or 'Not specified'}",
-            f"**Extraction Method:** {extraction_res.get('pages', [{}])[0].get('method', 'PyMuPDF/OCR')}",
-            f"**Total Pages:** {extraction_res.get('page_count', 1)} | **Average Confidence:** {extraction_res.get('average_confidence', 1.0)*100:.1f}%\n",
+            f"LEGAL RECORD: {title}",
+            f"Case Reference: {case_id or 'Unassigned'}",
+            f"Court: {court or 'Judicial Forum'}",
+            f"Document ID: {document_id}",
+            f"Cryptographic Hash (SHA-256): {file_hash or 'Not specified'}",
+            f"Extraction Method: {extraction_res.get('pages', [{}])[0].get('method', 'PyMuPDF/OCR')}",
+            f"Total Pages: {extraction_res.get('page_count', 1)} | Average Confidence: {extraction_res.get('average_confidence', 1.0)*100:.1f}%\n",
             "--- START VERIFIED DOCUMENT TEXT ---\n",
         ]
         for p in pages:
@@ -712,6 +802,24 @@ def store_extracted_ocr_separately(
             },
         }
         json_path.write_text(json.dumps(structured_doc, indent=2, ensure_ascii=False), encoding="utf-8")
+
+        # Also mirror files into project data/ocr_extracted directory
+        try:
+            LOCAL_OCR_DIR.mkdir(parents=True, exist_ok=True)
+            (LOCAL_OCR_DIR / f"{document_id}.txt").write_text(full_text, encoding="utf-8")
+            (LOCAL_OCR_DIR / f"{document_id}.json").write_text(json.dumps(structured_doc, indent=2, ensure_ascii=False), encoding="utf-8")
+            (LOCAL_OCR_DIR / f"{document_id}_rag_chunks.json").write_text(json.dumps(rag_chunks, indent=2, ensure_ascii=False), encoding="utf-8")
+            (LOCAL_OCR_DIR / f"{document_id}_llm_context.md").write_text("\n".join(llm_context_blocks), encoding="utf-8")
+        except Exception:
+            pass
+
+        # Index chunks with vector embeddings so RAG reasoner finds authentic text
+        try:
+            from app.services.vector_service import index_document_chunks
+            index_document_chunks(document_id=document_id, case_id=case_id, pages=pages)
+        except Exception as v_err:
+            print(f"[OCR Storage] Vector indexing notice: {v_err}")
+
     except Exception as io_exc:
         print(f"[OCR Storage] File caching notice: {io_exc}")
 
@@ -821,15 +929,15 @@ def get_llm_ready_context(document_id: str) -> str | None:
     pages = ocr_data.get("pages", [])
 
     lines = [
-        f"# LEGAL RECORD: {title}",
-        f"**Case Reference:** {case_ref}",
-        f"**Court / Jurisdiction:** {court}",
-        f"**Page Count:** {len(pages)} pages | **Verified DB Storage**",
+        f"LEGAL RECORD: {title}",
+        f"Case Reference: {case_ref}",
+        f"Court / Jurisdiction: {court}",
+        f"Page Count: {len(pages)} pages | Verified DB Storage",
         "",
         "--- START VERIFIED DOCUMENT TEXT ---",
     ]
     for p in pages:
-        lines.append(f"## PAGE {p['page_number']}")
+        lines.append(f"--- PAGE {p['page_number']} ---")
         lines.append(p.get("text") or "")
         lines.append("")
     lines.append("--- END VERIFIED DOCUMENT TEXT ---")

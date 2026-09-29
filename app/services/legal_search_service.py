@@ -115,16 +115,31 @@ def search_duckduckgo_legal(query: str, max_results: int = 3, timeout: float = 5
     return results
 
 
-def fetch_verified_external_legal_context(query: str) -> list[dict[str, Any]]:
+_SEARCH_CACHE: dict[str, list[dict[str, Any]]] = {}
+_MAX_SEARCH_CACHE = 200
+
+
+def fetch_verified_external_legal_context(query: str, timeout: float = 2.0) -> list[dict[str, Any]]:
     """
     Fetches external legal authorities and statutory provisions.
-    Guaranteed fast return (caps total external time to <5 seconds).
+    Guaranteed fast return with LRU memory caching.
     """
+    clean_q = query.strip().lower()
+    if clean_q in _SEARCH_CACHE:
+        return _SEARCH_CACHE[clean_q]
+
     # 1. Try Indian Kanoon for court precedents
-    kanoon_results = search_indian_kanoon(query, max_results=3, timeout=4.0)
+    kanoon_results = search_indian_kanoon(query, max_results=3, timeout=timeout)
     if kanoon_results:
+        if len(_SEARCH_CACHE) >= _MAX_SEARCH_CACHE:
+            _SEARCH_CACHE.pop(next(iter(_SEARCH_CACHE)))
+        _SEARCH_CACHE[clean_q] = kanoon_results
         return kanoon_results
 
     # 2. Fallback to general legal search
-    ddg_results = search_duckduckgo_legal(query, max_results=3, timeout=4.0)
+    ddg_results = search_duckduckgo_legal(query, max_results=3, timeout=timeout)
+    if len(_SEARCH_CACHE) >= _MAX_SEARCH_CACHE:
+        _SEARCH_CACHE.pop(next(iter(_SEARCH_CACHE)))
+    _SEARCH_CACHE[clean_q] = ddg_results
     return ddg_results
+

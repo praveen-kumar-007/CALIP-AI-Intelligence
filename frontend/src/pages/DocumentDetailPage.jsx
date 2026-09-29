@@ -661,42 +661,78 @@ export function DocumentDetailPage() {
                 onClick={() => setSelectedPage((prev) => Math.max(1, prev - 1))}
                 disabled={selectedPage <= 1}
                 className="btn btn-secondary btn-sm"
-                style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem', color: '#e2e8f0', borderColor: '#334155' }}
+                style={{ padding: '0.25rem 0.75rem', fontSize: '0.82rem', color: '#e2e8f0', borderColor: '#334155' }}
               >
-                &larr; Prev
+                &larr; Prev Page
               </button>
-              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                {(pages.length > 0 ? pages : [1]).map((p, idx) => {
-                  const pNum = p.page_number || idx + 1;
-                  const isCur = pNum === selectedPage;
-                  return (
-                    <button
-                      key={idx}
-                      onClick={() => setSelectedPage(pNum)}
-                      style={{
-                        padding: '0.25rem 0.65rem',
-                        fontSize: '0.82rem',
-                        fontWeight: isCur ? 700 : 500,
-                        borderRadius: 6,
-                        border: isCur ? '1px solid #38bdf8' : '1px solid #1e293b',
-                        background: isCur ? 'linear-gradient(135deg, #0284c7, #2563eb)' : '#0b0f19',
-                        color: isCur ? '#ffffff' : '#94a3b8',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                      }}
-                    >
-                      P. {pNum}
-                    </button>
-                  );
-                })}
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <select
+                  value={selectedPage}
+                  onChange={(e) => setSelectedPage(Number(e.target.value))}
+                  style={{
+                    background: '#0b0f19',
+                    color: '#38bdf8',
+                    border: '1px solid #38bdf8',
+                    borderRadius: 6,
+                    padding: '0.25rem 0.6rem',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {(pages.length > 0 ? pages : [1]).map((p, idx) => {
+                    const pNum = p.page_number || idx + 1;
+                    return (
+                      <option key={idx} value={pNum}>
+                        Page {pNum} of {pages.length || 1}
+                      </option>
+                    );
+                  })}
+                </select>
               </div>
+
+              {/* Quick Jump Pills for nearby pages */}
+              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                {[
+                  selectedPage - 2,
+                  selectedPage - 1,
+                  selectedPage,
+                  selectedPage + 1,
+                  selectedPage + 2,
+                ]
+                  .filter((pNum) => pNum >= 1 && pNum <= (pages.length || 1))
+                  .map((pNum) => {
+                    const isCur = pNum === selectedPage;
+                    return (
+                      <button
+                        key={pNum}
+                        onClick={() => setSelectedPage(pNum)}
+                        style={{
+                          padding: '0.25rem 0.65rem',
+                          fontSize: '0.82rem',
+                          fontWeight: isCur ? 700 : 500,
+                          borderRadius: 6,
+                          border: isCur ? '1px solid #38bdf8' : '1px solid #1e293b',
+                          background: isCur ? 'linear-gradient(135deg, #0284c7, #2563eb)' : '#0b0f19',
+                          color: isCur ? '#ffffff' : '#94a3b8',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        P. {pNum}
+                      </button>
+                    );
+                  })}
+              </div>
+
               <button
                 onClick={() => setSelectedPage((prev) => Math.min(pages.length || 1, prev + 1))}
                 disabled={selectedPage >= (pages.length || 1)}
                 className="btn btn-secondary btn-sm"
-                style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem', color: '#e2e8f0', borderColor: '#334155' }}
+                style={{ padding: '0.25rem 0.75rem', fontSize: '0.82rem', color: '#e2e8f0', borderColor: '#334155' }}
               >
-                Next &rarr;
+                Next Page &rarr;
               </button>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>

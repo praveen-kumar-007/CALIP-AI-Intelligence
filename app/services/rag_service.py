@@ -51,6 +51,41 @@ def extractive_fallback_answer(query: str, sources: list[dict[str, Any]]) -> str
     )
 
 
+import time
+
+_RAG_ANSWER_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
+_RAG_CACHE_TTL = 300.0  # 5 minutes in-memory cache
+_ATOMS_MEM_CACHE: tuple[float, list[dict[str, Any]]] | None = None
+
+
+def get_cached_atoms_for_rag() -> list[dict[str, Any]]:
+    global _ATOMS_MEM_CACHE
+    now = time.time()
+    if _ATOMS_MEM_CACHE and (now - _ATOMS_MEM_CACHE[0] < 600):
+        return _ATOMS_MEM_CACHE[1]
+    db = SessionLocal()
+    try:
+        atoms = db.query(Atom).options(joinedload(Atom.charges)).all()
+        items = []
+        for a in atoms:
+            charges_list = [f"{c.statute} Sec {c.section}" for c in a.charges] if a.charges else []
+            items.append({
+                "id": str(a.id),
+                "fir_number": a.fir_number or "",
+                "police_station": a.police_station or "N/A",
+                "fir_year": a.fir_year or "N/A",
+                "sections_registered": a.sections_registered or "N/A",
+                "charges_registered": ", ".join(charges_list) if charges_list else (a.sections_registered or "N/A"),
+                "jurisdiction": a.jurisdiction or "N/A",
+            })
+        _ATOMS_MEM_CACHE = (now, items)
+        return items
+    except Exception:
+        return []
+    finally:
+        db.close()
+
+
 def ask_legal_question(
     query: str,
     case_id: str | None = None,
@@ -77,6 +112,14 @@ def ask_legal_question(
             "grounded": False,
             "model": get_active_model_name(),
         }
+
+    # In-memory fast answer cache (instant sub-millisecond return for repeated/common queries)
+    cache_key = f"{cleaned_query.lower()}:{case_id or ''}:{court_filter or ''}:{limit_k}"
+    now = time.time()
+    if cache_key in _RAG_ANSWER_CACHE:
+        cached_time, cached_ans = _RAG_ANSWER_CACHE[cache_key]
+        if now - cached_time < _RAG_CACHE_TTL:
+            return cached_ans
 
     # 1. Handle conversational greetings and capability questions gracefully
     if CONVERSATIONAL_RE.search(cleaned_query) or cleaned_query.lower() in {
@@ -110,7 +153,7 @@ def ask_legal_question(
                 "- **Corpus Cross-Examination**: *What cases and FIR numbers are listed in the MIS report?*\n\n"
                 "Enter your legal question above to generate a fully verified, structured briefing."
             )
-        return {
+        resp = {
             "query": cleaned_query,
             "answer": conv_answer,
             "rendered_html": render_markdown_to_html(conv_answer),
@@ -119,8 +162,10 @@ def ask_legal_question(
             "model": get_active_model_name(),
             "grounded": True,
         }
+        _RAG_ANSWER_CACHE[cache_key] = (now, resp)
+        return resp
 
-    # 2. Retrieve Internal Evidence Chunks from CALIP Database
+    # 2. Retrieve Internal Evidence Chunks from CALIP Database (ultra-fast in-memory path)
     retrieved_chunks = vector_search(
         query=cleaned_query,
         top_k=limit_k,
@@ -128,25 +173,23 @@ def ask_legal_question(
         court_filter=court_filter,
     )
 
-    # 3. Retrieve Matching Atomic FIR and Case Records
-    db = SessionLocal()
+    # 3. Retrieve Matching Atomic FIR and Case Records (from memory cache without DB roundtrips)
+    fir_match = re.search(r"(\d+[/]\d+|\b\d{3,4}\b)", cleaned_query)
     atom_records = []
-    matched_cases = []
-    try:
-        fir_match = re.search(r"(\d+[/]\d+|\b\d{3,4}\b)", cleaned_query)
-        if fir_match:
-            fir_token = fir_match.group(1)
-            atom_records = db.query(Atom).options(joinedload(Atom.charges)).filter(Atom.fir_number.ilike(f"%{fir_token}%")).all()
+    if fir_match:
+        fir_token = fir_match.group(1).lower()
+        for at in get_cached_atoms_for_rag():
+            if fir_token in at["fir_number"].lower():
+                atom_records.append(at)
 
-        matched_cases = db.query(Case).filter(
-            (Case.title.ilike(f"%{cleaned_query}%"))
-            | (Case.case_number.ilike(f"%{cleaned_query}%"))
-            | (Case.court_name.ilike(f"%{cleaned_query}%"))
-            | (Case.summary.ilike(f"%{cleaned_query}%"))
-        ).limit(3).all()
-
-        # If vector chunks were sparse, supplement with case metadata
-        if not retrieved_chunks:
+    # If vector chunks were sparse, supplement with matching cases
+    if not retrieved_chunks:
+        db = SessionLocal()
+        try:
+            matched_cases = db.query(Case).filter(
+                (Case.title.ilike(f"%{cleaned_query}%"))
+                | (Case.case_number.ilike(f"%{cleaned_query}%"))
+            ).limit(3).all()
             for c in matched_cases:
                 retrieved_chunks.append({
                     "chunk_id": f"case_{c.id}",
@@ -162,13 +205,15 @@ def ask_legal_question(
                     "pdf_url": None,
                     "similarity_score": 0.85,
                 })
-    finally:
-        db.close()
+        except Exception:
+            pass
+        finally:
+            db.close()
 
-    # 4. Fetch External Verified Legal Authorities & Court Precedents
+    # 4. Fetch External Verified Legal Authorities & Court Precedents (bounded to 2s)
     external_authorities = []
     try:
-        external_authorities = fetch_verified_external_legal_context(cleaned_query)
+        external_authorities = fetch_verified_external_legal_context(cleaned_query, timeout=2.0)
     except Exception:
         external_authorities = []
 
@@ -185,12 +230,10 @@ def ask_legal_question(
         )
 
     for atom in atom_records:
-        registered_charges = [f"{c.statute} Sec {c.section}" for c in atom.charges] if atom.charges else []
-        charges_str = ", ".join(registered_charges) if registered_charges else (atom.sections_registered or "N/A")
         internal_blocks.append(
-            f"[CALIP Atomic FIR Record]\nFIR Number: {atom.fir_number}\nPolice Station: {atom.police_station or 'N/A'}\n"
-            f"Year: {atom.fir_year or 'N/A'}\nActs & Sections: {atom.sections_registered or 'N/A'}\n"
-            f"Charges Registered: {charges_str}\nJurisdiction: {atom.jurisdiction or 'N/A'}"
+            f"[CALIP Atomic FIR Record]\nFIR Number: {atom['fir_number']}\nPolice Station: {atom['police_station']}\n"
+            f"Year: {atom['fir_year']}\nActs & Sections: {atom['sections_registered']}\n"
+            f"Charges Registered: {atom['charges_registered']}\nJurisdiction: {atom['jurisdiction']}"
         )
 
     internal_str = "\n\n".join(internal_blocks) if internal_blocks else "No specific internal file excerpt located."
@@ -242,7 +285,7 @@ def ask_legal_question(
     # 8. Render HTML
     rendered_html = render_markdown_to_html(llm_answer)
 
-    return {
+    result_payload = {
         "query": cleaned_query,
         "answer": llm_answer,
         "rendered_html": rendered_html,
@@ -251,3 +294,6 @@ def ask_legal_question(
         "model": active_model if llm_answer and "Based on the available" not in llm_answer else "extractive_legal_rule",
         "grounded": True,
     }
+    _RAG_ANSWER_CACHE[cache_key] = (now, result_payload)
+    return result_payload
+
