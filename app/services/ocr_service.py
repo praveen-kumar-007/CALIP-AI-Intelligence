@@ -33,9 +33,20 @@ from app.core.config import settings
 
 # Dedicated storage directory for separated OCR & RAG text artifacts
 OCR_STORAGE_DIR = settings.OCR_STORAGE_DIR
-OCR_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
-LOCAL_OCR_DIR = settings.PROJECT_ROOT / "data" / "ocr_extracted"
-LOCAL_OCR_DIR.mkdir(parents=True, exist_ok=True)
+try:
+    OCR_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+except (OSError, PermissionError):
+    pass
+
+LOCAL_OCR_DIR = (
+    settings.TEMP_DIR / "ocr_extracted"
+    if settings.IS_SERVERLESS
+    else settings.PROJECT_ROOT / "data" / "ocr_extracted"
+)
+try:
+    LOCAL_OCR_DIR.mkdir(parents=True, exist_ok=True)
+except (OSError, PermissionError):
+    pass
 
 # Pluggable custom OCR handler registry
 _CUSTOM_OCR_HANDLER: Callable[[str, int], dict[str, Any]] | None = None
@@ -632,12 +643,12 @@ def store_extracted_ocr_separately(
     Stores extracted text and metadata separately from the raw PDF:
     1. `{document_id}.txt`: Clean, complete plain text document.
     2. `{document_id}.json`: Complete structured OCR artifact with page blocks, confidences & token counts.
-    3. `{document_id}_rag_chunks.json`: Pre-segmented semantic chunks ready for vector DB & LLM retrieval.
-    4. `{document_id}_llm_context.md`: LLM prompt-ready markdown context with explicit legal provenance.
-
     Returns a dict with paths to all separately stored files.
     """
-    OCR_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        OCR_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+    except (OSError, PermissionError):
+        pass
 
     txt_path = OCR_STORAGE_DIR / f"{document_id}.txt"
     json_path = OCR_STORAGE_DIR / f"{document_id}.json"
