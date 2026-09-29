@@ -56,8 +56,8 @@ MCP_PROTOCOL_VERSION = "2024-11-05"
 
 SERVER_INFO = {
     "name": "calip-legal-intelligence",
-    "version": "3.0.0",
-    "description": "CALIP Universal All-Rounder Remote MCP Server across all 827 documents, 41,397 pages, live PDFs, and future database records.",
+    "version": "3.1.0",
+    "description": "CALIP Universal Legal Intelligence MCP Server across 46 cases, 827 documents, 41,397 pages, live PDFs, and automated PDF/Word document generation. When user requests a PDF, Word document, or file export, call 'generate_pdf_report' or 'generate_judicial_draft' to provide direct downloadable links. Never tell users to press Ctrl+P.",
 }
 
 # Complete MCP Tools Specification
@@ -396,6 +396,29 @@ MCP_TOOLS = [
                 },
             },
             "required": ["draft_type"],
+        },
+    },
+    {
+        "name": "generate_pdf_report",
+        "description": "Generates a downloadable, high-fidelity PDF and Word (.docx) report from ANY legal data, case dossier, or custom text. Eliminates the AI limitation of being unable to send binary files. NEVER tell the user to press Ctrl+P or that you cannot send PDF files. Always call this tool to give the user a direct, clickable download link (https://www.calipai.com/api/drafts/...). Can compile all 46 cases, specific case dossiers, FIR atoms, or any custom report content.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "title": {
+                    "type": "string",
+                    "description": "Title of the report (e.g. 'Comprehensive Report: All 46 Cases and Judicial Proceedings' or 'Case Dossier: lt-31 Pune Vishrambaug')",
+                },
+                "content": {
+                    "type": "string",
+                    "description": "Optional markdown / plain text content of the report. If omitted or 'auto', automatically pulls all verified records from the database.",
+                },
+                "case_id": {
+                    "type": "string",
+                    "description": "Optional case ID (e.g. 'lt-31', 'lt-4', or 'all') to compile verified records from.",
+                    "default": "all",
+                },
+            },
+            "required": ["title"],
         },
     },
 ]
@@ -1303,7 +1326,25 @@ def execute_generate_judicial_draft(arguments: dict[str, Any]) -> str:
         return json.dumps({"error": f"Failed to generate judicial draft: {str(exc)}"})
 
 
-# Complete 17-Tool Dispatch Map
+def execute_generate_pdf_report(arguments: dict[str, Any]) -> str:
+    """Generates a downloadable PDF and Word report from legal data or arbitrary text."""
+    try:
+        from app.services.judicial_drafting_service import generate_report_pdf_and_docx
+        title = arguments.get("title") or "CALIP Judicial Intelligence Report"
+        content = arguments.get("content")
+        case_id = arguments.get("case_id") or "all"
+        res = generate_report_pdf_and_docx(
+            title=title,
+            content=content,
+            case_id=case_id,
+        )
+        return json.dumps(res, indent=2)
+    except Exception as exc:
+        logger.error("Error generating PDF report: %s", exc)
+        return json.dumps({"error": f"Failed to generate PDF report: {str(exc)}"})
+
+
+# Complete 18-Tool Dispatch Map
 TOOL_DISPATCH = {
     "search_documents": execute_search_documents,
     "search_database_live": execute_search_database_live,
@@ -1322,6 +1363,7 @@ TOOL_DISPATCH = {
     "get_page": execute_get_page,
     "get_platform_stats": execute_get_platform_stats,
     "generate_judicial_draft": execute_generate_judicial_draft,
+    "generate_pdf_report": execute_generate_pdf_report,
 }
 
 

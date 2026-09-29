@@ -1,0 +1,41 @@
+Based on the verified data retrieved from the document `doc-Documents_1779289485_pdf` on calipai.com, here is the summary of the document and its key details:
+
+### **Document Overview**
+*   **Title:** Seizure Marathi Nagpur Charge Sheet
+*   **Document Type:** Charge Sheet (specifically containing Seizure Panchnamas/Memoranda of Seizure)
+*   **Jurisdiction:** Nagpur, Maharashtra
+*   **Total Pages:** 131
+*   **OCR Status:** Completed with a 99.0% confidence score.
+
+### **Key Legal & Case Details**
+*   **Case Reference:** `lt-4`
+*   **Crime/FIR Number:** Crime No. 101/2002
+*   **Statutory Sections Involved:** Sections 406, 409, 468, and 34 of the Indian Penal Code (IPC).
+    *   *Note: These sections typically relate to criminal breach of trust, criminal breach of trust by a public servant, forgery, and common intention.*
+*   **Investigating Authority:** State CID (Crime Investigation Department), Maharashtra State, Nagpur.
+*   **Police Station Jurisdiction:** Ganeshpeth Police Station, Nagpur City.
+
+### **Seizure Details (from Pages 1–5)**
+The document details the seizure of evidence related to **unauthorized securities transactions** and high-value banking records.
+
+**1. Seizure Panchnama No. 2 (Page 1–3)**
+*   **Date & Time:** 01 May 2002 at 18:00 hrs.
+*   **Location:** Head Office, Nagpur District Central Co-operative Bank Ltd. (NDCC Bank), Gandhi Sagar, Ruikar Road, Mahal, Nagpur.
+*   **Seizing Officer:** K. B. Bele, Deputy Superintendent of Police (Dy.S.P.), State CID, Nagpur.
+*   **Produced By:** Madhukar Bhayyaji Wakhare, Age 48, Class 'B' Officer, Accounts Department, NDCC Bank Head Office.
+*   **Items Seized (13 Primary Documents):**
+    *   Fax transmission receipts and dispatch copies related to Maharashtra State Co-op Bank Ltd., Mumbai (dated March 2001).
+    *   Official requisition letters to the Managing Director of Maharashtra State Co-op Bank Ltd.
+    *   Letters and Securities Transfer Forms from **Home Trade Ltd. Mumbai** (addressed to A. N. Choudhary and S. G. Trivedi).
+    *   **Book Debt Certificates:**
+        *   No. 75 for **Rs. 5 Crore** (dated 29/03/2001).
+        *   No. 74 (Five-thousand denominations, dated 29/03/2001).
+        *   No. 73 (related to Home Trade Ltd. / The Janata Sahakari Bank Ltd. Pune).
+*   **Witnesses (Panch):**
+    1.  Hiralal Punaji Tekam (Age 47, Private Service, Nagpur).
+    2.  Nana Daulatrao Kadu (Age 51, Business, Nagpur).
+
+**2. Seizure Panchnama No. 3 (Page 4–5)**
+*   **Date:** 01 May 2002.
+*   **Location:** Same as above (NDCC Bank Head Office).
+*   **Subject Matter

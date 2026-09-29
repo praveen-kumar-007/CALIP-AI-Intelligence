@@ -215,6 +215,34 @@ def download_judicial_draft_file(filename: str):
     return FileResponse(str(file_path), media_type=media_type, filename=filename)
 
 
+@app.post("/api/export-pdf")
+def api_export_pdf(payload: dict[str, Any]):
+    """Open API endpoint to generate downloadable PDF & Word files from arbitrary legal text/content."""
+    from app.services.judicial_drafting_service import generate_report_pdf_and_docx
+    title = payload.get("title") or "CALIP Legal Intelligence Report"
+    content = payload.get("content")
+    case_id = payload.get("case_id") or "all"
+    return generate_report_pdf_and_docx(title=title, content=content, case_id=case_id)
+
+
+@app.get("/api/reports/all-cases.pdf")
+def api_download_all_cases_pdf():
+    """Direct one-click download for full report of all 46 judicial cases."""
+    from app.services.judicial_drafting_service import generate_report_pdf_and_docx, DRAFTS_DIR
+    res = generate_report_pdf_and_docx(title="Comprehensive Report: All 46 Cases and Judicial Records", case_id="all")
+    filename = Path(res["pdf_download_url"]).name
+    return FileResponse(str(DRAFTS_DIR / filename), media_type="application/pdf", filename=filename)
+
+
+@app.get("/api/reports/{case_id}.pdf")
+def api_download_case_pdf(case_id: str):
+    """Direct one-click download for specific case dossier as PDF."""
+    from app.services.judicial_drafting_service import generate_report_pdf_and_docx, DRAFTS_DIR
+    res = generate_report_pdf_and_docx(title=f"CALIP Judicial Dossier - Case {case_id.upper()}", case_id=case_id)
+    filename = Path(res["pdf_download_url"]).name
+    return FileResponse(str(DRAFTS_DIR / filename), media_type="application/pdf", filename=filename)
+
+
 # ==========================================
 # 1. REACT SPA FRONTEND PAGE ROUTES & AI GATEWAY
 # ==========================================
