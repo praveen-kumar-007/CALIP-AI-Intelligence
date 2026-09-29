@@ -121,13 +121,13 @@ MCP_TOOLS = [
     },
     {
         "name": "list_all_documents",
-        "description": "Lists all 827+ documents in the live database with pagination, title, page counts, court, and direct PDF links. Ideal for discovering new or unindexed files.",
+        "description": "Lists all documents in the live database with complete metadata, title, page counts, court, and direct PDF links. Supports unlimited retrieval (set limit to 0 or pass unlimited: true) or pagination for complete case discovery.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "case_id": {
                     "type": "string",
-                    "description": "Optional filter by case ID (e.g. 'lt-4', 'lt-21')",
+                    "description": "Optional filter by case ID (e.g. 'lt-31', 'lt-4', 'lt-21')",
                 },
                 "query": {
                     "type": "string",
@@ -135,13 +135,18 @@ MCP_TOOLS = [
                 },
                 "limit": {
                     "type": "integer",
-                    "description": "Number of documents to return (default: 25, max: 100)",
-                    "default": 25,
+                    "description": "Number of documents to return (default: 50, max: 1000). Set to 0, -1, or specify 'unlimited': true to return all documents without limit.",
+                    "default": 50,
                 },
                 "offset": {
                     "type": "integer",
                     "description": "Pagination offset (default: 0)",
                     "default": 0,
+                },
+                "unlimited": {
+                    "type": "boolean",
+                    "description": "If true, bypasses pagination limits and returns all documents matching the case/filter without restriction.",
+                    "default": False,
                 },
             },
         },
@@ -768,10 +773,24 @@ def execute_search_database_live(arguments: dict[str, Any]) -> str:
 
 
 def execute_list_all_documents(arguments: dict[str, Any]) -> str:
-    """Lists all documents in the live database with pagination."""
+    """Lists all documents in the live database with optional unlimited retrieval."""
     case_id = arguments.get("case_id")
     query = arguments.get("query", "").strip()
-    limit = min(int(arguments.get("limit", 25)), 100)
+    unlimited = arguments.get("unlimited", False)
+    raw_limit = arguments.get("limit")
+
+    # Handle unlimited requests (limit=0, limit=-1, or unlimited=True)
+    if unlimited or raw_limit in (0, -1, "0", "-1", "unlimited", "all"):
+        limit = None
+    elif raw_limit is not None:
+        try:
+            parsed = int(raw_limit)
+            limit = None if parsed <= 0 else min(parsed, 1000)
+        except (ValueError, TypeError):
+            limit = None
+    else:
+        limit = 50
+
     offset = max(int(arguments.get("offset", 0)), 0)
 
     db = SessionLocal()
@@ -783,7 +802,12 @@ def execute_list_all_documents(arguments: dict[str, Any]) -> str:
             q = q.filter(Document.title.ilike(f"%{query}%"))
 
         total_matching = q.count()
-        docs = q.offset(offset).limit(limit).all()
+        if offset and limit is not None:
+            q = q.offset(offset)
+        if limit is not None:
+            docs = q.limit(limit).all()
+        else:
+            docs = q.all()
 
         items = []
         for d in docs:
@@ -801,10 +825,12 @@ def execute_list_all_documents(arguments: dict[str, Any]) -> str:
             })
 
         return json.dumps({
+            "case_id": case_id,
             "total_documents_in_db": total_matching,
             "returned_count": len(items),
             "offset": offset,
-            "limit": limit,
+            "limit": "unlimited" if limit is None else limit,
+            "has_more": False if limit is None else (offset + len(items) < total_matching),
             "documents": items,
         }, indent=2)
     finally:
